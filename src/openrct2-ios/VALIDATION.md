@@ -24,9 +24,10 @@ an atlas, dirty regions and parallel drawing. The design is described in
 
 **Not yet verified:**
 
-- a saved park and gameplay (only the title screen was measured);
+- interactive gameplay and touch input with the new renderer (the park below
+  was measured without touching the screen);
 - the visual effect of the alignment changes;
-- physical touch interaction.
+- larger or busier parks, and zoomed-out views.
 
 The earlier Metal results further down describe the previous compute
 rasterizer.
@@ -160,6 +161,61 @@ real cost of both renderers equally.
 - `new1.trace`;
 - `baseline-timing.patch`.
 
+### iPad mini 6 saved park (2026-10-20)
+
+**Setup**
+
+- The user's save `Six Flags Belgium.park` (≈ 1,600 guests), opened at
+  startup with `OPENRCT2_IOS_OPEN_PARK`, at its saved view.
+- Same device and config as the title-screen runs, with the logical layout
+  at 755 × 453 (the UI scale had been changed).
+- The screen was not touched.
+- The baseline build is the build-7 renderer with only timing and hitch
+  logging added (`baseline-timing-hitch.patch`). The rest of the app is
+  current, including the startup option and the cursor fix below.
+
+**Cursor fix found on the way.** The UI context's cursor state started at
+(0, 0), on the screen's top-left edge. Without a touch, edge scrolling then
+moved the view from its saved position to the map corner: the cursor read
+(0, 0) and the view moved (-168, -168) per 10 frames. On iOS it now starts at
+(-1, -1).
+
+**Correctness.** `OPENRCT2_METAL_COMPARE_GPU=1` reported 4,860 consecutive
+frames (81 s) with 0 mismatching pixels.
+
+**Performance** (≥ 5 minutes each, the same save at the same view):
+
+| | Before (build-7 compute rasterizer) | After |
+| --- | --- | --- |
+| Frames / duration | 19,200 / 320 s | 18,600 / 310 s |
+| GPU per frame mean / p50 / p95 / p99 / max | 14.91 / 14.96 / 15.25 / 15.33 / 33.6 ms | **1.49 / 1.76 / 2.26 / 2.46 / 15.2 ms** |
+| fps | 59.92 | 59.94 |
+| Frame interval p50 / p95 / p99 | 16.70 / 16.91 / 17.02 ms | 16.78 / 18.17 / 18.37 ms |
+| Hitches > 25 ms | 14 (0.8 s) | 10 (0.6 s) |
+
+**Where the hitches were.**
+
+- In both builds almost all hitches fall in the first 60 frames, while the
+  park loads.
+- Each build has one ≈ 50–120 ms frame at about frame 18,050: the game's
+  five-minute autosave.
+- The new build has one more, a 28 ms drawable wait.
+
+**Notes.**
+
+- In this view about 9 % of the screen is redrawn per frame. CPU work is
+  about 5 ms per frame.
+- The new renderer needs about a tenth of the old GPU time.
+- Completion intervals vary slightly more with the new renderer (p95 18.2
+  against 16.9 ms), but no frame exceeds 25 ms outside loading and
+  autosave.
+
+**Evidence** (local, under `build/metal-rearch/device/`):
+
+- `park-new.log`, `park-old.log`, `park-cmp.session.log`;
+- `*.hitches.txt`;
+- `baseline-timing-hitch.patch`.
+
 **Expected differences from the previous renderer.** These are intentional
 alignment changes. They are not comparison mismatches, because both
 rasterizers consume the same commands:
@@ -169,11 +225,6 @@ rasterizers consume the same commands:
   is disabled, and solid rendering without hinting.
 - Outline and inset passes use threshold 0.
 
-**Still to record:**
-
-- A saved park, with `OPENRCT2_METAL_COMPARE_GPU=1` (mismatches must be 0) and
-  in normal mode over ≥ 5 minutes, compared with the build-7 renderer as on the
-  title screen above.
 
 
 ## Maintained Xcode project migration
