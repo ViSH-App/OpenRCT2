@@ -268,6 +268,14 @@ namespace OpenRCT2::Ui::Windows
 
     // clang-format off
     static constexpr StringId kWindowTitle = STR_OPTIONS_TITLE;
+#ifdef OPENRCT2_IOS
+    // Whole physical pixels per logical pixel on the iPad's 2x display (see IOS::PixelScale).
+    static constexpr float kWindowScaleStep = 0.5f;
+    static constexpr float kMinWindowScale = 1.0f;
+#else
+    static constexpr float kWindowScaleStep = 0.25f;
+    static constexpr float kMinWindowScale = 0.5f;
+#endif
     static constexpr ScreenSize kWindowSize = { 310, 332 };
 
     static constexpr auto kMainOptionsWidgets = makeWidgets(
@@ -887,15 +895,15 @@ namespace OpenRCT2::Ui::Windows
                     break;
                 }
                 case WIDX_SCALE_UP:
-                    Config::Get().general.windowScale += 0.25f;
+                    Config::Get().general.windowScale += kWindowScaleStep;
                     Config::Save();
                     GfxInvalidateScreen();
                     ContextTriggerResize();
                     ContextUpdateCursorScale();
                     break;
                 case WIDX_SCALE_DOWN:
-                    Config::Get().general.windowScale -= 0.25f;
-                    Config::Get().general.windowScale = std::max(0.5f, Config::Get().general.windowScale);
+                    Config::Get().general.windowScale -= kWindowScaleStep;
+                    Config::Get().general.windowScale = std::max(kMinWindowScale, Config::Get().general.windowScale);
                     Config::Save();
                     GfxInvalidateScreen();
                     ContextTriggerResize();

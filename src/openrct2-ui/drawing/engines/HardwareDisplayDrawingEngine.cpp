@@ -255,7 +255,7 @@ private:
                 _screenTexture, _bits, static_cast<int32_t>(_width), static_cast<int32_t>(_height), _paletteHWMapped);
         }
 #ifdef OPENRCT2_IOS
-        SDL_Rect content = IOS::DrawableRect(_window, _sdlRenderer);
+        SDL_Rect content = IOS::PresentationRect(_window, static_cast<int32_t>(_width), static_cast<int32_t>(_height));
         SDL_SetRenderDrawColor(_sdlRenderer, 0, 0, 0, 255);
         SDL_RenderClear(_sdlRenderer);
         const SDL_Rect* destination = &content;

@@ -23,6 +23,8 @@
     #include <openrct2/platform/Platform.h>
     #include <openrct2/scenes/SceneManager.h>
     #include <openrct2/ui/UiContext.h>
+    #include <algorithm>
+    #include <cmath>
     #include <cstdlib>
     #include <unistd.h>
 
@@ -370,13 +372,33 @@ namespace OpenRCT2::Ui::IOS
         return { static_cast<int>(inset.left), top, w - static_cast<int>(inset.left + inset.right),
                  h - top - static_cast<int>(inset.bottom) };
     }
-    SDL_Rect DrawableRect(SDL_Window* window, SDL_Renderer* renderer)
+    float PixelsPerPoint(SDL_Window* window)
     {
-        auto r = ContentRect(window);
-        int w, h, rw, rh;
+        int w = 0, h = 0;
         SDL_GetWindowSize(window, &w, &h);
-        SDL_GetRendererOutputSize(renderer, &rw, &rh);
-        return { r.x * rw / w, r.y * rh / h, r.w * rw / w, r.h * rh / h };
+        const auto pixels = OutputPixelSize(window);
+        return w > 0 && pixels.x > 0 ? static_cast<float>(pixels.x) / w : 1.0f;
+    }
+    int32_t PixelScale(SDL_Window* window, float windowScale)
+    {
+        // Every logical pixel is a whole number of physical pixels: interface scales are
+        // multiples of one point's pixel size (0.5 on a 2x display), at least 1.
+        const float pixelsPerPoint = PixelsPerPoint(window);
+        return std::max<int32_t>(std::lround(windowScale * pixelsPerPoint), std::max<int32_t>(std::lround(pixelsPerPoint), 1));
+    }
+    float QuantizeWindowScale(SDL_Window* window, float windowScale)
+    {
+        return PixelScale(window, windowScale) / PixelsPerPoint(window);
+    }
+    SDL_Rect PresentationRect(SDL_Window* window, int32_t logicalWidth, int32_t logicalHeight)
+    {
+        // The content origin in physical pixels and the logical canvas scaled by the pixel scale.
+        // Physical pixels left over below one logical pixel stay black at the right and bottom.
+        const auto content = ContentRect(window);
+        const float pixelsPerPoint = PixelsPerPoint(window);
+        const int32_t scale = PixelScale(window, Config::Get().general.windowScale);
+        return { static_cast<int>(std::lround(content.x * pixelsPerPoint)), static_cast<int>(std::lround(content.y * pixelsPerPoint)),
+                 logicalWidth * scale, logicalHeight * scale };
     }
     bool IsBackgrounded()
     {

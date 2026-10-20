@@ -1339,6 +1339,10 @@ public:
     {
         char scaleQualityBuffer[4];
         _scaleQuality = ScaleQuality::smoothNearestNeighbour;
+#ifdef OPENRCT2_IOS
+        // The canvas is presented at a whole number of physical pixels per logical pixel.
+        _scaleQuality = ScaleQuality::nearestNeighbour;
+#endif
         if (Config::Get().general.windowScale == std::floor(Config::Get().general.windowScale))
         {
             _scaleQuality = ScaleQuality::nearestNeighbour;
@@ -1595,6 +1599,9 @@ private:
         const auto content = IOS::ContentRect(_window);
         width = content.w;
         height = content.h;
+        // Logical pixels must be whole physical pixels (see IOS::PixelScale).
+        auto& windowScale = Config::Get().general.windowScale;
+        windowScale = IOS::QuantizeWindowScale(_window, windowScale);
 #endif
         // Scale the native window size to the game's canvas size
         _width = static_cast<int32_t>(width / Config::Get().general.windowScale);

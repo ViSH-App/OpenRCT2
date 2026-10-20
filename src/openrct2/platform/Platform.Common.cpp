@@ -193,7 +193,8 @@ namespace OpenRCT2::Platform
     float GetDefaultScale()
     {
 #ifdef OPENRCT2_IOS
-        return 1.25f;
+        // Three physical pixels per logical pixel on the iPad's 2x display.
+        return 1.5f;
 #else
         return 1;
 #endif
