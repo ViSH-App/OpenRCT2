@@ -70,13 +70,19 @@ namespace OpenRCT2::Platform
     {
         return {};
     }
+    // The launcher imports original game data here, out of sight of the Files app.
+    static std::string GameDataPath(const char* slot)
+    {
+        NSString* support = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES).firstObject;
+        return Path::Combine(support.UTF8String, "GameData", slot);
+    }
     std::vector<std::string> GetSearchablePathsRCT1()
     {
-        return {};
+        return { GameDataPath("rct1") };
     }
     std::vector<std::string> GetSearchablePathsRCT2()
     {
-        return { Path::Combine(GetFolderPath(SpecialFolder::userData), "RCT2") };
+        return { GameDataPath("rct2") };
     }
     std::string GetFontPath(const TTFFontDescriptor& font)
     {

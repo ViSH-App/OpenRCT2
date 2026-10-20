@@ -14,3 +14,5 @@ rm -rf "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/fonts"
 for folder in language scenario_patches shaders; do
     /usr/bin/ditto "$ROOT/data/$folder" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/$folder"
 done
+# Launcher sprites: OpenRCT2's own g2 artwork, recoloured with the RCT2 palette.
+/usr/bin/ditto "$ROOT/src/openrct2-ios/Launcher/Resources" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/launcher"

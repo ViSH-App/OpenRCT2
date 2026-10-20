@@ -5,6 +5,7 @@
 #ifdef OPENRCT2_IOS
     #define SDL_MAIN_HANDLED
     #include "UiContext.iOS.h"
+    #import "OpenRCT2Launcher-Swift.h"
 
     #include <SDL.h>
     #include <SDL_syswm.h>
@@ -15,6 +16,7 @@ namespace
 {
     UIWindowScene* gameScene;
     bool gameStarted = false;
+    UIWindow* launcherWindow;
     void IdleTimerChanged(void*, const char*, const char*, const char* value)
     {
         UIApplication.sharedApplication.idleTimerDisabled = value && *value != '0';
@@ -81,11 +83,23 @@ namespace OpenRCT2::Ui::IOS
     if ([scene isKindOfClass:UIWindowScene.class] && [session.role isEqualToString:UIWindowSceneSessionRoleApplication])
         gameScene = static_cast<UIWindowScene*>(scene);
 }
+- (void)showLauncher
+{
+    if (launcherWindow || gameStarted || !gameScene)
+        return;
+    launcherWindow = [ORCTLauncher makeWindowWithScene:gameScene
+                                               onStart:^{
+                                                 [self startGame];
+                                               }];
+    [launcherWindow makeKeyAndVisible];
+}
 - (void)startGame
 {
     if (gameStarted || !gameScene)
         return;
     gameStarted = true;
+    launcherWindow.hidden = YES;
+    launcherWindow = nil;
     char name[] = "OpenRCT2-iPad";
     char* arguments[] = { name, nullptr };
     // Keep OpenRCT2 on the main thread. SDL's existing UIKit event pump services
@@ -97,8 +111,9 @@ namespace OpenRCT2::Ui::IOS
     if (scene != gameScene)
         return;
     SDL_OnApplicationDidBecomeActive();
+    // The launcher decides when the game starts; it needs imported RCT2 data first.
     if (!gameStarted)
-        [self performSelector:@selector(startGame) withObject:nil afterDelay:0];
+        [self showLauncher];
 }
 - (void)sceneWillResignActive:(UIScene*)scene
 {

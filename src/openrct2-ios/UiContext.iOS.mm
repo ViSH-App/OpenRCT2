@@ -69,10 +69,6 @@ namespace
     {
         return NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
     }
-    NSString* RCT2Directory()
-    {
-        return [Documents() stringByAppendingPathComponent:@"RCT2"];
-    }
     void WaitUntil(bool (^done)())
     {
         // SDL_main and all engine calls remain on the main thread. Only pump UIKit while a modal is open.
@@ -130,99 +126,6 @@ namespace
           return delegate.done && !picker.presentingViewController;
         });
         return delegate.selected;
-    }
-    NSString* ChildIgnoringCase(NSString* directory, NSString* name)
-    {
-        for (NSString* child in [NSFileManager.defaultManager contentsOfDirectoryAtPath:directory error:nil])
-            if ([child caseInsensitiveCompare:name] == NSOrderedSame)
-                return [directory stringByAppendingPathComponent:child];
-        return nil;
-    }
-    bool ValidData(NSString* root)
-    {
-        NSString* data = ChildIgnoringCase(root, @"Data");
-        NSString* g1 = data ? ChildIgnoringCase(data, @"g1.dat") : nil;
-        if (!g1)
-            return false;
-        NSNumber* size = [NSFileManager.defaultManager attributesOfItemAtPath:g1 error:nil][NSFileSize];
-        return size && [size unsignedLongLongValue] > 1000000;
-    }
-    bool ImportRCT2()
-    {
-        NSURL* url = Pick(true);
-        if (!url)
-            return false;
-        bool access = [url startAccessingSecurityScopedResource];
-        if (!ValidData(url.path))
-        {
-            if (access)
-                [url stopAccessingSecurityScopedResource];
-            Alert(
-                @"Missing RCT2 data",
-                @"Choose the installed or unpacked RCT2 folder containing Data/g1.dat, ObjData and Scenarios. An installer "
-                @".exe or a patch alone is not sufficient.");
-            return false;
-        }
-        // Copy on a worker while UIKit keeps showing progress. Commit only a complete copy.
-        auto progress = [UIAlertController
-            alertControllerWithTitle:@"Importing RCT2"
-                             message:@"Copying your game data into this app. Please keep the app open."
-                      preferredStyle:UIAlertControllerStyleAlert];
-        [Controller() presentViewController:progress animated:YES completion:nil];
-        __block bool done = false;
-        __block NSError* failure = nil;
-        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-          auto fm = NSFileManager.defaultManager;
-          NSString* staging = [Documents()
-              stringByAppendingPathComponent:[@"RCT2-import-" stringByAppendingString:NSUUID.UUID.UUIDString]];
-          [fm createDirectoryAtPath:staging withIntermediateDirectories:YES attributes:nil error:&failure];
-          auto coordinator = [[NSFileCoordinator alloc] initWithFilePresenter:nil];
-          if (!failure)
-              [coordinator
-                  coordinateReadingItemAtURL:url
-                                     options:0
-                                       error:&failure
-                                  byAccessor:^(NSURL* source) {
-                                    for (NSString* name in @[ @"Data", @"ObjData", @"Scenarios", @"Tracks", @"Saved Games" ])
-                                    {
-                                        NSString* child = ChildIgnoringCase(source.path, name);
-                                        if (child
-                                            && ![fm copyItemAtPath:child
-                                                            toPath:[staging stringByAppendingPathComponent:name]
-                                                             error:&failure])
-                                            break;
-                                    }
-                                  }];
-          if (!failure)
-          {
-              if ([fm fileExistsAtPath:RCT2Directory()])
-                  [fm replaceItemAtURL:[NSURL fileURLWithPath:RCT2Directory()]
-                         withItemAtURL:[NSURL fileURLWithPath:staging]
-                        backupItemName:nil
-                               options:0
-                      resultingItemURL:nil
-                                 error:&failure];
-              else
-                  [fm moveItemAtPath:staging toPath:RCT2Directory() error:&failure];
-          }
-          if (failure)
-              [fm removeItemAtPath:staging error:nil];
-          dispatch_async(dispatch_get_main_queue(), ^{
-            done = true;
-          });
-        });
-        WaitUntil(^bool {
-          return done;
-        });
-        if (access)
-            [url stopAccessingSecurityScopedResource];
-        [progress dismissViewControllerAnimated:NO completion:nil];
-        WaitUntil(^bool {
-          return !progress.presentingViewController;
-        });
-        if (failure)
-            Alert(@"Import failed", failure.localizedDescription);
-        return !failure && ValidData(RCT2Directory());
     }
     std::string ImportPark()
     {
@@ -542,7 +445,9 @@ namespace OpenRCT2::Ui
         }
         std::string ShowDirectoryDialog(SDL_Window*, const std::string&) override
         {
-            return ImportRCT2() ? RCT2Directory().UTF8String : "";
+            // Game data is imported and replaced in the launcher, before the game starts.
+            Alert(@"OpenRCT2", @"Original game data is managed in the launcher. Quit the game and reopen the app to import or replace it.");
+            return {};
         }
         std::string ShowFileDialog(SDL_Window*, const FileDialogDesc& desc) override
         {
@@ -618,14 +523,6 @@ extern "C" int SDL_main(int argc, char** argv)
         bootstrapWindow.rootViewController = [UIViewController new];
         bootstrapWindow.rootViewController.view.backgroundColor = UIColor.blackColor;
         [bootstrapWindow makeKeyAndVisible];
-        while (!ValidData(RCT2Directory()))
-        {
-            Menu(
-                { "Import RCT2 folder" }, @"Welcome to OpenRCT2",
-                @"Select your own installed or unpacked RCT2 folder using Files. It must contain Data/g1.dat. The game will "
-                @"copy Data, ObjData, Scenarios, Tracks and Saved Games into this app. Your originals stay unchanged.");
-            ImportRCT2();
-        }
         bootstrapWindow.hidden = YES;
         bootstrapWindow = nil;
         // Use a writable working directory; game data is located explicitly in the bundle.
