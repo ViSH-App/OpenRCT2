@@ -30,6 +30,9 @@
 		EC42BFCF2F800886AA2CC79D /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 003E453A7FD8A4DA39EFBECE /* CoreMotion.framework */; };
 		F4FC51DCF51AFFDEBEF7FCCD /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1230E28C1EAF187C254BC4AA /* AudioToolbox.framework */; };
 		FBAEFCB2E9890BAE56D8DD94 /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 59731A7AD531B9009F0FD5F3 /* MetalShaders.metal */; };
+		6ABA18D326999C5C2788CCF3 /* MetalDrawingContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = A75D3CAB39C8D2D3AF72ACD0 /* MetalDrawingContext.mm */; };
+		27029BB0348FA3D68823CC6F /* MetalTextureCache.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0E7566F31C158FC3E6640A90 /* MetalTextureCache.mm */; };
+		DF1F1FF1C4A8B66F4C9FC80C /* MetalWeatherDrawer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 787DFD859663FF57368169A0 /* MetalWeatherDrawer.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -71,6 +74,14 @@
 		ED47E1ECF596C3071A2A23DC /* CMakeLists.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		F8BAD812D0AC0823EDD6C6FB /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		FFFED382526939223C01B9E5 /* AVFAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFAudio.framework; path = System/Library/Frameworks/AVFAudio.framework; sourceTree = SDKROOT; };
+		A75D3CAB39C8D2D3AF72ACD0 /* MetalDrawingContext.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = MetalDrawingContext.mm; sourceTree = "<group>"; };
+		0E7566F31C158FC3E6640A90 /* MetalTextureCache.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = MetalTextureCache.mm; sourceTree = "<group>"; };
+		787DFD859663FF57368169A0 /* MetalWeatherDrawer.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = MetalWeatherDrawer.mm; sourceTree = "<group>"; };
+		A160E2F8DB47D9AB62B97679 /* MetalDebugOptions.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalDebugOptions.h; sourceTree = "<group>"; };
+		F3C857353059A086183DE7F8 /* MetalDrawingContext.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalDrawingContext.h; sourceTree = "<group>"; };
+		0D786881D740B276EE49F25B /* MetalShaderTypes.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalShaderTypes.h; sourceTree = "<group>"; };
+		AF8001A0175854DC5EA53702 /* MetalTextureCache.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalTextureCache.h; sourceTree = "<group>"; };
+		F6933461214FA43D67D8C12D /* MetalWeatherDrawer.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalWeatherDrawer.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,8 +116,16 @@
 		38585D1C806C452E109E8726 /* Metal */ = {
 			isa = PBXGroup;
 			children = (
+				A160E2F8DB47D9AB62B97679 /* MetalDebugOptions.h */,
+				F3C857353059A086183DE7F8 /* MetalDrawingContext.h */,
+				A75D3CAB39C8D2D3AF72ACD0 /* MetalDrawingContext.mm */,
 				C7F6D7B142E2BCC6CDF73F96 /* MetalDrawingEngine.mm */,
+				0D786881D740B276EE49F25B /* MetalShaderTypes.h */,
 				59731A7AD531B9009F0FD5F3 /* MetalShaders.metal */,
+				AF8001A0175854DC5EA53702 /* MetalTextureCache.h */,
+				0E7566F31C158FC3E6640A90 /* MetalTextureCache.mm */,
+				F6933461214FA43D67D8C12D /* MetalWeatherDrawer.h */,
+				787DFD859663FF57368169A0 /* MetalWeatherDrawer.mm */,
 			);
 			name = Metal;
 			path = drawing/metal;
@@ -309,6 +328,9 @@
 				3D6912058417FABE41950F9D /* UiContext.iOS.mm in Sources */,
 				91443F6FD34C03B348E347A0 /* Platform.iOS.mm in Sources */,
 				686C97F876199F778034BE1C /* MetalDrawingEngine.mm in Sources */,
+				6ABA18D326999C5C2788CCF3 /* MetalDrawingContext.mm in Sources */,
+				27029BB0348FA3D68823CC6F /* MetalTextureCache.mm in Sources */,
+				DF1F1FF1C4A8B66F4C9FC80C /* MetalWeatherDrawer.mm in Sources */,
 				FBAEFCB2E9890BAE56D8DD94 /* MetalShaders.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -1,217 +1,294 @@
 // Copyright (c) 2026 OpenRCT2 developers. GPL-3.0.
 #include <metal_stdlib>
+
+#include "MetalShaderTypes.h"
+
 using namespace metal;
+using namespace OpenRCT2::Ui::Metal;
 
-// Kept scalar/aligned to 4 bytes to match MetalCommand in MetalDrawingEngine.mm.
-struct MetalCommand {
-    int left, top, right, bottom;
-    int destX, destY, sourceX, sourceY;
-    uint textureOffset, textureWidth, textureHeight, maskOffset, maskWidth;
-    int zoom;
-    uint flags, mapOffset, mapLength, colour;
-    float textScaleX, textScaleY;
-    float spriteX, spriteY;
+// The canvas holds palette indices at raster (physical pixel) resolution. Every command is
+// expressed in logical pixels; a raster pixel belongs to logical pixel samples[px].logical
+// and samples sources at samples[px].point. Both rasterizers below share these tables and
+// the per-pixel operation, so they only differ in how they find and order commands.
+
+constant int kNoWrite = -1;
+
+// Command fields that matter once coverage of a pixel is known.
+struct CommandState
+{
+    float2 origin;
+    float2 scale;
+    uint flags;
+    uint mapLength;
+    uint layer, mapRow;
+    uint2 atlas, size;
+    uint maskLayer;
+    uint2 mask, maskSize;
+    uint colour, threshold;
 };
-struct FrameSize { uint width, height, tilesAcross, tileSize, logicalWidth, logicalHeight; };
 
-// Each thread owns one destination pixel. Commands in each tile remain in painter order,
-// so palette filtering/glass/water do not need lossy RGB blending or unordered atomics.
-// Returns 0..255 for a covered source sample, or 256 for a transparent hole.
-inline uint sourceSample(MetalCommand c, float2 point, constant FrameSize& size, device const ushort* sprites) {
-    float2 local = point-float2(c.destX,c.destY);
-    if (size.width == size.logicalWidth && size.height == size.logicalHeight)
-        local = floor(point)-float2(c.destX,c.destY);
-    float2 source = c.zoom >= 0 ? float2(c.sourceX,c.sourceY)+local*float(1<<c.zoom)
-                               : (float2(c.sourceX,c.sourceY)+local)/float(1<<(-c.zoom));
-    if (c.flags & 256u) source = (point-float2(c.spriteX,c.spriteY))*c.textScaleX;
-    if (c.flags & 128u) source = local*float2(c.textScaleX,c.textScaleY);
-    int sx = int(floor(source.x)), sy = int(floor(source.y));
-    if (sx < 0 || sy < 0 || sx >= int(c.textureWidth) || sy >= int(c.textureHeight)) return 256;
-    uint sample = sprites[c.textureOffset+uint(sy)*c.textureWidth+uint(sx)];
-    if (!(sample & 256u)) return 256;
-    sample &= 255u;
-    if (c.flags & 4u) {
-        if (sx >= int(c.maskWidth) || sy >= int(c.colour)) return 256;
-        sample &= sprites[c.maskOffset+uint(sy)*c.maskWidth+uint(sx)] & 255u;
-    }
-    if ((c.flags & 8u) && sample == 0) return 256;
-    return sample;
-}
-
-kernel void drawIndexed(
-    device const MetalCommand* commands [[buffer(0)]],
-    device const uint2* ranges [[buffer(1)]],
-    device const uint* indices [[buffer(2)]],
-    device const ushort* sprites [[buffer(3)]],
-    device const uchar* maps [[buffer(4)]],
-    device uchar* pixels [[buffer(5)]],
-    constant uint* palette [[buffer(6)]],
-    constant FrameSize& size [[buffer(7)]],
-    texture2d<float, access::write> output [[texture(0)]],
-    uint2 position [[thread_position_in_grid]])
+inline CommandState stateFromCommand(DrawCommand c)
 {
-    if (position.x >= size.width || position.y >= size.height) return;
-    // Rasterize at drawable density; commands, clipping and input remain logical.
-    float2 point = (float2(position)+0.5)*float2(size.logicalWidth,size.logicalHeight)/float2(size.width,size.height);
-    const int x = int(point.x), y = int(point.y);
-    uint2 range = ranges[(uint(y) / size.tileSize) * size.tilesAcross + uint(x) / size.tileSize];
-    uint colour = 0;
-    uint first = range.x;
-    // Find the last fully opaque contribution. Everything before it is hidden.
-    // Destination palette filters and partially covered text must still be
-    // replayed in painter order after that contribution.
-    for (uint j = range.y; j > range.x; --j) {
-        MetalCommand c = commands[indices[j-1]];
-        if (x < c.left || y < c.top || x >= c.right || y >= c.bottom) continue;
-        if (c.flags & 1u) {
-            if ((c.flags & 64u) && ((x-c.destX+y-c.destY)&1) != 0) continue;
-            colour = c.colour;
-            first = j;
-            break;
-        }
-        if (c.flags & (2u|32u)) continue;
-        uint sample = sourceSample(c, point, size, sprites);
-        if (sample == 256) continue;
-        if (c.flags & 128u) {
-            if (sample == 0 || ((c.colour >> 8) != 0 && sample <= 180)) continue;
-            sample = c.colour & 255u;
-        } else if (c.flags & 16u) {
-            if (sample >= c.mapLength) continue;
-            sample = maps[c.mapOffset+sample];
-            if ((c.flags & 8u) && sample == 0) continue;
-        }
-        colour = sample;
-        first = j;
-        break;
-    }
-    for (uint i = first; i < range.y; ++i) {
-        MetalCommand c = commands[indices[i]];
-        if (x < c.left || y < c.top || x >= c.right || y >= c.bottom) continue;
-        if (c.flags & 1u) {
-            if (!(c.flags & 64u) || ((x-c.destX+y-c.destY)&1) == 0) colour = c.colour;
-            continue;
-        }
-        if (c.flags & 2u) {
-            if (colour < c.mapLength) colour = maps[c.mapOffset+colour];
-            continue;
-        }
-        uint sample = sourceSample(c, point, size, sprites);
-        if (sample == 256) continue;
-        if (c.flags & 128u) {
-            uint threshold = c.colour >> 8;
-            if (sample != 0) {
-                if (threshold == 0 || sample > 180) colour = c.colour & 255u;
-                else if (sample > threshold) colour = maps[c.mapOffset+colour];
-            }
-            continue;
-        }
-        uint index = sample;
-        if (c.flags & 32u) index = (c.flags & 16u) ? (sample-1)*256+colour : colour;
-        if (c.flags & (16u|32u)) {
-            if (index >= c.mapLength) continue;
-            sample = maps[c.mapOffset+index];
-            if ((c.flags & 8u) && sample == 0) continue;
-        }
-        colour = sample;
-    }
-    pixels[position.y*size.width+position.x] = uchar(colour);
-    uint rgba = palette[colour];
-    output.write(float4(float(rgba&255),float((rgba>>8)&255),float((rgba>>16)&255),255.0)/255.0,position);
+    CommandState s;
+    s.origin = float2(c.originX, c.originY);
+    s.scale = float2(c.scaleX, c.scaleY);
+    s.flags = c.flags;
+    s.mapLength = c.mapLength;
+    s.layer = c.layer;
+    s.mapRow = c.mapRow;
+    s.atlas = uint2(c.atlasX, c.atlasY);
+    s.size = uint2(c.width, c.height);
+    s.maskLayer = c.maskLayer;
+    s.mask = uint2(c.maskX, c.maskY);
+    s.maskSize = uint2(c.maskWidth, c.maskHeight);
+    s.colour = c.colour;
+    s.threshold = c.threshold;
+    return s;
 }
 
-// Unoptimised build-6 rasterizer, retained only for opt-in native-pixel verification.
-kernel void drawIndexedReference(
-    device const MetalCommand* commands [[buffer(0)]],
-    device const uint2* ranges [[buffer(1)]],
-    device const uint* indices [[buffer(2)]],
-    device const ushort* sprites [[buffer(3)]],
-    device const uchar* maps [[buffer(4)]],
-    device uchar* pixels [[buffer(5)]],
-    constant uint* palette [[buffer(6)]],
-    constant FrameSize& size [[buffer(7)]],
-    texture2d<float, access::write> output [[texture(0)]],
-    uint2 position [[thread_position_in_grid]])
+inline uint paletteEntry(texture2d<uint, access::read> palettes, uint row, uint index)
 {
-    if (position.x >= size.width || position.y >= size.height) return;
-    // Rasterize at drawable density; commands, clipping and input remain logical.
-    float2 point = (float2(position)+0.5)*float2(size.logicalWidth,size.logicalHeight)/float2(size.width,size.height);
-    const int x = int(point.x), y = int(point.y);
-    uint2 range = ranges[(uint(y) / size.tileSize) * size.tilesAcross + uint(x) / size.tileSize];
-    uint colour = 0;
-    for (uint i = range.x; i < range.y; ++i) {
-        MetalCommand c = commands[indices[i]];
-        if (x < c.left || y < c.top || x >= c.right || y >= c.bottom) continue;
-        if (c.flags & 1u) {
-            if (!(c.flags & 64u) || ((x-c.destX+y-c.destY)&1) == 0) colour = c.colour;
-            continue;
-        }
-        if (c.flags & 2u) {
-            if (colour < c.mapLength) colour = maps[c.mapOffset+colour];
-            continue;
-        }
-        float2 local = point-float2(c.destX,c.destY);
-        // At density 1 use the original software sample positions for comparison.
-        if (size.width == size.logicalWidth && size.height == size.logicalHeight)
-            local = floor(point)-float2(c.destX,c.destY);
-        float2 source = c.zoom >= 0 ? float2(c.sourceX,c.sourceY)+local*float(1<<c.zoom)
-                                   : (float2(c.sourceX,c.sourceY)+local)/float(1<<(-c.zoom));
-        if (c.flags & 256u) source = (point-float2(c.spriteX,c.spriteY))*c.textScaleX;
-        if (c.flags & 128u) source = local*float2(c.textScaleX,c.textScaleY);
-        int sx = int(floor(source.x)), sy = int(floor(source.y));
-        if (sx < 0 || sy < 0 || sx >= int(c.textureWidth) || sy >= int(c.textureHeight)) continue;
-        uint sample = sprites[c.textureOffset+uint(sy)*c.textureWidth+uint(sx)];
-        if (!(sample & 256u)) continue;
-        sample &= 255u;
-        if (c.flags & 4u) {
-            if (sx >= int(c.maskWidth) || sy >= int(c.colour)) continue;
-            sample &= sprites[c.maskOffset+uint(sy)*c.maskWidth+uint(sx)] & 255u;
-        }
-        if ((c.flags & 8u) && sample == 0) continue;
-        if (c.flags & 128u) {
-            uint threshold = c.colour >> 8;
-            if (sample != 0) {
-                if (threshold == 0 || sample > 180) colour = c.colour & 255u;
-                else if (sample > threshold) colour = maps[c.mapOffset+colour];
-            }
-            continue;
-        }
-        uint index = sample;
-        if (c.flags & 32u) index = (c.flags & 16u) ? (sample-1)*256+colour : colour;
-        if (c.flags & (16u|32u)) {
-            if (index >= c.mapLength) continue;
-            sample = maps[c.mapOffset+index];
-            if ((c.flags & 8u) && sample == 0) continue;
-        }
-        colour = sample;
-    }
-    pixels[position.y*size.width+position.x] = uchar(colour);
-    uint rgba = palette[colour];
-    output.write(float4(float(rgba&255),float((rgba>>8)&255),float((rgba>>16)&255),255.0)/255.0,position);
+    return palettes.read(uint2(index % kPaletteRowWidth, row + index / kPaletteRowWidth)).r;
 }
 
-struct VertexOutput { float4 position [[position]]; float2 uv; };
-vertex VertexOutput fullscreenVertex(uint index [[vertex_id]]) {
-    const float2 positions[] = {float2(-1,-1),float2(3,-1),float2(-1,3)};
-    VertexOutput out;
-    out.position = float4(positions[index],0,1);
-    out.uv = float2((positions[index].x+1)*0.5,(1-positions[index].y)*0.5);
+// Returns the new palette index for this pixel, or kNoWrite to leave it unchanged.
+// Semantics follow X8DrawingContext / BlitPixel (see MetalDrawingContext.mm).
+inline int resolvePixel(
+    thread const CommandState& c, float2 point, int2 logical, uint destination,
+    texture2d_array<ushort, access::read> atlas, texture2d<uint, access::read> palettes,
+    texture2d<uint, access::read> blend)
+{
+    const uint kind = c.flags & kCommandKindMask;
+    if (kind == kCommandFill)
+    {
+        if ((c.flags & kCommandCrossHatch) != 0 && ((logical.x - int(c.origin.x) + logical.y - int(c.origin.y)) & 1) != 0)
+            return kNoWrite;
+        return int(c.colour);
+    }
+    if (kind == kCommandFilter)
+        return destination < c.mapLength ? int(paletteEntry(palettes, c.mapRow, destination)) : kNoWrite;
+
+    const float2 source = (point - c.origin) * c.scale;
+    const int sx = int(floor(source.x));
+    const int sy = int(floor(source.y));
+    if (sx < 0 || sy < 0 || sx >= int(c.size.x) || sy >= int(c.size.y))
+        return kNoWrite;
+    const uint texel = atlas.read(c.atlas + uint2(sx, sy), c.layer).r;
+    if ((texel & kAtlasCoverage) == 0)
+        return kNoWrite;
+    uint sample = texel & kAtlasIndexMask;
+
+    if (kind == kCommandText)
+    {
+        if (sample == 0)
+            return kNoWrite;
+        if (c.threshold == 0 || sample > kTextSolidCoverage)
+            return int(c.colour);
+        if (sample > c.threshold)
+            return int(blend.read(uint2(destination, c.colour)).r);
+        return kNoWrite;
+    }
+
+    if ((c.flags & kCommandMasked) != 0)
+    {
+        if (uint(sx) >= c.maskSize.x || uint(sy) >= c.maskSize.y)
+            return kNoWrite;
+        sample &= atlas.read(c.mask + uint2(sx, sy), c.maskLayer).r & kAtlasIndexMask;
+    }
+    const bool transparent = (c.flags & kCommandTransparent) != 0;
+    if (transparent && sample == 0)
+        return kNoWrite;
+    const bool remapSource = (c.flags & kCommandRemapSource) != 0;
+    const bool remapDestination = (c.flags & kCommandRemapDestination) != 0;
+    if (!remapSource && !remapDestination)
+        return int(sample);
+    uint index = sample;
+    if (remapDestination)
+        index = remapSource ? (sample - 1) * kPaletteRowWidth + destination : destination;
+    if (index >= c.mapLength)
+        return kNoWrite;
+    sample = paletteEntry(palettes, c.mapRow, index);
+    if (transparent && sample == 0)
+        return kNoWrite;
+    return int(sample);
+}
+
+// ---------------------------------------------------------------------------------------
+// Instanced-quad rasterizer. One instance per command; the rasterizer clips exactly to the
+// command's raster rectangle and the depth test (two-pass mode) discards hidden fragments.
+
+struct RasterVertex
+{
+    float4 position [[position]];
+    float4 sampling [[flat]]; // origin.xy, scale.xy
+    uint4 source [[flat]];    // flags, mapLength, layer | mapRow << 16, atlasX | atlasY << 16
+    uint4 extra [[flat]];     // size, maskLayer | colour << 16 | threshold << 24, mask, maskSize
+};
+
+struct RasterOutput
+{
+    uint colour [[color(0)]];
+};
+
+vertex RasterVertex rasterVertex(
+    uint vertexId [[vertex_id]], uint instanceId [[instance_id]],
+    device const DrawCommand* commands [[buffer(kBufferCommands)]],
+    device const uint* order [[buffer(kBufferOrder)]],
+    device const ushort* edgesX [[buffer(kBufferEdgesX)]],
+    device const ushort* edgesY [[buffer(kBufferEdgesY)]],
+    constant FrameUniforms& frame [[buffer(kBufferUniforms)]])
+{
+    const uint index = order[instanceId];
+    const DrawCommand c = commands[index];
+    // Raster rectangle covering exactly the pixels whose logical position is inside the clip.
+    const float x = edgesX[(vertexId & 1) != 0 ? c.right : c.left];
+    const float y = edgesY[(vertexId & 2) != 0 ? c.bottom : c.top];
+    RasterVertex out;
+    out.position = float4(
+        x / float(frame.rasterWidth) * 2.0f - 1.0f, 1.0f - y / float(frame.rasterHeight) * 2.0f,
+        float(kDepthOrigin - index) * (1.0f / 16777216.0f), 1.0f);
+    out.sampling = float4(c.originX, c.originY, c.scaleX, c.scaleY);
+    out.source = uint4(c.flags, c.mapLength, uint(c.layer) | (uint(c.mapRow) << 16), uint(c.atlasX) | (uint(c.atlasY) << 16));
+    out.extra = uint4(
+        uint(c.width) | (uint(c.height) << 16), uint(c.maskLayer) | (uint(c.colour) << 16) | (uint(c.threshold) << 24),
+        uint(c.maskX) | (uint(c.maskY) << 16), uint(c.maskWidth) | (uint(c.maskHeight) << 16));
     return out;
 }
-fragment float4 presentIndexed(VertexOutput in [[stage_in]], texture2d<float> canvas [[texture(0)]],
-                              constant uint& quality [[buffer(0)]]) {
-    constexpr sampler nearestSampler(filter::nearest, address::clamp_to_edge);
-    constexpr sampler linearSampler(filter::linear, address::clamp_to_edge);
-    if (quality == 0) return canvas.sample(nearestSampler,in.uv);
-    if (quality == 1) return canvas.sample(linearSampler,in.uv);
-    float2 size = float2(canvas.get_width(),canvas.get_height());
-    float2 pixel = in.uv*size;
-    float2 footprint = max(fwidth(pixel),float2(0.0001));
-    // Keep each source pixel's interior at its texel centre. Only blend where an
-    // output pixel straddles a source-pixel boundary. Mapping the interior across
-    // [0, 1] instead makes even enlarged pixel interiors blend with neighbours.
-    float2 fraction = fract(pixel);
-    float2 snapped = clamp(fraction/footprint,0.0,0.5)
-                   + clamp((fraction-1.0)/footprint+0.5,0.0,0.5);
-    float2 uv = (floor(pixel)+snapped)/size;
-    return canvas.sample(linearSampler,uv);
+
+inline CommandState stateFromVertex(RasterVertex in)
+{
+    CommandState s;
+    s.origin = in.sampling.xy;
+    s.scale = in.sampling.zw;
+    s.flags = in.source.x;
+    s.mapLength = in.source.y;
+    s.layer = in.source.z & 0xffffu;
+    s.mapRow = in.source.z >> 16;
+    s.atlas = uint2(in.source.w & 0xffffu, in.source.w >> 16);
+    s.size = uint2(in.extra.x & 0xffffu, in.extra.x >> 16);
+    s.maskLayer = in.extra.y & 0xffffu;
+    s.colour = (in.extra.y >> 16) & 0xffu;
+    s.threshold = in.extra.y >> 24;
+    s.mask = uint2(in.extra.z & 0xffffu, in.extra.z >> 16);
+    s.maskSize = uint2(in.extra.w & 0xffffu, in.extra.w >> 16);
+    return s;
+}
+
+// Commands whose result does not depend on the destination. In two-pass mode these are
+// drawn latest-first with depth writes, so earlier commands hidden behind them never shade.
+fragment RasterOutput rasterIndependent(
+    RasterVertex in [[stage_in]], device const RasterSample* samplesX [[buffer(kBufferSamplesX)]],
+    device const RasterSample* samplesY [[buffer(kBufferSamplesY)]],
+    texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
+    texture2d<uint, access::read> palettes [[texture(kTexturePalettes)]],
+    texture2d<uint, access::read> blend [[texture(kTextureBlend)]])
+{
+    const uint2 pixel = uint2(in.position.xy);
+    const RasterSample sx = samplesX[pixel.x];
+    const RasterSample sy = samplesY[pixel.y];
+    const CommandState c = stateFromVertex(in);
+    const int colour = resolvePixel(
+        c, float2(sx.point, sy.point), int2(sx.logical, sy.logical), 0u, atlas, palettes, blend);
+    if (colour == kNoWrite)
+        discard_fragment();
+    return { uint(colour) };
+}
+
+// Commands that read the destination (palette filters, glass/water, hinted text). Apple GPUs
+// execute overlapping fragments that read the attachment in primitive order, so programmable
+// blending gives exact painter's-algorithm semantics within the render pass.
+fragment RasterOutput rasterDependent(
+    RasterVertex in [[stage_in]], uint destination [[color(0)]],
+    device const RasterSample* samplesX [[buffer(kBufferSamplesX)]],
+    device const RasterSample* samplesY [[buffer(kBufferSamplesY)]],
+    texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
+    texture2d<uint, access::read> palettes [[texture(kTexturePalettes)]],
+    texture2d<uint, access::read> blend [[texture(kTextureBlend)]])
+{
+    const uint2 pixel = uint2(in.position.xy);
+    const RasterSample sx = samplesX[pixel.x];
+    const RasterSample sy = samplesY[pixel.y];
+    const CommandState c = stateFromVertex(in);
+    const int colour = resolvePixel(
+        c, float2(sx.point, sy.point), int2(sx.logical, sy.logical), destination, atlas, palettes, blend);
+    if (colour == kNoWrite)
+        discard_fragment();
+    return { uint(colour) };
+}
+
+// ---------------------------------------------------------------------------------------
+// Presentation: palette lookup of the indexed canvas straight into the drawable.
+
+struct PresentVertex
+{
+    float4 position [[position]];
+};
+
+vertex PresentVertex presentVertex(uint vertexId [[vertex_id]])
+{
+    const float2 positions[] = { float2(-1, -1), float2(3, -1), float2(-1, 3) };
+    return { float4(positions[vertexId], 0, 1) };
+}
+
+fragment float4 presentFragment(
+    PresentVertex in [[stage_in]], texture2d<uint, access::read> canvas [[texture(kTextureCanvas)]],
+    constant uchar4* palette [[buffer(kBufferPalette)]], constant PresentUniforms& present [[buffer(kBufferUniforms)]])
+{
+    const uint2 pixel = uint2(in.position.xy) - uint2(present.offsetX, present.offsetY);
+    return float4(palette[canvas.read(pixel).r]) * (1.0f / 255.0f);
+}
+
+// ---------------------------------------------------------------------------------------
+// Reference rasterizer for OPENRCT2_METAL_COMPARE_GPU. One thread per raster pixel walks the
+// commands binned to its tile in submission order, starting from the persistent reference
+// canvas. It is deliberately simple and is never used for normal frames.
+
+kernel void referenceRasterize(
+    device const DrawCommand* commands [[buffer(kReferenceCommands)]],
+    device const RasterSample* samplesX [[buffer(kReferenceSamplesX)]],
+    device const RasterSample* samplesY [[buffer(kReferenceSamplesY)]],
+    constant FrameUniforms& frame [[buffer(kReferenceUniforms)]],
+    device const uint2* tileRanges [[buffer(kReferenceTileRanges)]],
+    device const uint* tileIndices [[buffer(kReferenceTileIndices)]],
+    constant ReferenceSegment& segment [[buffer(kReferenceSegment)]],
+    device uchar* canvas [[buffer(kReferenceCanvas)]],
+    texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
+    texture2d<uint, access::read> palettes [[texture(kTexturePalettes)]],
+    texture2d<uint, access::read> blend [[texture(kTextureBlend)]], uint2 pixel [[thread_position_in_grid]])
+{
+    if (pixel.x >= frame.rasterWidth || pixel.y >= frame.rasterHeight)
+        return;
+    const RasterSample sx = samplesX[pixel.x];
+    const RasterSample sy = samplesY[pixel.y];
+    const int2 logical = int2(sx.logical, sy.logical);
+    const float2 point = float2(sx.point, sy.point);
+    const uint2 range = tileRanges
+        [(uint(logical.y) / kReferenceTileSize) * frame.tilesAcross + uint(logical.x) / kReferenceTileSize];
+    const uint offset = pixel.y * frame.rasterWidth + pixel.x;
+    uint colour = canvas[offset];
+    for (uint i = range.x; i < range.y; ++i)
+    {
+        const uint index = tileIndices[i];
+        if (index < segment.begin || index >= segment.end)
+            continue;
+        const DrawCommand c = commands[index];
+        if (logical.x < c.left || logical.y < c.top || logical.x >= c.right || logical.y >= c.bottom)
+            continue;
+        const CommandState state = stateFromCommand(c);
+        const int result = resolvePixel(state, point, logical, colour, atlas, palettes, blend);
+        if (result != kNoWrite)
+            colour = uint(result);
+    }
+    canvas[offset] = uchar(colour);
+}
+
+// Moves a rectangle of the reference canvas through a scratch buffer (CopyRect).
+kernel void referenceCopy(
+    device const uchar* source [[buffer(0)]], device uchar* destination [[buffer(1)]],
+    constant ReferenceCopy& region [[buffer(2)]], uint2 pixel [[thread_position_in_grid]])
+{
+    if (pixel.x >= region.width || pixel.y >= region.height)
+        return;
+    destination[(region.destinationY + pixel.y) * region.stride + region.destinationX + pixel.x]
+        = source[(region.sourceY + pixel.y) * region.stride + region.sourceX + pixel.x];
 }

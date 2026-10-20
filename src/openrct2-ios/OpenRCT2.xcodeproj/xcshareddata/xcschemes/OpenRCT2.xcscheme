@@ -61,12 +61,22 @@
       </BuildableProductRunnable>
       <EnvironmentVariables>
          <EnvironmentVariable
-            key = "OPENRCT2_METAL_VALIDATE"
+            key = "OPENRCT2_METAL_COMPARE_GPU"
             value = "1"
             isEnabled = "NO">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "OPENRCT2_METAL_COMPARE_GPU"
+            key = "OPENRCT2_METAL_RASTER"
+            value = "single"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "OPENRCT2_METAL_FULL_REDRAW"
+            value = "1"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "OPENRCT2_METAL_SERIAL"
             value = "1"
             isEnabled = "NO">
          </EnvironmentVariable>
