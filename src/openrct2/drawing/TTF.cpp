@@ -83,7 +83,13 @@ static void TTFToggleHinting(bool)
     {
         TTFFontDescriptor* fontDesc = &(gCurrentTTFFontSet->size[i]);
         bool use_hinting = Config::Get().fonts.enableHinting && fontDesc->hinting_threshold;
+#ifdef OPENRCT2_IOS
+        // 0 is TTF_HINTING_NORMAL, which lets FreeType auto-hint fonts without hinting instructions and
+        // distorts pixel fonts (Shinonome's rows get doubled); 3 (TTF_HINTING_NONE) really disables hinting.
+        TTF_SetFontHinting(fontDesc->font, use_hinting ? 1 : 3);
+#else
         TTF_SetFontHinting(fontDesc->font, use_hinting ? 1 : 0);
+#endif
     }
 
     if (_ttfSurfaceCacheCount)
