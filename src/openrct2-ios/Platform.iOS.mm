@@ -54,8 +54,29 @@ namespace OpenRCT2::Platform
     {
         return false;
     }
+    // The game's first language is the launcher's, which iOS picks from the app's localizations by the
+    // user's language settings; English when none of them matches.
     uint16_t GetLocaleLanguage()
     {
+        NSString* launcher = NSBundle.mainBundle.preferredLocalizations.firstObject ?: @"en";
+        NSString* region = NSLocale.currentLocale.countryCode ?: @"";
+        std::string locale;
+        if ([launcher isEqualToString:@"zh-Hans"])
+            locale = "zh-CN";
+        else if ([launcher isEqualToString:@"zh-Hant"])
+            locale = "zh-TW";
+        else if ([launcher isEqualToString:@"en"])
+            locale = [region isEqualToString:@"US"] ? "en-US" : "en-GB";
+        else if ([launcher isEqualToString:@"fr"])
+            locale = [region isEqualToString:@"CA"] ? "fr-CA" : "fr-FR";
+        else
+            locale = [launcher componentsSeparatedByString:@"-"].firstObject.UTF8String;
+        for (uint16_t i = 1; i < LANGUAGE_COUNT; i++)
+        {
+            std::string_view candidate = LanguagesDescriptors[i].locale;
+            if (candidate == locale || (locale.size() == 2 && candidate.substr(0, 3) == locale + "-"))
+                return i;
+        }
         return LANGUAGE_ENGLISH_UK;
     }
     CurrencyType GetLocaleCurrency()
