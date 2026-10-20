@@ -548,8 +548,8 @@ private struct ImportProgressWindow: View {
     private var overall: Double {
         switch importer.step {
         case .reading: 0.02
-        case .checking: 0.05
-        case .unpacking: 0.05 + importer.progress * 0.45
+        case .unpacking: 0.02 + importer.progress * 0.46
+        case .checking: 0.48
         case .verifying: 0.5 + importer.progress * 0.45
         case .installing: 0.97
         }

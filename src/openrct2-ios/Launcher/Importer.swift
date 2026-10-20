@@ -8,12 +8,12 @@ import Foundation
 @MainActor
 final class Importer: ObservableObject {
     enum Step: Int, CaseIterable {
-        case reading, checking, unpacking, verifying, installing
+        case reading, unpacking, checking, verifying, installing
         var title: String {
             switch self {
             case .reading: String(localized: "读取文件")
-            case .checking: String(localized: "查找游戏数据")
             case .unpacking: String(localized: "解压")
+            case .checking: String(localized: "查找游戏数据")
             case .verifying: String(localized: "复制并校验")
             case .installing: String(localized: "安装到游戏目录")
             }
