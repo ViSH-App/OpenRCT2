@@ -15,7 +15,7 @@
 
 TTFontFamily const TTFFamilyChineseSimplified = {
     #ifdef OPENRCT2_IOS
-    &TTFFontNotoSansCJKsc,
+    &TTFFontFusionPixelZhHans,
     #endif
     &TTFFontSimSun,        &TTFFontHeiti, &TTFFontMicroHei, &TTFFontNotoSansCJK,
 };

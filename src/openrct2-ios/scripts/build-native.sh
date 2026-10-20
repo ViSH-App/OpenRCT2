@@ -16,7 +16,7 @@ if [[ ! -f "$ROOT/build/ios-deps/install/lib/libSDL2.a" ||
       ! -f "$ROOT/build/ios-deps/install/lib/libicudata.a" ||
       ! -f "$ROOT/build/ios-deps/install/lib/pkgconfig/freetype2.pc" ||
       ! -f "$ROOT/build/ios-data/g2.dat" ||
-      ! -f "$ROOT/build/ios-data/fonts/NotoSansCJKsc-Regular.otf" ]]; then
+      ! -f "$ROOT/build/ios-data/fonts/fusion-pixel-10px-proportional-zh_hans.otf" ]]; then
     "$ROOT/src/openrct2-ios/scripts/prepare.sh"
 fi
 # Older preparations built SDL with OpenGL ES, which the app no longer links; rebuild only SDL.

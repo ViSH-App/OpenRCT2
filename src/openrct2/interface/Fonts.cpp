@@ -27,10 +27,13 @@ uint8_t const HINTING_THRESHOLD_MEDIUM = 60;
 
 // clang-format off
 #ifdef OPENRCT2_IOS
-TTFFontSetDescriptor TTFFontNotoSansCJKsc = { {
-    { "NotoSansCJKsc-Regular.otf", "Noto Sans CJK SC", 12, 1, -3, 14, HINTING_THRESHOLD_MEDIUM, nullptr },
-    { "NotoSansCJKsc-Regular.otf", "Noto Sans CJK SC", 12, 1, -3, 14, HINTING_THRESHOLD_MEDIUM, nullptr },
-    { "NotoSansCJKsc-Regular.otf", "Noto Sans CJK SC",  9, 1, -2,  9, HINTING_THRESHOLD_MEDIUM, nullptr },
+// Fusion Pixel Font: units per em are 100 per pixel, so ptSize equals the design pixel size.
+// Hinting stays disabled so FreeType rasterises the glyphs as crisp monochrome bitmaps.
+// 10px Han glyphs are 9 rows tall, fitting inside the 10 inner rows of buttons and dropdowns.
+TTFFontSetDescriptor TTFFontFusionPixelZhHans = { {
+    { "fusion-pixel-10px-proportional-zh_hans.otf", "Fusion Pixel 10px Prop zh-Hans", 10, 1, -2, 12, HINTING_DISABLED, nullptr },
+    { "fusion-pixel-10px-proportional-zh_hans.otf", "Fusion Pixel 10px Prop zh-Hans", 10, 1, -2, 12, HINTING_DISABLED, nullptr },
+    { "fusion-pixel-8px-proportional-zh_hans.otf",  "Fusion Pixel 8px Prop zh-Hans",   8, 1, -1,  9, HINTING_DISABLED, nullptr },
 } };
 #endif
 

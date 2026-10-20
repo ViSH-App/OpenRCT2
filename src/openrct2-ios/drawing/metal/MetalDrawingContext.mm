@@ -727,7 +727,11 @@ bool DrawingContext::TryDrawTTFText(
     const bool enableHinting = Config::Get().fonts.enableHinting;
     const bool useHinting = enableHinting && fontDesc.hinting_threshold != 0;
     const auto threshold = static_cast<uint8_t>(enableHinting ? fontDesc.hinting_threshold : 0);
-    const auto pointSize = static_cast<int32_t>(std::ceil(fontDesc.ptSize * _density));
+    // Pixel fonts (no hinting threshold) need a whole-number multiple: the density is slightly above an
+    // integer (e.g. 2266 / 755), and ceil would make 12pt at 3x render at 37pt with uneven pixels.
+    const auto pointSize = fontDesc.hinting_threshold != 0
+        ? static_cast<int32_t>(std::ceil(fontDesc.ptSize * _density))
+        : fontDesc.ptSize * std::max(1, static_cast<int32_t>(std::lround(_density)));
 
     uint64_t key = HashBytes(text.data(), text.size(), HashBytes(fontDesc.filename, std::strlen(fontDesc.filename)));
     key = (HashBytes(&key, sizeof(key), (static_cast<uint64_t>(pointSize) << 1) | (useHinting ? 1 : 0)) & ~kTagMask)
