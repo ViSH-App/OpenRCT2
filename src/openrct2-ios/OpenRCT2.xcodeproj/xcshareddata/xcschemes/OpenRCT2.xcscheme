@@ -76,7 +76,7 @@
             isEnabled = "NO">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "OPENRCT2_METAL_SERIAL"
+            key = "OPENRCT2_METAL_PARALLEL"
             value = "1"
             isEnabled = "NO">
          </EnvironmentVariable>

@@ -24,76 +24,141 @@ an atlas, dirty regions and parallel drawing. The design is described in
 
 **Not yet verified:**
 
-- a saved park;
-- `OPENRCT2_METAL_COMPARE_GPU` beyond a short title-screen run (below);
+- a saved park and gameplay (only the title screen was measured);
 - the visual effect of the alignment changes;
-- the parallel-drawing CPU benefit.
+- physical touch interaction.
 
 The earlier Metal results further down describe the previous compute
 rasterizer.
 
 ### iPad mini 6 title screen (2026-10-20)
 
-Setup:
+**Setup**
 
 - Device: iPad mini 6 (A15), iPadOS 27.0.
 - Config: `drawing_engine=METAL`, `uncap_fps=true`, `use_vsync=false`,
-  `window_scale=1.75`, `multithreading=true`.
-- Raster 2266 × 1360, logical 647 × 388; density 3.5, which is not an integer,
-  so CopyRect redraws instead of blitting.
-- Installed with `xcrun devicectl`. Logs were pulled from
-  `Documents/OpenRCT2-ios.log` and HUD values read from device screenshots.
-- Each scenario ran for at least one minute (≥ 3,600 frames). The title
-  sequence is deterministic, so the same frame index shows the same scene in
-  each run.
+  `window_scale=1.75`, `multithreading=true`,
+  `random_title_sequence=false` (the `*OPENRCT2` sequence).
+- Raster 2266 × 1360, logical 647 × 388, density 3.5 (not an integer, so
+  CopyRect redraws).
+- Installed with `xcrun devicectl`. Results come from
+  `Documents/OpenRCT2-ios.log`.
 
-**Correctness.** With `OPENRCT2_METAL_COMPARE_GPU=1`, the first 120 compared
-frames had 0 mismatching pixels. This run was short. The title scenes,
-including glass, water and text, rendered correctly in screenshots.
+**Method**
 
-**Profiling.** A Metal System Trace of the first new build showed:
+The title script cycles through 13 parks on wall-clock `WAIT`s (241 s plus
+loading), and the park simulation differs between runs. Single frames,
+screenshots and individual 600-frame samples are therefore not comparable.
 
-- The raster pass's fragment work was ≈ 12.8 ms per frame. Vertex work was
-  0.6 ms and presentation 0.3 ms.
-- The GPU stayed in Instruments' "Minimum" performance state throughout.
+- Both builds log the GPU time of *every* frame (`MetalFrameTiming.h`). The
+  baseline build had only this logging added: `baseline-timing.patch`
+  against `e8e767e1c0`.
+- Both also log the wall-clock interval between frame completions.
+- Every comparison below covers a whole run of ≥ 18,000 frames, more than
+  one full title cycle (≈ 313 s).
+- "Hitches" are frame intervals over 25 ms.
 
-The new statistics showed that 128-pixel dirty blocks (about 450 raster pixels
-each) still redrew 75–92 % of the screen per frame. The animated title parks
-dirty almost every block. Quads covered 10–15 screens of raster pixels per
-frame, mostly the transparent parts of sprite bounding boxes.
+**Correctness**
 
-**Experiments** (GPU ms, average per 600 frames at frames 600 / 1200 / 1800 /
-2400 / 3000 / 3600):
+With `OPENRCT2_METAL_COMPARE_GPU=1`, every frame had **0 mismatching pixels**
+in each run:
 
-| Configuration | Redrawn area per frame | GPU |
-| --- | --- | --- |
-| Block 128, two-pass (first build) | 0.75–0.92 | 12.1 / 14.2 / 14.1 / 13.9 / 11.9 / 7.5 |
-| Block 32, two-pass | 0.39–0.58 | 7.4 / 10.0 / 10.0 / 11.7 / 7.4 / 3.1 |
-| Block 16, two-pass | 0.30–0.46 | 6.1 / 8.3 / 8.3 / 10.4 / 6.0 / 2.4 |
-| Block 16, single-pass | 0.30–0.47 | 11.1 / 12.8 / 12.8 / 13.1 / 8.7 / 3.6 |
+- the first 120 frames of the initial build;
+- 2,040 frames (63 s) after the opaque interiors were added;
+- 3,000 frames (91 s) after the band interiors were added.
 
-CPU work per frame (`cpu − drawable_wait`) was 4–10 ms for every block size.
-Two-pass depth rejection is about 35 % faster than single-pass. Block 16 and
-two-pass are now the defaults.
+Normal-mode screenshots of title scenes, including glass, water and text,
+rendered correctly. Profiling variant 3 deliberately does not.
 
-**Final comparison** (same device and config, ≥ 70 s each):
+**What limited the first build**
+
+- *Metal System Trace:* the raster pass's fragment work was ≈ 12.8 ms per
+  frame. Vertex work was 0.6 ms and presentation 0.3 ms. The GPU stayed in
+  the DVFS "Minimum" state; no performance state was induced.
+- *Dirty regions:* 128-pixel blocks (≈ 450 raster pixels) redrew 75–92 % of
+  the screen.
+  - 32-pixel blocks cut this to 0.39–0.58 screens; 16-pixel blocks to
+    0.30–0.46.
+  - Small blocks fragment the redraw into many rectangles. Hitch frames
+    painted 9–12 k commands in 13–25 ms of CPU, against 5–8 k for a whole
+    screen.
+- *Full-redraw profiling* (`OPENRCT2_METAL_FULL_REDRAW=1`, ≥ 80 s each):
+
+  | Variant | GPU mean |
+  | --- | --- |
+  | Normal | 14.59 ms |
+  | No palette remap | 14.48 ms |
+  | No raster-table reads | 14.67 ms |
+  | No discard | **3.27 ms** |
+
+  Fragments of shaders that may discard defeat hidden-surface removal, so
+  every overlapping sprite bounding box was shaded (quads cover 12 screens
+  per full frame).
+
+**Changes made from these measurements**
+
+- Opaque fills and new opaque sprite-interior bands (up to 12 per sprite)
+  are drawn with a pipeline that has no discard path. Full-frame GPU time
+  fell from 14.59 to 12.68 ms.
+- Parallel drawing is opt-in. Over a full cycle it caused 625 hitches, with
+  a median hitch-frame paint of 23.4 ms. Serial drawing caused 289 hitches,
+  with a median paint of 9.7 ms. The extra cost came from atomic tickets and
+  cache-lock contention.
+- Policies tested and rejected (full cycles):
+
+  | Policy | Hitches |
+  | --- | --- |
+  | Redraw the whole screen at ≥ 50 % dirty area or > 24 rectangles | 2,125 |
+  | Same, at ≥ 30 % area or > 40 rectangles (earlier build) | 2,637 |
+  | Re-merge on a 64-pixel grid above 16 rectangles | 492 |
+  | Re-merge on a 64-pixel grid above 32 rectangles | 1,189 |
+  | 0 interior bands per sprite | 544 |
+  | 4 interior bands per sprite | 283 |
+  | **12 interior bands per sprite (default)** | **241** |
+
+**Final comparison**
+
+Full title cycles, same device and config:
 
 | | Before (build-7 compute rasterizer) | After |
 | --- | --- | --- |
-| Log GPU time | 14.6 / 11.2 / 15.0 / 14.8 / 15.0 / 15.2 / 14.7 ms (single-frame samples every 600 frames) | 6.0 / 8.2 / 8.3 / 10.4 / 6.1 / 2.4 / 3.3 ms (600-frame averages) |
-| HUD GPU, screenshots at the same times | 14.39 / 14.89 / 14.92 / 14.67 ms | 8.86 / 11.57 / 3.02 / 3.61 ms |
-| HUD FPS | 59.99 / 59.99 / 59.99 / 58.06 | 59.99 / 60.00 / 59.50 / 59.99 |
-| Metal / app memory (HUD) | 80–97 / 316–339 MiB | 91–130 / 323–361 MiB |
+| Frames / duration | 18,600 / 313 s | 18,599 / 313 s |
+| GPU per frame mean / p50 / p95 / p99 / max | 14.81 / 14.95 / 15.28 / 16.31 / 35.1 ms | **3.70 / 2.81 / 8.77 / 10.76 / 20.8 ms** |
+| GPU frames over 16.7 ms | 0.8 % | 0.0 % |
+| fps | 59.42 | 59.38 |
+| Frame interval p50 / p95 / p99 | 16.70 / 17.04 / 19.17 ms | 16.71 / 22.16 / 25.21 ms |
+| Hitches > 25 ms | **59 (4.4 s)** | **241 (8.8 s)** |
 
-Both versions reach the 60 Hz display limit on the title screen. The new
-renderer leaves far more GPU headroom. Atlas packing costs about 30 MiB more
-GPU memory.
+The new renderer uses about a quarter of the GPU time, and the average
+frame rate is the same. **Frame pacing is still worse than the old
+renderer's.**
 
-Evidence (local, under `build/metal-rearch/device/`):
+Remaining hitches in the final configuration:
 
-- `final-old.log`, `final-new.log`, `exp-block*.log`;
-- `*-hud.png` and `*-shot*.png`;
-- `new1.trace`.
+| Cause | Count | Median |
+| --- | --- | --- |
+| Park loads at title scene changes (present in both builds) | 25 | — |
+| Heavy CPU paint | 40 | 19.6 ms, 72 rectangles |
+| GPU over 12 ms | 9 | — |
+| Frames with ≈ 9.5 ms paint plus ≈ 10.5 ms GPU, where the main loop exceeds 16.7 ms | 136 | — |
+
+The old renderer always redrew the whole screen, at a constant ≈ 15 ms GPU
+and ≈ 5–6 ms paint. The dirty-region path trades that for a much lower
+average with occasional fragmented frames. Reducing those further needs a
+cheaper multi-rectangle repaint in the core viewport code.
+
+GPU durations are measured at whatever clock DVFS chooses. At 60 Hz the
+GPU stays in its minimum state, so the absolute numbers overstate the
+real cost of both renderers equally.
+
+**Evidence** (local, under `build/metal-rearch/device/`):
+
+- logs `long2-old`, `long2-new`, `int0`, `int4`, `int12`, `polA`,
+  `polA-serial`, `polB`, `p1`, `coarse16`, `coarse32`, `prof0`–`prof3`,
+  `full-opaque`, `full-bands`, `cmp-opaque`, `cmp-bands`;
+- `*.hitches.txt`;
+- `new1.trace`;
+- `baseline-timing.patch`.
 
 **Expected differences from the previous renderer.** These are intentional
 alignment changes. They are not comparison mismatches, because both
@@ -104,14 +169,11 @@ rasterizers consume the same commands:
   is disabled, and solid rendering without hinting.
 - Outline and inset passes use threshold 0.
 
-**To record when tested:**
+**Still to record:**
 
-- Title screen and a saved park for several hundred frames with
-  `OPENRCT2_METAL_COMPARE_GPU=1`; the mismatch count must be 0.
-- The 600-frame `Metal GPU frame=` lines in normal mode, compared with the
-  build-7 figure of 11–35 ms on the iPad mini 6.
-- The same lines with `OPENRCT2_METAL_RASTER=single` and with
-  `OPENRCT2_METAL_SERIAL=1`.
+- A saved park, with `OPENRCT2_METAL_COMPARE_GPU=1` (mismatches must be 0) and
+  in normal mode over ≥ 5 minutes, compared with the build-7 renderer as on the
+  title screen above.
 
 
 ## Maintained Xcode project migration

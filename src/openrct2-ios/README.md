@@ -154,7 +154,14 @@ Sources are in `drawing/metal/`:
      moved area is redrawn. This is the case at the default 1.25 UI scale.
 4. Each command is one instance of a quad, drawn into the canvas in a single
    render pass per copy segment:
-   - **Destination-independent commands** (fills, sprites, glyphs, unhinted
+   - **Opaque commands** (plain fills, and the fully opaque interior bands that
+     follow each sprite) are drawn first, with a pipeline that has no discard
+     path, so the GPU's hidden-surface removal skips everything they hide.
+     Discarding shaders defeat hidden-surface removal; profiling showed this
+     dominated full-frame cost. An interior band is the sprite's own texels,
+     shrunk to whole logical pixels so every covered raster pixel samples
+     inside it. It therefore never changes the image.
+   - **Other destination-independent commands** (fills, sprites, glyphs, unhinted
      text) are drawn latest-first. Their depth is the command index (LESS
      test, depth writes on), so earlier commands that are hidden behind them
      are never shaded.
@@ -201,7 +208,7 @@ textures.
 
 ### Parallel drawing
 
-When multithreading is enabled, the engine reports `parallelDrawing`:
+Thread-safe parallel recording is implemented but **off by default**:
 
 - Each paint thread records into its own list, and every command takes a
   ticket from one atomic counter.
@@ -209,6 +216,11 @@ When multithreading is enabled, the engine reports `parallelDrawing`:
 - Concurrent commands come from disjoint viewport columns, so their relative
   order does not matter.
 - Cache access is serialised while parallel drawing is in use.
+
+On the iPad mini, contention on the ticket counter and the cache lock
+roughly doubled CPU paint time in heavy frames, and caused twice as many
+dropped frames as serial drawing. `OPENRCT2_METAL_PARALLEL=1` turns it on
+when multithreading is enabled.
 
 ### Developer switches
 
@@ -222,8 +234,12 @@ switch to turn it off; do not set its value to `0`.
 | `OPENRCT2_METAL_COMPARE_GPU=1` | Correctness check (see below). Waits for the GPU each frame, so it is not for performance measurements. |
 | `OPENRCT2_METAL_RASTER=single` | Draw every command in order through the framebuffer-fetch pipeline (for comparing against the two-pass default). |
 | `OPENRCT2_METAL_FULL_REDRAW=1` | Ignore dirty regions; redraw every frame. |
-| `OPENRCT2_METAL_SERIAL=1` | Do not offer parallel viewport drawing. |
+| `OPENRCT2_METAL_PARALLEL=1` | Offer parallel viewport drawing (off by default; see above). |
 | `OPENRCT2_METAL_DIRTY_BLOCK=n` | Dirty-region block size in logical pixels (16–256; default 16). |
+| `OPENRCT2_METAL_INTERIOR=n` | Opaque interior bands per sprite (default 12; 0 disables). |
+| `OPENRCT2_METAL_FULL_AREA=f`, `OPENRCT2_METAL_MAX_RECTS=n` | Redraw the whole screen when dirty regions cover at least fraction `f`, or need more than `n` rectangles (off by default; this made pacing worse). |
+| `OPENRCT2_METAL_COARSEN=n` | Re-merge dirty regions on a 64-pixel grid above `n` rectangles (off by default; this made pacing worse). |
+| `OPENRCT2_METAL_PROFILE=n` | Fragment-shader profiling variants. 3 deliberately draws a broken image. |
 
 With `OPENRCT2_METAL_COMPARE_GPU=1`, every frame is also drawn by a simple
 reference compute rasterizer:
@@ -248,6 +264,13 @@ reports:
 - the number of commands;
 - how many frames were full redraws;
 - atlas usage.
+
+`Metal frame timing` gives the GPU-time distribution (mean and
+percentiles), frame intervals, hitches over 25 ms and fps, for the last 600
+frames and for the whole run. `Metal hitch` lines describe each late frame:
+paint, waits, commands, uploads, redraw area and rectangles. The title
+sequence changes scenes on wall-clock timers, so compare renderers over whole
+title cycles (≥ 5 minutes), not individual frames or screenshots.
 
 A second line, `Metal redraw per frame`, reports the area redrawn per frame (in
 screens) by dirty blocks, by CopyRect fallbacks and by full redraws. It also
