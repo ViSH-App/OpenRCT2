@@ -1,12 +1,11 @@
 """Collect the licenses of everything the iPad app ships into <destination>/index.json and text files.
 
-Usage: collect-licenses.py <destination>
+Usage: collect-licenses.py <destination> <dependency sources> <bundled fonts>
 
 The launcher's "开源许可" page lists the entries in index.json order and shows each text file.
 Texts come from the pinned dependency sources, the bundled fonts and the repository itself.
 """
 import functools
-import importlib.util
 import json
 import pathlib
 import re
@@ -15,8 +14,9 @@ import sys
 import textwrap
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
-SOURCES = ROOT / 'build/ios-deps/sources'
-FONTS = ROOT / 'build/ios-data/fonts'
+MANIFEST = ROOT / 'src/openrct2-ios/cmake/native/dependencies.json'
+SOURCES = pathlib.Path()
+FONTS = pathlib.Path()
 THIRDPARTY = ROOT / 'src/thirdparty'
 
 MIT = """Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -64,17 +64,8 @@ def creative_commons(work, licence, url, source):
 
 
 @functools.cache
-def dependency_sources():
-    spec = importlib.util.spec_from_file_location('dependencies', pathlib.Path(__file__).with_name('fetch-dependencies.py'))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.SOURCES
-
-
 def dependency_version(name):
-    url = dependency_sources()[name][0]
-    match = re.search(r'(\d+[._-]\d+(?:[._-]\d+)*)', url.rsplit('/', 1)[-1]) or re.search(r'(\d+(?:[._-]\d+)+)', url)
-    return re.sub(r'[_-]', '.', match.group(1)) if match else ''
+    return json.loads(read(MANIFEST))[name]['version']
 
 
 def asset_version(name):
@@ -133,4 +124,5 @@ def main(destination):
 
 
 if __name__ == '__main__':
+    SOURCES, FONTS = pathlib.Path(sys.argv[2]), pathlib.Path(sys.argv[3])
     main(sys.argv[1])

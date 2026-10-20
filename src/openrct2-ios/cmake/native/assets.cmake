@@ -1,0 +1,47 @@
+# Prepares DATA_DIR, which the app's "Copy OpenRCT2 assets" phase bundles as data/.
+# Run with cmake -P; each archive is verified against its pinned checksum and only
+# re-extracted when that checksum changes.
+file(MAKE_DIRECTORY "${DATA_DIR}" "${DOWNLOADS}")
+foreach(name g2 fonts palettes tracks)
+    file(COPY_FILE "${HOST_DIR}/${name}.dat" "${DATA_DIR}/${name}.dat" ONLY_IF_DIFFERENT)
+endforeach()
+
+file(READ "${REPO_ROOT}/assets.json" manifest)
+foreach(entry "objects;object" "title-sequences;sequence" "opensfx;" "openmusic;")
+    list(GET entry 0 name)
+    list(GET entry 1 target)
+    string(JSON url GET "${manifest}" "${name}" url)
+    string(JSON sha256 GET "${manifest}" "${name}" sha256)
+    set(stamp "${DATA_DIR}/.${name}.sha256")
+    if(EXISTS "${stamp}")
+        file(READ "${stamp}" extracted)
+        if(extracted STREQUAL sha256)
+            continue()
+        endif()
+    endif()
+    set(archive "${DOWNLOADS}/${name}-${sha256}.zip")
+    if(NOT EXISTS "${archive}")
+        message(STATUS "Downloading ${url}")
+        file(DOWNLOAD "${url}" "${archive}.download" EXPECTED_HASH SHA256=${sha256} STATUS status)
+        list(GET status 0 code)
+        if(NOT code EQUAL 0)
+            message(FATAL_ERROR "Download failed: ${url}: ${status}")
+        endif()
+        file(RENAME "${archive}.download" "${archive}")
+    endif()
+    file(SHA256 "${archive}" actual)
+    if(NOT actual STREQUAL sha256)
+        message(FATAL_ERROR "Checksum mismatch: ${archive}; remove it and build again")
+    endif()
+    file(ARCHIVE_EXTRACT INPUT "${archive}" DESTINATION "${DATA_DIR}/${target}")
+    file(WRITE "${stamp}" "${sha256}")
+endforeach()
+
+foreach(name licence.txt contributors.md PRIVACY.md)
+    file(COPY_FILE "${REPO_ROOT}/${name}" "${DATA_DIR}/${name}" ONLY_IF_DIFFERENT)
+endforeach()
+file(COPY_FILE "${REPO_ROOT}/distribution/changelog.txt" "${DATA_DIR}/changelog.txt" ONLY_IF_DIFFERENT)
+
+execute_process(
+    COMMAND "${PYTHON}" "${REPO_ROOT}/src/openrct2-ios/scripts/fetch-fonts.py" "${DATA_DIR}/fonts" "${DOWNLOADS}/fonts"
+    COMMAND_ERROR_IS_FATAL ANY)

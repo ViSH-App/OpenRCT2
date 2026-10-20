@@ -1,9 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
-ASSETS="$ROOT/build/ios-data"
+# Prepared by the Native target, which the app target depends on.
+ASSETS="$ROOT/build/ios/data"
 if [[ ! -f "$ASSETS/g2.dat" || ! -f "$ASSETS/fonts/WenQuanYi.Bitmap.Song.12px.ttf" ]]; then
-    echo "Prepared iOS assets are missing; run src/openrct2-ios/scripts/prepare.sh." >&2
+    echo "Prepared iOS assets are missing from $ASSETS; build the Native target." >&2
     exit 1
 fi
 # ditto merges; drop previously bundled fonts so replaced ones do not linger in the app.
@@ -15,6 +16,7 @@ for folder in language scenario_patches shaders; do
     /usr/bin/ditto "$ROOT/data/$folder" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/$folder"
 done
 # Licenses of everything the app ships, for the launcher's license page.
-python3 "$ROOT/src/openrct2-ios/scripts/collect-licenses.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/licenses"
+python3 "$ROOT/src/openrct2-ios/scripts/collect-licenses.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/licenses" \
+    "$ROOT/build/ios/$PLATFORM_NAME/sources" "$ASSETS/fonts"
 # Launcher sprites: OpenRCT2's own g2 artwork, recoloured with the RCT2 palette.
 /usr/bin/ditto "$ROOT/src/openrct2-ios/Launcher/Resources" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/launcher"

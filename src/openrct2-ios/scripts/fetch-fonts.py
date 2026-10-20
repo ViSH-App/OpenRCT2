@@ -1,4 +1,6 @@
-"""Bundle the pinned pixel fonts and their licenses for iPad.
+"""Bundle the pinned pixel fonts and their licenses for iOS.
+
+Usage: fetch-fonts.py <destination> <download cache>
 
 WenQuanYi Bitmap Song 12px: Chinese. Shinonome 12 dot Mincho, converted from BDF: Japanese.
 Galmuri11: Korean and Vietnamese.
@@ -13,7 +15,6 @@ import urllib.request
 import venv
 import zipfile
 
-ROOT = pathlib.Path(__file__).resolve().parents[3]
 WQY_VERSION = 'v1.0.0-RC1-Build1'
 GALMURI_VERSION = 'v2.40.4'
 SHINONOME_VERSION = '0.9.11p1'
@@ -72,8 +73,7 @@ def fonttools_python(cache):
     return python
 
 
-def prepare(destination):
-    cache = ROOT / 'build/ios-font-download'
+def prepare(destination, cache):
     cache.mkdir(parents=True, exist_ok=True)
     # Cached under the file's own name, with the checksum pinning its version.
     archives = {name: fetch(url, f'{expected[:12]}-{name}', expected, cache) for name, (url, expected) in DOWNLOADS.items()}
@@ -110,4 +110,4 @@ def prepare(destination):
 
 
 if __name__ == '__main__':
-    prepare(pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'build/ios-data/fonts')
+    prepare(pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]))
