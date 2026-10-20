@@ -55,6 +55,12 @@ namespace
     // of the screen. On the iPad mini title screen 16 halved the redrawn area and GPU time
     // compared with 128, without increasing CPU time (see VALIDATION.md).
     constexpr uint32_t kDirtyBlockSize = 16;
+    // Dirty regions covering at least this fraction of the screen, or needing more rectangles,
+    // are drawn as one full-screen redraw instead.
+    constexpr float kFullRedrawArea = 2.0f;
+    constexpr int32_t kMaxDirtyRects = 1 << 30;
+    constexpr int32_t kCoarsenRects = 0;
+    constexpr uint32_t kCoarseBlockSize = 64;
     // Initial canvas contents, as X8DrawingEngine::Resize and the OpenGL engine.
     constexpr uint8_t kInitialCanvasIndex = 10;
     constexpr uint64_t kStatisticsInterval = 600;
@@ -67,6 +73,24 @@ namespace
         std::atomic<uint32_t> frames{};
         std::atomic<bool> failed{};
         FrameTiming timing;
+        // Hitch diagnostics: completion time of the previous frame and lines logged so far.
+        std::atomic<int64_t> lastCompletionNanoseconds{};
+        std::atomic<uint32_t> hitchesLogged{};
+    };
+
+    // What the CPU did for one frame, reported if the frame completes late.
+    struct FrameDiagnostics
+    {
+        uint64_t frame;
+        double loopMs;      // Since the previous BeginDraw.
+        double paintMs;     // BeginDraw to EndDraw: game paint and command recording.
+        double slotWaitMs;  // Waiting for a frame-in-flight slot.
+        double drawableMs;  // Waiting for nextDrawable.
+        double encodeMs;    // EndDraw to commit, excluding the waits.
+        size_t commands;
+        size_t uploadBytes;
+        double redrawScreens;
+        uint32_t rects;
     };
 
     // Releases the frame-in-flight slot unless ownership passed to a committed command buffer.
@@ -104,6 +128,7 @@ namespace
     struct SegmentDraw
     {
         uint32_t begin, end;
+        uint32_t opaqueOffset, opaqueCount;
         uint32_t independentOffset, independentCount;
         uint32_t dependentOffset, dependentCount;
         std::optional<CopyOperation> copy;
@@ -137,6 +162,7 @@ namespace
         CAMetalLayer* _layer;
         id<MTLDevice> _device;
         id<MTLCommandQueue> _queue;
+        id<MTLRenderPipelineState> _opaquePipeline;
         id<MTLRenderPipelineState> _independentPipeline;
         id<MTLRenderPipelineState> _dependentPipeline;
         id<MTLRenderPipelineState> _presentPipeline;
@@ -180,12 +206,23 @@ namespace
         // Statistics for the periodic log.
         std::shared_ptr<GpuStatistics> _gpuStatistics = std::make_shared<GpuStatistics>();
         std::chrono::steady_clock::time_point _beginDrawTime;
+        std::chrono::steady_clock::time_point _previousBeginDraw;
+        double _loopMilliseconds{}, _frameDrawableWait{};
+        uint64_t _frameRedrawArea{};
+        uint32_t _frameRects{};
+        uint64_t _promotedRedraws{};
+        struct DirtyRect
+        {
+            int32_t left, top, right, bottom;
+        };
+        std::vector<DirtyRect> _dirtyRects;
+        InvalidationGrid _coarseGrid;
         double _cpuMilliseconds{}, _encodeMilliseconds{}, _drawableWaitMilliseconds{};
         uint64_t _commandsRecorded{}, _framesDrawn{}, _fullRedraws{};
         // Logical pixels redrawn by dirty blocks, by CopyRect fallbacks and by full redraws, and
         // raster pixels covered by each pass's quads (fragment work before depth rejection).
         uint64_t _dirtyArea{}, _copyRedrawArea{}, _copyRedraws{}, _fullArea{};
-        uint64_t _independentPixels{}, _dependentPixels{};
+        uint64_t _opaquePixels{}, _independentPixels{}, _dependentPixels{};
 
         // OPENRCT2_METAL_COMPARE_GPU resources.
         id<MTLBuffer> _referenceCanvas;
@@ -233,9 +270,16 @@ namespace
             raster.vertexFunction = [library newFunctionWithName:@"rasterVertex"];
             raster.colorAttachments[0].pixelFormat = MTLPixelFormatR8Uint;
             raster.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-            raster.fragmentFunction = [library newFunctionWithName:@"rasterIndependent"];
+            auto constants = [MTLFunctionConstantValues new];
+            uint32_t profileMode = _debug.profileMode;
+            [constants setConstantValue:&profileMode type:MTLDataTypeUInt atIndex:0];
+            raster.fragmentFunction = [library newFunctionWithName:@"rasterIndependent" constantValues:constants error:&error];
             raster.label = @"Destination-independent commands";
             _independentPipeline = [_device newRenderPipelineStateWithDescriptor:raster error:&error];
+            raster.fragmentFunction = [library newFunctionWithName:@"rasterOpaque"];
+            raster.label = @"Opaque commands";
+            _opaquePipeline = [_device newRenderPipelineStateWithDescriptor:raster error:&error];
+            Require(_opaquePipeline != nil, "Unable to create the Metal opaque pipeline");
             raster.fragmentFunction = [library newFunctionWithName:@"rasterDependent"];
             raster.label = @"Destination-dependent commands";
             _dependentPipeline = [_device newRenderPipelineStateWithDescriptor:raster error:&error];
@@ -278,10 +322,13 @@ namespace
             _context = std::make_unique<DrawingContext>(*_textureCache);
             _weatherDrawer = std::make_unique<WeatherDrawer>(*_context);
             LOG_INFO(
-                "Metal drawing engine: %s; raster=%s; GPU comparison=%s; dirty regions=%s; block=%u", _device.name.UTF8String,
+                "Metal drawing engine: %s; raster=%s; GPU comparison=%s; dirty regions=%s; block=%u full_area=%.2f max_rects=%d profile=%u",
+                _device.name.UTF8String,
                 _debug.rasterMode == RasterMode::twoPass ? "two-pass" : "single-pass",
                 _debug.compareWithReference ? "on" : "off", _debug.fullRedraw ? "off" : "on",
-                _debug.dirtyBlockSize != 0 ? _debug.dirtyBlockSize : kDirtyBlockSize);
+                _debug.dirtyBlockSize != 0 ? _debug.dirtyBlockSize : kDirtyBlockSize,
+                _debug.fullRedrawArea >= 0 ? _debug.fullRedrawArea : kFullRedrawArea,
+                _debug.maxDirtyRects >= 0 ? _debug.maxDirtyRects : kMaxDirtyRects, _debug.profileMode);
         }
 
         void Resize(uint32_t width, uint32_t height) override
@@ -324,6 +371,11 @@ namespace
         void BeginDraw() override
         {
             _beginDrawTime = std::chrono::steady_clock::now();
+            _loopMilliseconds = Milliseconds(_beginDrawTime - _previousBeginDraw);
+            _previousBeginDraw = _beginDrawTime;
+            _frameDrawableWait = 0;
+            _frameRedrawArea = 0;
+            _frameRects = 0;
             UpdateRasterSize();
             if (_gpuStatistics->failed.exchange(false))
             {
@@ -331,7 +383,9 @@ namespace
                 _forceFullRedraw = true;
             }
             ++_frame;
-            _parallelThisFrame = !_debug.serialDrawing && Config::Get().general.multiThreading;
+            // Parallel column drawing is opt-in: on the iPad mini it doubled CPU time in heavy
+            // frames (ticket and cache contention) and dropped more frames than serial drawing.
+            _parallelThisFrame = _debug.parallelDrawing && Config::Get().general.multiThreading;
             _textureCache->BeginFrame(_frame);
             _weatherDrawer->BeginFrame();
             _context->BeginFrame(_parallelThisFrame);
@@ -351,6 +405,7 @@ namespace
                 _forceFullRedraw = false;
                 ++_fullRedraws;
                 _fullArea += static_cast<uint64_t>(_rt.width) * _rt.height;
+                _frameRedrawArea += static_cast<uint64_t>(_rt.width) * _rt.height;
             }
             else
             {
@@ -394,6 +449,7 @@ namespace
                 WindowDrawAll(_rt, x, y, x + width, y + height);
                 ++_copyRedraws;
                 _copyRedrawArea += static_cast<uint64_t>(width) * height;
+                _frameRedrawArea += static_cast<uint64_t>(width) * height;
             }
         }
 
@@ -442,10 +498,50 @@ namespace
     private:
         void DrawAllDirtyBlocks()
         {
-            _invalidationGrid.traverseDirtyCells([this](int32_t left, int32_t top, int32_t right, int32_t bottom) {
-                _dirtyArea += static_cast<uint64_t>(right - left) * (bottom - top);
-                WindowDrawAll(_rt, left, top, right, bottom);
+            _dirtyRects.clear();
+            uint64_t area = 0;
+            _invalidationGrid.traverseDirtyCells([this, &area](int32_t left, int32_t top, int32_t right, int32_t bottom) {
+                _dirtyRects.push_back({ left, top, right, bottom });
+                area += static_cast<uint64_t>(right - left) * (bottom - top);
             });
+            if (_dirtyRects.empty())
+                return;
+            // Every rectangle repeats the viewport's paint setup and records the sprites that
+            // cross it again, so many or large dirty regions cost more CPU than one redraw.
+            const uint64_t screen = static_cast<uint64_t>(_rt.width) * _rt.height;
+            const float fullArea = _debug.fullRedrawArea >= 0 ? _debug.fullRedrawArea : kFullRedrawArea;
+            const int32_t maxRects = _debug.maxDirtyRects >= 0 ? _debug.maxDirtyRects : kMaxDirtyRects;
+            // Many small rectangles: merge them on a coarser grid, trading some extra area for far
+            // fewer repeated paint passes over the same sprites.
+            const int32_t coarsen = _debug.coarsenRects >= 0 ? _debug.coarsenRects : kCoarsenRects;
+            if (coarsen > 0 && static_cast<int32_t>(_dirtyRects.size()) > coarsen)
+            {
+                _coarseGrid.reset(_rt.width, _rt.height, kCoarseBlockSize, kCoarseBlockSize);
+                for (const auto& rect : _dirtyRects)
+                    _coarseGrid.invalidate(rect.left, rect.top, rect.right, rect.bottom);
+                _dirtyRects.clear();
+                area = 0;
+                _coarseGrid.traverseDirtyCells([this, &area](int32_t left, int32_t top, int32_t right, int32_t bottom) {
+                    _dirtyRects.push_back({ left, top, right, bottom });
+                    area += static_cast<uint64_t>(right - left) * (bottom - top);
+                });
+            }
+            if (area >= fullArea * screen || static_cast<int32_t>(_dirtyRects.size()) > maxRects)
+            {
+                ++_promotedRedraws;
+                _fullArea += screen;
+                _frameRedrawArea += screen;
+                ++_frameRects;
+                WindowDrawAll(_rt, 0, 0, _rt.width, _rt.height);
+                return;
+            }
+            for (const auto& rect : _dirtyRects)
+            {
+                _dirtyArea += static_cast<uint64_t>(rect.right - rect.left) * (rect.bottom - rect.top);
+                _frameRedrawArea += static_cast<uint64_t>(rect.right - rect.left) * (rect.bottom - rect.top);
+                ++_frameRects;
+                WindowDrawAll(_rt, rect.left, rect.top, rect.right, rect.bottom);
+            }
         }
 
         void UpdateRasterSize();
@@ -576,7 +672,10 @@ namespace
         for (const auto& c : frame.commands)
         {
             const uint64_t area = static_cast<uint64_t>(edgesX[c.right] - edgesX[c.left]) * (edgesY[c.bottom] - edgesY[c.top]);
-            ((c.flags & kCommandReadsDestination) != 0 ? _dependentPixels : _independentPixels) += area;
+            ((c.flags & kCommandReadsDestination) != 0 ? _dependentPixels
+                 : (c.flags & kCommandOpaque) != 0     ? _opaquePixels
+                                                       : _independentPixels)
+                += area;
         }
         _segmentDraws.clear();
         uint32_t begin = 0;
@@ -584,11 +683,18 @@ namespace
         {
             SegmentDraw draw{ begin, segment.end };
             draw.copy = segment.copy;
-            draw.independentOffset = static_cast<uint32_t>(_order.size());
+            draw.opaqueOffset = static_cast<uint32_t>(_order.size());
             if (_debug.rasterMode == RasterMode::twoPass)
             {
+                // Opaque commands first (hidden-surface removal makes their order irrelevant),
+                // then commands that may discard, latest first, then the dependent ones in order.
                 for (uint32_t i = segment.end; i > begin; --i)
-                    if ((frame.commands[i - 1].flags & kCommandReadsDestination) == 0)
+                    if ((frame.commands[i - 1].flags & kCommandOpaque) != 0)
+                        _order.push_back(i - 1);
+                draw.opaqueCount = static_cast<uint32_t>(_order.size()) - draw.opaqueOffset;
+                draw.independentOffset = static_cast<uint32_t>(_order.size());
+                for (uint32_t i = segment.end; i > begin; --i)
+                    if ((frame.commands[i - 1].flags & (kCommandReadsDestination | kCommandOpaque)) == 0)
                         _order.push_back(i - 1);
                 draw.independentCount = static_cast<uint32_t>(_order.size()) - draw.independentOffset;
                 draw.dependentOffset = static_cast<uint32_t>(_order.size());
@@ -598,7 +704,8 @@ namespace
             }
             else
             {
-                draw.dependentOffset = draw.independentOffset;
+                draw.independentOffset = draw.opaqueOffset;
+                draw.dependentOffset = draw.opaqueOffset;
                 for (uint32_t i = begin; i < segment.end; ++i)
                     _order.push_back(i);
             }
@@ -611,7 +718,7 @@ namespace
     void MetalDrawingEngine::EncodeSegment(
         id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms)
     {
-        if (segment.independentCount == 0 && segment.dependentCount == 0 && !_canvasNeedsClear)
+        if (segment.opaqueCount == 0 && segment.independentCount == 0 && segment.dependentCount == 0 && !_canvasNeedsClear)
             return;
         auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
         pass.colorAttachments[0].texture = _canvas;
@@ -632,10 +739,18 @@ namespace
         [encoder setVertexBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
         [encoder setFragmentBuffer:_rasterMap offset:0 atIndex:kBufferSamplesX];
         [encoder setFragmentBuffer:_rasterMap offset:_samplesYOffset atIndex:kBufferSamplesY];
+        [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
         [encoder setFragmentTexture:_textureCache->GetAtlas() atIndex:kTextureAtlas];
         [encoder setFragmentTexture:_textureCache->GetPalettes() atIndex:kTexturePalettes];
         [encoder setFragmentTexture:_textureCache->GetBlend() atIndex:kTextureBlend];
         const bool twoPass = _debug.rasterMode == RasterMode::twoPass;
+        if (segment.opaqueCount != 0)
+        {
+            [encoder setRenderPipelineState:_opaquePipeline];
+            [encoder setDepthStencilState:_depthWrite];
+            [encoder setVertexBuffer:slot.order offset:segment.opaqueOffset * sizeof(uint32_t) atIndex:kBufferOrder];
+            [encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:segment.opaqueCount];
+        }
         if (segment.independentCount != 0)
         {
             [encoder setRenderPipelineState:_independentPipeline];
@@ -699,7 +814,8 @@ namespace
     {
         const auto waitStart = std::chrono::steady_clock::now();
         id<CAMetalDrawable> drawable = [_layer nextDrawable];
-        _drawableWaitMilliseconds += Milliseconds(std::chrono::steady_clock::now() - waitStart);
+        _frameDrawableWait = Milliseconds(std::chrono::steady_clock::now() - waitStart);
+        _drawableWaitMilliseconds += _frameDrawableWait;
         if (drawable == nil)
             return;
         auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
@@ -884,6 +1000,8 @@ namespace
         @autoreleasepool
         {
             InflightSlot inflight(_inflight);
+            const double slotWait = Milliseconds(std::chrono::steady_clock::now() - encodeStart);
+            const size_t uploadBytes = _textureCache->GetPendingUploadBytes();
             auto& slot = _slots[_frame % kFramesInFlight];
             const size_t commandCount = frame.commands.size();
             BuildOrder(frame);
@@ -921,6 +1039,18 @@ namespace
 
             const auto statistics = _gpuStatistics;
             dispatch_semaphore_t semaphore = _inflight;
+            const FrameDiagnostics diagnostics{
+                _frame,
+                _loopMilliseconds,
+                Milliseconds(encodeStart - _beginDrawTime),
+                slotWait,
+                _frameDrawableWait,
+                Milliseconds(std::chrono::steady_clock::now() - encodeStart) - slotWait - _frameDrawableWait,
+                commandCount,
+                uploadBytes,
+                static_cast<double>(_frameRedrawArea) / (static_cast<double>(_rt.width) * _rt.height),
+                _frameRects,
+            };
             [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> completed) {
               if (completed.status == MTLCommandBufferStatusError)
               {
@@ -937,6 +1067,19 @@ namespace
                   }
                   ++statistics->frames;
                   statistics->timing.AddGpuFrame(microseconds / 1000.0);
+                  const auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                       std::chrono::steady_clock::now().time_since_epoch())
+                                       .count();
+                  const auto previousCompletion = statistics->lastCompletionNanoseconds.exchange(now);
+                  const double interval = previousCompletion != 0 ? (now - previousCompletion) / 1e6 : 0.0;
+                  if (interval > 25.0 && statistics->hitchesLogged.fetch_add(1) < 400)
+                      LOG_INFO(
+                          "Metal hitch frame=%llu interval=%.1fms gpu=%.2fms loop=%.1fms paint=%.1fms slot_wait=%.1fms "
+                          "drawable_wait=%.1fms encode=%.1fms commands=%zu upload=%zuKiB redraw=%.2f rects=%u",
+                          static_cast<unsigned long long>(diagnostics.frame), interval, microseconds / 1000.0,
+                          diagnostics.loopMs, diagnostics.paintMs, diagnostics.slotWaitMs, diagnostics.drawableMs,
+                          diagnostics.encodeMs, diagnostics.commands, diagnostics.uploadBytes / 1024,
+                          diagnostics.redrawScreens, diagnostics.rects);
               }
               dispatch_semaphore_signal(semaphore);
             }];
@@ -974,13 +1117,16 @@ namespace
         const double rasterPixels = static_cast<double>(_rasterWidth) * _rasterHeight;
         const double logicalPixels = static_cast<double>(_rt.width) * _rt.height;
         LOG_INFO(
-            "Metal redraw per frame: dirty=%.2f copy_redraw=%.2f (%.1f calls) full=%.2f screens; quad coverage independent=%.2f "
-            "dependent=%.2f screens",
+            "Metal redraw per frame: dirty=%.2f copy_redraw=%.2f (%.1f calls) full=%.2f screens (%.2f promoted); quad coverage "
+            "opaque=%.2f independent=%.2f dependent=%.2f screens",
             _dirtyArea / logicalPixels / drawn, _copyRedrawArea / logicalPixels / drawn,
             static_cast<double>(_copyRedraws) / drawn, _fullArea / logicalPixels / drawn,
-            _independentPixels / rasterPixels / drawn, _dependentPixels / rasterPixels / drawn);
+            static_cast<double>(_promotedRedraws) / drawn,
+            _opaquePixels / rasterPixels / drawn, _independentPixels / rasterPixels / drawn,
+            _dependentPixels / rasterPixels / drawn);
         LOG_INFO("Metal frame timing (GPU ms) %s", _gpuStatistics->timing.Summarise().c_str());
-        _dirtyArea = _copyRedrawArea = _copyRedraws = _fullArea = _independentPixels = _dependentPixels = 0;
+        _dirtyArea = _copyRedrawArea = _copyRedraws = _fullArea = _opaquePixels = _independentPixels = _dependentPixels = 0;
+        _promotedRedraws = 0;
         _cpuMilliseconds = 0;
         _encodeMilliseconds = 0;
         _drawableWaitMilliseconds = 0;

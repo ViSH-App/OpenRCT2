@@ -29,15 +29,28 @@ namespace OpenRCT2::Ui::Metal
     //                                    rasterizer and compare indices pixel by pixel.
     //   OPENRCT2_METAL_RASTER=single     Use RasterMode::singlePass.
     //   OPENRCT2_METAL_FULL_REDRAW=1     Ignore dirty regions; redraw every frame.
-    //   OPENRCT2_METAL_SERIAL=1          Do not offer parallel viewport drawing.
+    //   OPENRCT2_METAL_PARALLEL=1        Offer parallel viewport drawing (slower on the iPad mini
+    //                                    measurements; see VALIDATION.md).
+    //   OPENRCT2_METAL_INTERIOR=n        Opaque interior rectangles per sprite (0 disables).
+    //   OPENRCT2_METAL_COARSEN=n         Re-merge dirty regions on a 64-pixel grid when they
+    //                                    need more than n rectangles (0 never).
     //   OPENRCT2_METAL_DIRTY_BLOCK=n     Dirty-region block size in logical pixels (16-256).
+    //   OPENRCT2_METAL_FULL_AREA=f       Redraw the whole screen instead when dirty regions cover
+    //                                    at least this fraction of it (0-1).
+    //   OPENRCT2_METAL_MAX_RECTS=n       ... or when they need more than n rectangles.
+    //   OPENRCT2_METAL_PROFILE=n         Fragment-shader profiling variant (see MetalShaders.metal).
     struct DebugOptions
     {
         bool compareWithReference{};
         RasterMode rasterMode{ RasterMode::twoPass };
         bool fullRedraw{};
-        bool serialDrawing{};
+        bool parallelDrawing{};
+        int32_t interiorRects{ -1 };
+        int32_t coarsenRects{ -1 };
         uint32_t dirtyBlockSize{};
+        float fullRedrawArea{ -1.0f };
+        int32_t maxDirtyRects{ -1 };
+        uint32_t profileMode{};
 
         static const DebugOptions& Get()
         {
@@ -48,9 +61,19 @@ namespace OpenRCT2::Ui::Metal
                 if (raster != nullptr && std::strcmp(raster, "single") == 0)
                     result.rasterMode = RasterMode::singlePass;
                 result.fullRedraw = std::getenv("OPENRCT2_METAL_FULL_REDRAW") != nullptr;
-                result.serialDrawing = std::getenv("OPENRCT2_METAL_SERIAL") != nullptr;
+                result.parallelDrawing = std::getenv("OPENRCT2_METAL_PARALLEL") != nullptr;
+                if (const char* coarsen = std::getenv("OPENRCT2_METAL_COARSEN"))
+                    result.coarsenRects = static_cast<int32_t>(std::strtol(coarsen, nullptr, 10));
+                if (const char* interior = std::getenv("OPENRCT2_METAL_INTERIOR"))
+                    result.interiorRects = static_cast<int32_t>(std::strtol(interior, nullptr, 10));
                 if (const char* block = std::getenv("OPENRCT2_METAL_DIRTY_BLOCK"))
                     result.dirtyBlockSize = static_cast<uint32_t>(std::strtoul(block, nullptr, 10));
+                if (const char* area = std::getenv("OPENRCT2_METAL_FULL_AREA"))
+                    result.fullRedrawArea = std::strtof(area, nullptr);
+                if (const char* profile = std::getenv("OPENRCT2_METAL_PROFILE"))
+                    result.profileMode = static_cast<uint32_t>(std::strtoul(profile, nullptr, 10));
+                if (const char* rects = std::getenv("OPENRCT2_METAL_MAX_RECTS"))
+                    result.maxDirtyRects = static_cast<int32_t>(std::strtol(rects, nullptr, 10));
                 return result;
             }();
             return options;

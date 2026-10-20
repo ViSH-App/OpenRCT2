@@ -174,9 +174,55 @@ inline CommandState stateFromVertex(RasterVertex in)
     return s;
 }
 
+// Profiling variants (OPENRCT2_METAL_PROFILE): 1 skips palette remaps, 2 computes the sample
+// point arithmetically instead of reading the raster tables, 3 never discards. Only for
+// measuring where full-frame time goes; 2 and 3 do not produce correct images.
+constant uint kProfileModeConstant [[function_constant(0)]];
+constant uint kProfileMode = is_function_constant_defined(kProfileModeConstant) ? kProfileModeConstant : 0;
+
 // Commands whose result does not depend on the destination. In two-pass mode these are
 // drawn latest-first with depth writes, so earlier commands hidden behind them never shade.
 fragment RasterOutput rasterIndependent(
+    RasterVertex in [[stage_in]], device const RasterSample* samplesX [[buffer(kBufferSamplesX)]],
+    device const RasterSample* samplesY [[buffer(kBufferSamplesY)]],
+    texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
+    texture2d<uint, access::read> palettes [[texture(kTexturePalettes)]],
+    texture2d<uint, access::read> blend [[texture(kTextureBlend)]],
+    constant FrameUniforms& frame [[buffer(kBufferUniforms)]])
+{
+    const uint2 pixel = uint2(in.position.xy);
+    CommandState c = stateFromVertex(in);
+    float2 point;
+    int2 logical;
+    if (kProfileMode == 2)
+    {
+        point = (float2(pixel) + 0.5f) * float2(frame.logicalWidth, frame.logicalHeight)
+            / float2(frame.rasterWidth, frame.rasterHeight);
+        logical = int2(point);
+    }
+    else
+    {
+        const RasterSample sx = samplesX[pixel.x];
+        const RasterSample sy = samplesY[pixel.y];
+        point = float2(sx.point, sy.point);
+        logical = int2(sx.logical, sy.logical);
+    }
+    if (kProfileMode == 1)
+        c.flags &= ~(kCommandRemapSource | kCommandRemapDestination);
+    const int colour = resolvePixel(c, point, logical, 0u, atlas, palettes, blend);
+    if (colour == kNoWrite)
+    {
+        if (kProfileMode == 3)
+            return { 0u };
+        discard_fragment();
+    }
+    return { uint(colour) };
+}
+
+// Commands that write every pixel they cover (kCommandOpaque: plain fills and the opaque
+// interiors of sprites). Without a discard path the GPU's hidden-surface removal can skip
+// everything they hide before it is shaded.
+fragment RasterOutput rasterOpaque(
     RasterVertex in [[stage_in]], device const RasterSample* samplesX [[buffer(kBufferSamplesX)]],
     device const RasterSample* samplesY [[buffer(kBufferSamplesY)]],
     texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
@@ -189,9 +235,7 @@ fragment RasterOutput rasterIndependent(
     const CommandState c = stateFromVertex(in);
     const int colour = resolvePixel(
         c, float2(sx.point, sy.point), int2(sx.logical, sy.logical), 0u, atlas, palettes, blend);
-    if (colour == kNoWrite)
-        discard_fragment();
-    return { uint(colour) };
+    return { uint(max(colour, 0)) };
 }
 
 // Commands that read the destination (palette filters, glass/water, hinted text). Apple GPUs

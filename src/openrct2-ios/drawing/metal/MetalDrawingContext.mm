@@ -6,6 +6,7 @@
 
     #include "MetalDrawingContext.h"
 
+    #include "MetalDebugOptions.h"
     #include "MetalTextureCache.h"
 
     #include <algorithm>
@@ -40,6 +41,9 @@ namespace
     constexpr uint32_t kKeySecondaryRemap = 1u << 24;
     constexpr uint32_t kKeySolidColour = 2u << 24;
     constexpr size_t kMaxRetinaFaces = 8;
+    // Opaque interior rectangles emitted per sprite, and their minimum logical area.
+    constexpr int32_t kMaxInteriorRects = 12;
+    constexpr int32_t kMinInteriorArea = 24;
     // Length of each colour's remap range (Drawing.Sprite.cpp kPaletteLengthRemap).
     constexpr size_t kPaletteLengthRemap = 12;
 
@@ -178,19 +182,19 @@ std::unique_lock<std::mutex> DrawingContext::LockCache()
     return _threadSafe ? std::unique_lock<std::mutex>(_textureCache.GetMutex()) : std::unique_lock<std::mutex>();
 }
 
-void DrawingContext::Push(const RenderTarget& rt, DrawCommand command)
+bool DrawingContext::Push(const RenderTarget& rt, DrawCommand command)
 {
     // command.left..bottom arrive unclipped in int16 range; clip to the target and canvas.
     const auto offset = rt.bits - _mainRT.bits;
     if (offset < 0 || offset >= static_cast<ptrdiff_t>(_mainRT.width) * _mainRT.height)
-        return;
+        return false;
     const auto origin = Origin(rt);
     const int32_t left = std::max<int32_t>({ command.left, origin.x, 0 });
     const int32_t top = std::max<int32_t>({ command.top, origin.y, 0 });
     const int32_t right = std::min<int32_t>({ command.right, origin.x + rt.width, _mainRT.width });
     const int32_t bottom = std::min<int32_t>({ command.bottom, origin.y + rt.height, _mainRT.height });
     if (left >= right || top >= bottom)
-        return;
+        return false;
     command.left = static_cast<int16_t>(left);
     command.top = static_cast<int16_t>(top);
     command.right = static_cast<int16_t>(right);
@@ -200,10 +204,13 @@ void DrawingContext::Push(const RenderTarget& rt, DrawCommand command)
     if (kind == kCommandFilter || (kind == kCommandSprite && (command.flags & kCommandRemapDestination) != 0)
         || (kind == kCommandText && command.threshold != 0))
         command.flags |= kCommandReadsDestination;
+    else if (kind == kCommandFill && (command.flags & kCommandCrossHatch) == 0)
+        command.flags |= kCommandOpaque;
 
     auto& list = LocalList();
     list.commands.push_back(command);
     list.tickets.push_back(_ticket.fetch_add(1, std::memory_order_relaxed));
+    return true;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -386,6 +393,7 @@ DrawingContext::RemapInfo DrawingContext::RemapForImage(ImageId image)
         return { 0xFFFFFFFFu };
     remap.row = row->row;
     remap.length = row->length;
+    remap.zeroFree = row->zeroFree;
     return remap;
 }
 
@@ -414,9 +422,10 @@ void DrawingContext::DrawImage(RenderTarget& rt, ImageId image, const ScreenCoor
         return;
 
     AtlasRegion region;
+    ImageInterior interior;
     {
         auto lock = LockCache();
-        region = _textureCache.GetImage(index);
+        region = _textureCache.GetImage(index, &interior);
     }
     if (!region.IsValid())
         return;
@@ -445,7 +454,41 @@ void DrawingContext::DrawImage(RenderTarget& rt, ImageId image, const ScreenCoor
         c.flags |= kCommandTransparent;
     c.mapRow = remap.row;
     c.mapLength = remap.length;
-    Push(rt, c);
+    if (!Push(rt, c))
+        return;
+
+    // Fully opaque interior rectangles follow the sprite as separate commands drawn without
+    // discard. They write exactly the texels the sprite writes there, so the image is
+    // unchanged; the sprite itself is then depth-rejected inside them and only shades its
+    // edges. Each rectangle is shrunk to whole logical pixels such that every raster pixel it
+    // covers samples a texel inside the rectangle: positions are multiples of 1/8 logical pixel
+    // and float rounding is monotonic, so ceil() suffices at the left/top edge, while the
+    // right/bottom edge must stay strictly inside.
+    if ((remap.flags & kCommandRemapDestination) != 0 || ((remap.flags & kCommandRemapSource) != 0 && !remap.zeroFree))
+        return;
+    auto innerEnd = [](double edge) {
+        const double whole = std::floor(edge);
+        return static_cast<int32_t>(whole == edge ? whole - 1 : whole);
+    };
+    const auto maxRects = DebugOptions::Get().interiorRects >= 0 ? DebugOptions::Get().interiorRects : kMaxInteriorRects;
+    for (int32_t i = 0; i < std::min<int32_t>(interior.count, maxRects); ++i)
+    {
+        const auto& rect = interior.rects[i];
+        const auto left = static_cast<int32_t>(std::ceil(static_cast<double>(c.originX) + rect.x0 / static_cast<double>(step)));
+        const auto top = static_cast<int32_t>(std::ceil(static_cast<double>(c.originY) + rect.y0 / static_cast<double>(step)));
+        const auto right = innerEnd(static_cast<double>(c.originX) + rect.x1 / static_cast<double>(step));
+        const auto bottom = innerEnd(static_cast<double>(c.originY) + rect.y1 / static_cast<double>(step));
+        // Small rectangles cost more to record and draw than the fragments they save.
+        if (left >= right || top >= bottom || (right - left) * (bottom - top) < kMinInteriorArea)
+            continue;
+        DrawCommand opaque = c;
+        opaque.flags |= kCommandOpaque;
+        opaque.left = ClampLogical(left);
+        opaque.top = ClampLogical(top);
+        opaque.right = ClampLogical(right);
+        opaque.bottom = ClampLogical(bottom);
+        Push(rt, opaque);
+    }
 }
 
 void DrawingContext::DrawSprite(RenderTarget& rt, ImageId image, int32_t x, int32_t y)
@@ -473,6 +516,7 @@ void DrawingContext::DrawGlyph(RenderTarget& rt, ImageId image, int32_t x, int32
             return;
         remap.row = row->row;
         remap.length = row->length;
+        remap.zeroFree = row->zeroFree;
     }
     DrawImage(rt, image, { x, y }, remap);
 }
@@ -495,7 +539,8 @@ void DrawingContext::DrawSpriteSolid(RenderTarget& rt, ImageId image, int32_t x,
     if (!row)
         return;
     // As X8DrawingContext: drawn through a primary-remapped image id.
-    DrawImage(rt, ImageId(image.GetIndex(), Colour::black), { x, y }, { kCommandRemapSource, row->row, row->length });
+    DrawImage(
+        rt, ImageId(image.GetIndex(), Colour::black), { x, y }, { kCommandRemapSource, row->row, row->length, row->zeroFree });
 }
 
 void DrawingContext::DrawSpriteRawMasked(RenderTarget& rt, int32_t x, int32_t y, ImageId maskImage, ImageId colourImage)

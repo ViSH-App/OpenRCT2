@@ -44,6 +44,21 @@ namespace OpenRCT2::Ui::Metal
     {
         uint16_t row{};
         uint32_t length{};
+        // Maps every index 1-255 to a non-zero index, so a remapped opaque texel stays opaque.
+        bool zeroFree{};
+    };
+
+    // Fully opaque rectangles of an image in texels: every texel is covered and non-zero.
+    // Drawn without discard so the GPU's hidden-surface removal can skip what lies behind.
+    struct OpaqueRect
+    {
+        uint16_t x0, y0, x1, y1;
+    };
+    struct ImageInterior
+    {
+        static constexpr size_t kMaxRects = 12;
+        std::array<OpaqueRect, kMaxRects> rects{};
+        uint8_t count{};
     };
 
     struct TextureCacheStats
@@ -122,7 +137,7 @@ namespace OpenRCT2::Ui::Metal
         bool Flush(id<MTLCommandBuffer> commandBuffer, uint32_t slot);
 
         // Atlas images. Invalid regions mean "nothing to draw".
-        AtlasRegion GetImage(ImageIndex image);
+        AtlasRegion GetImage(ImageIndex image, ImageInterior* interior = nullptr);
         // Coverage bitmaps (TrueType), keyed by a caller-provided content hash.
         std::optional<AtlasRegion> FindBitmap(uint64_t key);
         AtlasRegion AddBitmap(uint64_t key, const uint8_t* coverage, int32_t width, int32_t height, size_t pitch);
@@ -135,7 +150,7 @@ namespace OpenRCT2::Ui::Metal
 
         PaletteRow GetIdentityPalette() const noexcept
         {
-            return { 0, 256 };
+            return { 0, 256, true };
         }
         std::optional<PaletteRow> GetFilterPalette(Drawing::FilterPaletteID palette);
         // Maps fully described by a small caller key (e.g. remap colours), so lookups need
@@ -164,6 +179,10 @@ namespace OpenRCT2::Ui::Metal
             return _blend;
         }
         TextureCacheStats GetStats() const;
+        size_t GetPendingUploadBytes() const noexcept
+        {
+            return _staging.size();
+        }
 
         static constexpr size_t kFramesInFlight = 3;
 
@@ -186,6 +205,7 @@ namespace OpenRCT2::Ui::Metal
             AtlasAllocator::Slot slot{};
             uint32_t lastUsed{};
             ImageState state{};
+            ImageInterior interior;
         };
         struct PendingFree
         {
@@ -211,6 +231,7 @@ namespace OpenRCT2::Ui::Metal
             uint16_t length{};
             uint16_t row{};
             uint32_t lastUsed{};
+            bool zeroFree{};
         };
         struct Upload
         {
@@ -255,6 +276,8 @@ namespace OpenRCT2::Ui::Metal
         void EvictImages(uint32_t maxAge);
         void EvictPalettes();
         void ResetAtlas();
+        static ImageInterior FindInterior(const uint16_t* texels, int32_t width, int32_t height);
+        static bool IsZeroFree(const uint8_t* data, size_t length);
     };
 
     uint64_t HashBytes(const void* data, size_t length, uint64_t seed = 0);

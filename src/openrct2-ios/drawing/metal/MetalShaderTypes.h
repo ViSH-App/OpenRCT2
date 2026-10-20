@@ -47,6 +47,9 @@ namespace OpenRCT2
             // CPU-side classification, ignored by the shaders: the result depends on the
             // destination pixel (filters, glass/water blends, hinted text).
             METAL_CONSTANT MetalUInt kCommandReadsDestination = 1u << 31;
+            // CPU-side classification: every covered pixel is written (no discard), so the
+            // command can use the opaque pipeline and hidden-surface removal.
+            METAL_CONSTANT MetalUInt kCommandOpaque = 1u << 30;
 
             // Atlas texels are R16Uint: palette index in the low byte, plus a coverage bit.
             // The coverage bit distinguishes RLE holes from encoded palette index 0, which the

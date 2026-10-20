@@ -106,6 +106,7 @@ namespace OpenRCT2::Ui::Metal
             uint32_t flags{};
             uint16_t row{};
             uint32_t length{};
+            bool zeroFree{};
         };
         struct RetinaFace
         {
@@ -132,7 +133,8 @@ namespace OpenRCT2::Ui::Metal
 
         ThreadList& LocalList();
         ScreenCoordsXY Origin(const Drawing::RenderTarget& rt) const;
-        void Push(const Drawing::RenderTarget& rt, DrawCommand command);
+        // Returns false if the command was clipped away.
+        bool Push(const Drawing::RenderTarget& rt, DrawCommand command);
         std::unique_lock<std::mutex> LockCache();
         void DrawImage(
             Drawing::RenderTarget& rt, ImageId image, const ScreenCoordsXY& coords, const RemapInfo& remap);

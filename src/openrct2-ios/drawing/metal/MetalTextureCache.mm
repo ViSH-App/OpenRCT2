@@ -228,7 +228,100 @@ uint16_t* TextureCache::StageAtlas(const AtlasAllocator::Slot& slot, int32_t wid
     return pixels;
 }
 
-AtlasRegion TextureCache::GetImage(ImageIndex image)
+ImageInterior TextureCache::FindInterior(const uint16_t* texels, int32_t width, int32_t height)
+{
+    // Bands of rows sharing a fully opaque interval: each row contributes its longest run of
+    // covered, non-zero texels; a band closes when the common interval would shrink below 3/4
+    // of its widest member. The largest bands are kept.
+    struct Band
+    {
+        int32_t begin, end, top, bottom;
+    };
+    std::vector<Band> bands;
+    Band current{ 0, 0, 0, 0 };
+    int32_t widest = 0;
+    auto close = [&](int32_t row) {
+        if (current.end - current.begin >= 2 && row > current.top)
+        {
+            current.bottom = row;
+            bands.push_back(current);
+        }
+        widest = 0;
+        current = { 0, 0, row, row };
+    };
+    for (int32_t y = 0; y < height; ++y)
+    {
+        int32_t bestBegin = 0, bestEnd = 0;
+        for (int32_t x = 0; x < width;)
+        {
+            const auto texel = texels[y * width + x];
+            if ((texel & kAtlasCoverage) == 0 || (texel & kAtlasIndexMask) == 0)
+            {
+                ++x;
+                continue;
+            }
+            const int32_t begin = x;
+            while (x < width && (texels[y * width + x] & kAtlasCoverage) != 0 && (texels[y * width + x] & kAtlasIndexMask) != 0)
+                ++x;
+            if (x - begin > bestEnd - bestBegin)
+            {
+                bestBegin = begin;
+                bestEnd = x;
+            }
+        }
+        if (bestEnd - bestBegin < 2)
+        {
+            close(y + 1);
+            continue;
+        }
+        if (current.end == current.begin)
+        {
+            current = { bestBegin, bestEnd, y, y };
+            widest = bestEnd - bestBegin;
+            continue;
+        }
+        const int32_t begin = std::max(current.begin, bestBegin);
+        const int32_t end = std::min(current.end, bestEnd);
+        const int32_t candidateWidest = std::max(widest, bestEnd - bestBegin);
+        if (end - begin >= 2 && (end - begin) * 4 >= candidateWidest * 3)
+        {
+            current.begin = begin;
+            current.end = end;
+            widest = candidateWidest;
+        }
+        else
+        {
+            close(y);
+            current = { bestBegin, bestEnd, y, y };
+            widest = bestEnd - bestBegin;
+        }
+    }
+    close(height);
+    std::sort(bands.begin(), bands.end(), [](const Band& a, const Band& b) {
+        return (a.end - a.begin) * (a.bottom - a.top) > (b.end - b.begin) * (b.bottom - b.top);
+    });
+    ImageInterior interior;
+    for (const auto& band : bands)
+    {
+        if (interior.count == ImageInterior::kMaxRects)
+            break;
+        interior.rects[interior.count++] = { static_cast<uint16_t>(band.begin), static_cast<uint16_t>(band.top),
+                                             static_cast<uint16_t>(band.end), static_cast<uint16_t>(band.bottom) };
+    }
+    return interior;
+}
+
+bool TextureCache::IsZeroFree(const uint8_t* data, size_t length)
+{
+    if (length < 256)
+        return false;
+    for (size_t i = 1; i < 256; ++i)
+        if (data[i] == 0)
+            return false;
+    return true;
+}
+
+AtlasRegion TextureCache::GetImage(ImageIndex image, ImageInterior* interior)
 {
     if (image >= _images.size())
     {
@@ -240,6 +333,8 @@ AtlasRegion TextureCache::GetImage(ImageIndex image)
     if (entry.state == ImageState::cached)
     {
         entry.lastUsed = _frame;
+        if (interior != nullptr)
+            *interior = entry.interior;
         return entry.region;
     }
     if (entry.state == ImageState::notDrawable)
@@ -289,6 +384,9 @@ AtlasRegion TextureCache::GetImage(ImageIndex image)
     entry.region = { slot->layer, slot->x, slot->y, static_cast<uint16_t>(width), static_cast<uint16_t>(height) };
     entry.state = ImageState::cached;
     entry.lastUsed = _frame;
+    entry.interior = FindInterior(output, width, height);
+    if (interior != nullptr)
+        *interior = entry.interior;
     return entry.region;
 }
 
@@ -432,8 +530,9 @@ std::optional<PaletteRow> TextureCache::GetFilterPalette(FilterPaletteID palette
     auto row = AllocateRows(rows);
     if (!row)
         return std::nullopt;
-    StagePaletteRows(*row, reinterpret_cast<const uint8_t*>(data.data()), data.size());
-    entry = { data.data(), { *row, static_cast<uint32_t>(data.size()) }, true };
+    const auto* bytes = reinterpret_cast<const uint8_t*>(data.data());
+    StagePaletteRows(*row, bytes, data.size());
+    entry = { data.data(), { *row, static_cast<uint32_t>(data.size()), IsZeroFree(bytes, data.size()) }, true };
     return entry.row;
 }
 
@@ -446,7 +545,7 @@ std::optional<PaletteRow> TextureCache::GetDynamicPalette(uint64_t key, const ui
         if (entry.length == length && std::memcmp(entry.content.data(), data, length) == 0)
         {
             entry.lastUsed = _frame;
-            return PaletteRow{ entry.row, entry.length };
+            return PaletteRow{ entry.row, entry.length, entry.zeroFree };
         }
     }
     auto row = AllocateRows(1);
@@ -460,15 +559,16 @@ std::optional<PaletteRow> TextureCache::GetDynamicPalette(uint64_t key, const ui
     {
         // Hash collision with different content: keep the existing entry, use an uncached row.
         _freeRowsNextFrame.push_back(*row);
-        return PaletteRow{ *row, static_cast<uint32_t>(length) };
+        return PaletteRow{ *row, static_cast<uint32_t>(length), IsZeroFree(data, length) };
     }
     DynamicPalette entry;
     std::memcpy(entry.content.data(), data, length);
     entry.length = static_cast<uint16_t>(length);
     entry.row = *row;
     entry.lastUsed = _frame;
+    entry.zeroFree = IsZeroFree(data, length);
     _dynamicPalettes.emplace(key, entry);
-    return PaletteRow{ *row, static_cast<uint32_t>(length) };
+    return PaletteRow{ *row, static_cast<uint32_t>(length), entry.zeroFree };
 }
 
 std::optional<PaletteRow> TextureCache::FindKeyedPalette(uint32_t key)
@@ -477,7 +577,7 @@ std::optional<PaletteRow> TextureCache::FindKeyedPalette(uint32_t key)
     if (found == _dynamicPalettes.end())
         return std::nullopt;
     found->second.lastUsed = _frame;
-    return PaletteRow{ found->second.row, found->second.length };
+    return PaletteRow{ found->second.row, found->second.length, found->second.zeroFree };
 }
 
 std::optional<PaletteRow> TextureCache::AddKeyedPalette(uint32_t key, const PaletteMap& map)
