@@ -74,11 +74,14 @@ struct LauncherView: View {
         switch layout {
         case .padLandscape:
             HStack(alignment: .top, spacing: 36) {
-                VStack(alignment: .leading, spacing: 16) { brand(layout); menu(.vertical) }.frame(width: 252)
+                // As wide as the longest menu label in the current language, so none is truncated.
+                VStack(alignment: .leading, spacing: 16) { brand(layout); menu(.vertical) }
+                    .frame(minWidth: 252).fixedSize(horizontal: true, vertical: false)
                 mainWindow(layout).frame(maxWidth: 820)
             }
             .padding(.horizontal, 36).padding(.top, 24).padding(.bottom, 148)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            // Centred above the coaster, so large iPads do not leave a gap under the window.
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .padPortrait:
             VStack(spacing: 20) {
                 brand(layout)
@@ -86,7 +89,7 @@ struct LauncherView: View {
                 menu(.horizontal)
             }
             .frame(maxWidth: 700).padding(.horizontal, 36).padding(.top, 28).padding(.bottom, 148)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .phonePortrait:
             VStack(spacing: 12) {
                 brand(layout)
