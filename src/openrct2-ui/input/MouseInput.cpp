@@ -1632,6 +1632,12 @@ namespace OpenRCT2
 
         // Scroll left / right
         const CursorState* cursorState = ContextGetCursorState();
+#ifdef OPENRCT2_IOS
+        // A lifted finger leaves the touch cursor where it was; only a hardware pointer resting on
+        // an edge should scroll (mouse and trackpad events clear the touch flag).
+        if (cursorState->touch)
+            return;
+#endif
         if (cursorState->position.x == 0)
             scrollX = -1;
         else if (cursorState->position.x >= ContextGetWidth() - 1)
