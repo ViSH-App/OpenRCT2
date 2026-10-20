@@ -88,7 +88,13 @@ private:
     InputManager _inputManager;
     ShortcutManager _shortcutManager;
     TextComposition _textComposition;
+#ifdef OPENRCT2_IOS
+    // A touch device has no pointer until the first touch. The default (0, 0) lies on the
+    // top-left screen edge, so edge scrolling would move the main view on its own.
+    CursorState _cursorState = { .position = { -1, -1 } };
+#else
     CursorState _cursorState = {};
+#endif
     uint32_t _lastKeyPressed = 0;
     const uint8_t* _keysState = nullptr;
     uint8_t _keysPressed[256] = {};
