@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Renderizado nativo con Metal",
-      "body": "Los parques se dibujan con Metal para lograr un desplazamiento fluido, incluso en los parques más grandes, tanto en orientación horizontal como vertical."
+      "body": "Los parques se dibujan con Metal para lograr un desplazamiento fluido, incluso en los parques más grandes."
     },
     "saves": {
       "title": "Partidas guardadas en la app Archivos",

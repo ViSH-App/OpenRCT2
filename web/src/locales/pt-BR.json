@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Renderização nativa com Metal",
-      "body": "Os parques são desenhados com Metal para uma rolagem suave, mesmo nos maiores parques, tanto na orientação paisagem quanto na orientação retrato."
+      "body": "Os parques são desenhados com Metal para uma rolagem suave, mesmo nos maiores parques."
     },
     "saves": {
       "title": "Jogos salvos no app Arquivos",

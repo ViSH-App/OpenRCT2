@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Nativní vykreslování přes Metal",
-      "body": "Parky se vykreslují pomocí Metal, což zajišťuje plynulé posouvání i v největších parcích, a to v orientaci na šířku i na výšku."
+      "body": "Parky se vykreslují pomocí Metal, což zajišťuje plynulé posouvání i v největších parcích."
     },
     "saves": {
       "title": "Uložené hry v aplikaci Soubory",

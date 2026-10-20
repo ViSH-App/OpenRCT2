@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Renderizado nativo con Metal",
-      "body": "Os parques debúxanse con Metal para un desprazamento fluído, mesmo nos parques máis grandes, tanto en orientación horizontal como vertical."
+      "body": "Os parques debúxanse con Metal para un desprazamento fluído, mesmo nos parques máis grandes."
     },
     "saves": {
       "title": "Partidas gardadas na app Ficheiros",

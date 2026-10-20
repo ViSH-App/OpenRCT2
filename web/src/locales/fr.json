@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Rendu Metal natif",
-      "body": "Les parcs sont affichés avec Metal pour un défilement fluide, même dans les plus grands parcs, en orientation paysage comme en orientation portrait."
+      "body": "Les parcs sont affichés avec Metal pour un défilement fluide, même dans les plus grands parcs."
     },
     "saves": {
       "title": "Sauvegardes dans l’app Fichiers",

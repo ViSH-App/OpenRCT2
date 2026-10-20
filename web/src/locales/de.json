@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Natives Rendering mit Metal",
-      "body": "Parks werden mit Metal dargestellt und lassen sich selbst in den größten Parks flüssig scrollen, sowohl im Quer- als auch im Hochformat."
+      "body": "Parks werden mit Metal dargestellt und lassen sich selbst in den größten Parks flüssig scrollen."
     },
     "saves": {
       "title": "Spielstände in der App „Dateien“",

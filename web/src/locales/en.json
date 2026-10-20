@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Native Metal rendering",
-      "body": "Parks are drawn with Metal for smooth scrolling, even in the largest parks, in both landscape and portrait orientation."
+      "body": "Parks are drawn with Metal for smooth scrolling, even in the largest parks."
     },
     "saves": {
       "title": "Saves in the Files app",

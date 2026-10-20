@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Renderització nativa amb Metal",
-      "body": "Els parcs es dibuixen amb Metal per oferir un desplaçament fluid, fins i tot en els parcs més grans, tant en orientació horitzontal com vertical."
+      "body": "Els parcs es dibuixen amb Metal per oferir un desplaçament fluid, fins i tot en els parcs més grans."
     },
     "saves": {
       "title": "Partides desades a l’app Fitxers",

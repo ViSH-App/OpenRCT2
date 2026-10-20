@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Natiivi Metal-renderöinti",
-      "body": "Puistot piirretään Metalilla, jotta vieritys on sujuvaa suurimmissakin puistoissa sekä vaaka- että pystysuunnassa."
+      "body": "Puistot piirretään Metalilla, jotta vieritys on sujuvaa suurimmissakin puistoissa."
     },
     "saves": {
       "title": "Tallennetut pelit Tiedostot-apissa",

@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Natywne renderowanie Metal",
-      "body": "Parki są renderowane za pomocą Metal, co zapewnia płynne przewijanie nawet w największych parkach, zarówno w orientacji poziomej, jak i pionowej."
+      "body": "Parki są renderowane za pomocą Metal, co zapewnia płynne przewijanie nawet w największych parkach."
     },
     "saves": {
       "title": "Zapisy w aplikacji Pliki",

@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Rendering nativo con Metal",
-      "body": "I parchi vengono disegnati con Metal per uno scorrimento fluido, anche nei parchi più grandi, sia in orientamento orizzontale sia in orientamento verticale."
+      "body": "I parchi vengono disegnati con Metal per uno scorrimento fluido, anche nei parchi più grandi."
     },
     "saves": {
       "title": "Salvataggi nell’app File",

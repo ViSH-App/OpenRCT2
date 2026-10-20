@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Inbyggd Metal-rendering",
-      "body": "Parkerna ritas med Metal för jämn rullning, även i de största parkerna, i både liggande och stående läge."
+      "body": "Parkerna ritas med Metal för jämn rullning, även i de största parkerna."
     },
     "saves": {
       "title": "Sparade spel i appen Filer",

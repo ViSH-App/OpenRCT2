@@ -41,7 +41,7 @@
     },
     "metal": {
       "title": "Natív Metal-renderelés",
-      "body": "A parkok megjelenítése Metallal történik, így a görgetés a legnagyobb parkokban is egyenletes, fekvő és álló tájolásban egyaránt."
+      "body": "A parkok megjelenítése Metallal történik, így a görgetés a legnagyobb parkokban is egyenletes."
     },
     "saves": {
       "title": "Mentések a Fájlok appban",
