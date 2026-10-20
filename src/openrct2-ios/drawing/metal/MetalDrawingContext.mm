@@ -600,7 +600,7 @@ void DrawingContext::DrawSpriteRawMasked(RenderTarget& rt, int32_t x, int32_t y,
 
 void DrawingContext::PushText(
     RenderTarget& rt, const AtlasRegion& region, int32_t x, int32_t y, PaletteIndex colour, uint8_t threshold,
-    int32_t logicalWidth, int32_t logicalHeight)
+    int32_t logicalWidth, int32_t logicalHeight, int32_t multiple)
 {
     const auto origin = Origin(rt);
     const int32_t left = x - rt.x + origin.x;
@@ -613,8 +613,10 @@ void DrawingContext::PushText(
     c.threshold = threshold;
     c.originX = static_cast<float>(left);
     c.originY = static_cast<float>(top);
-    c.scaleX = static_cast<float>(region.width) / width;
-    c.scaleY = static_cast<float>(region.height) / height;
+    // A bitmap rendered at an exact multiple of the logical size is scaled by that multiple:
+    // its size is not always the multiple of the logical one (see TryDrawTTFText).
+    c.scaleX = multiple != 0 ? static_cast<float>(multiple) : static_cast<float>(region.width) / width;
+    c.scaleY = multiple != 0 ? static_cast<float>(multiple) : static_cast<float>(region.height) / height;
     c.left = ClampLogical(left);
     c.top = ClampLogical(top);
     c.right = ClampLogical(left + width);
@@ -636,17 +638,18 @@ void DrawingContext::PushText(
 // colour without hinting, then the fill with the font's hinting threshold.
 void DrawingContext::PushTextPasses(
     RenderTarget& rt, const TextDrawInfo& info, const AtlasRegion& region, int32_t x, int32_t y, uint8_t threshold,
-    int32_t logicalWidth, int32_t logicalHeight)
+    int32_t logicalWidth, int32_t logicalHeight, int32_t multiple)
 {
     if (info.colourFlags.has(ColourFlag::withOutline))
     {
         constexpr std::array<ScreenCoordsXY, 4> kOutline{ { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } };
         for (const auto& delta : kOutline)
-            PushText(rt, region, x + delta.x, y + delta.y, info.palette.shadowOutline, 0, logicalWidth, logicalHeight);
+            PushText(
+                rt, region, x + delta.x, y + delta.y, info.palette.shadowOutline, 0, logicalWidth, logicalHeight, multiple);
     }
     if (info.colourFlags.has(ColourFlag::inset))
-        PushText(rt, region, x + 1, y + 1, info.palette.shadowOutline, 0, logicalWidth, logicalHeight);
-    PushText(rt, region, x, y, info.palette.fill, threshold, logicalWidth, logicalHeight);
+        PushText(rt, region, x + 1, y + 1, info.palette.shadowOutline, 0, logicalWidth, logicalHeight, multiple);
+    PushText(rt, region, x, y, info.palette.fill, threshold, logicalWidth, logicalHeight, multiple);
 }
 
 void DrawingContext::DrawTTFBitmap(
@@ -732,9 +735,9 @@ bool DrawingContext::TryDrawTTFText(
     const auto threshold = static_cast<uint8_t>(enableHinting ? fontDesc.hinting_threshold : 0);
     // Pixel fonts (no hinting threshold) need a whole-number multiple: the density is slightly above an
     // integer (e.g. 2266 / 755), and ceil would make 12pt at 3x render at 37pt with uneven pixels.
-    const auto pointSize = fontDesc.hinting_threshold != 0
-        ? static_cast<int32_t>(std::ceil(fontDesc.ptSize * _density))
-        : fontDesc.ptSize * std::max(1, static_cast<int32_t>(std::lround(_density)));
+    const int32_t multiple = fontDesc.hinting_threshold != 0 ? 0 : std::max(1, static_cast<int32_t>(std::lround(_density)));
+    const auto pointSize = multiple == 0 ? static_cast<int32_t>(std::ceil(fontDesc.ptSize * _density))
+                                         : fontDesc.ptSize * multiple;
 
     uint64_t key = HashBytes(text.data(), text.size(), HashBytes(fontDesc.filename, std::strlen(fontDesc.filename)));
     key = (HashBytes(&key, sizeof(key), (static_cast<uint64_t>(pointSize) << 1) | (useHinting ? 1 : 0)) & ~kTagMask)
@@ -763,7 +766,11 @@ bool DrawingContext::TryDrawTTFText(
     }
     if (!region.IsValid())
         return false; // Too large for the atlas: use the logical bitmap.
-    PushTextPasses(rt, info, region, x, y, threshold, logical.w, logical.h);
+    // Glyphs scale exactly with the point size, but the bitmap height includes a one-pixel baseline
+    // row at every size (TTFSDLPort: ascent - descent + 1), so 10pt is 15 rows and 30pt 43, not 45.
+    // Scaling pixel fonts by region / logical size (43 / 15) would stretch glyph rows across
+    // logical rows; scale them by the multiple.
+    PushTextPasses(rt, info, region, x, y, threshold, logical.w, logical.h, multiple);
     return true;
     #else
     return false;

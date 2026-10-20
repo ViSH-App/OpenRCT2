@@ -152,10 +152,10 @@ namespace OpenRCT2::Ui::Metal
         RemapInfo RemapForImage(ImageId image);
         void PushText(
             Drawing::RenderTarget& rt, const AtlasRegion& region, int32_t x, int32_t y, Drawing::PaletteIndex colour,
-            uint8_t threshold, int32_t logicalWidth, int32_t logicalHeight);
+            uint8_t threshold, int32_t logicalWidth, int32_t logicalHeight, int32_t multiple);
         void PushTextPasses(
             Drawing::RenderTarget& rt, const Drawing::TextDrawInfo& info, const AtlasRegion& region, int32_t x,
-            int32_t y, uint8_t threshold, int32_t logicalWidth, int32_t logicalHeight);
+            int32_t y, uint8_t threshold, int32_t logicalWidth, int32_t logicalHeight, int32_t multiple = 0);
         TTF_Font* GetRetinaFace(const TTFFontDescriptor& fontDesc, int32_t pointSize, bool hinting);
         void MergeLists();
     };
