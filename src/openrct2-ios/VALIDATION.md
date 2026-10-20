@@ -8,6 +8,8 @@ an atlas, dirty regions and parallel drawing. The design is described in
 
 **Verified:**
 
+- On the iPad mini 6, the title screen ran with the new renderer; see below.
+
 - The Release build passes:
 
   ```sh
@@ -20,17 +22,78 @@ an atlas, dirty regions and parallel drawing. The design is described in
 - The shaders compile with `-std=ios-metal2.3`.
 - No core drawing semantics in `src/openrct2` were changed.
 
-**Not yet verified at runtime.** The app has not been run on My Mac or on an
-iPad since the rewrite. None of the following has been established yet:
+**Not yet verified:**
 
-- `OPENRCT2_METAL_COMPARE_GPU` mismatch counts;
-- GPU and CPU timings;
-- whether two-pass or single-pass rendering is faster;
-- the visual effect of the alignment changes (`hasZoomSprite`, TrueType
-  hinting thresholds);
+- a saved park;
+- `OPENRCT2_METAL_COMPARE_GPU` beyond a short title-screen run (below);
+- the visual effect of the alignment changes;
 - the parallel-drawing CPU benefit.
 
-The earlier Metal results below describe the previous compute rasterizer.
+The earlier Metal results further down describe the previous compute
+rasterizer.
+
+### iPad mini 6 title screen (2026-10-20)
+
+Setup:
+
+- Device: iPad mini 6 (A15), iPadOS 27.0.
+- Config: `drawing_engine=METAL`, `uncap_fps=true`, `use_vsync=false`,
+  `window_scale=1.75`, `multithreading=true`.
+- Raster 2266 × 1360, logical 647 × 388; density 3.5, which is not an integer,
+  so CopyRect redraws instead of blitting.
+- Installed with `xcrun devicectl`. Logs were pulled from
+  `Documents/OpenRCT2-ios.log` and HUD values read from device screenshots.
+- Each scenario ran for at least one minute (≥ 3,600 frames). The title
+  sequence is deterministic, so the same frame index shows the same scene in
+  each run.
+
+**Correctness.** With `OPENRCT2_METAL_COMPARE_GPU=1`, the first 120 compared
+frames had 0 mismatching pixels. This run was short. The title scenes,
+including glass, water and text, rendered correctly in screenshots.
+
+**Profiling.** A Metal System Trace of the first new build showed:
+
+- The raster pass's fragment work was ≈ 12.8 ms per frame. Vertex work was
+  0.6 ms and presentation 0.3 ms.
+- The GPU stayed in Instruments' "Minimum" performance state throughout.
+
+The new statistics showed that 128-pixel dirty blocks (about 450 raster pixels
+each) still redrew 75–92 % of the screen per frame. The animated title parks
+dirty almost every block. Quads covered 10–15 screens of raster pixels per
+frame, mostly the transparent parts of sprite bounding boxes.
+
+**Experiments** (GPU ms, average per 600 frames at frames 600 / 1200 / 1800 /
+2400 / 3000 / 3600):
+
+| Configuration | Redrawn area per frame | GPU |
+| --- | --- | --- |
+| Block 128, two-pass (first build) | 0.75–0.92 | 12.1 / 14.2 / 14.1 / 13.9 / 11.9 / 7.5 |
+| Block 32, two-pass | 0.39–0.58 | 7.4 / 10.0 / 10.0 / 11.7 / 7.4 / 3.1 |
+| Block 16, two-pass | 0.30–0.46 | 6.1 / 8.3 / 8.3 / 10.4 / 6.0 / 2.4 |
+| Block 16, single-pass | 0.30–0.47 | 11.1 / 12.8 / 12.8 / 13.1 / 8.7 / 3.6 |
+
+CPU work per frame (`cpu − drawable_wait`) was 4–10 ms for every block size.
+Two-pass depth rejection is about 35 % faster than single-pass. Block 16 and
+two-pass are now the defaults.
+
+**Final comparison** (same device and config, ≥ 70 s each):
+
+| | Before (build-7 compute rasterizer) | After |
+| --- | --- | --- |
+| Log GPU time | 14.6 / 11.2 / 15.0 / 14.8 / 15.0 / 15.2 / 14.7 ms (single-frame samples every 600 frames) | 6.0 / 8.2 / 8.3 / 10.4 / 6.1 / 2.4 / 3.3 ms (600-frame averages) |
+| HUD GPU, screenshots at the same times | 14.39 / 14.89 / 14.92 / 14.67 ms | 8.86 / 11.57 / 3.02 / 3.61 ms |
+| HUD FPS | 59.99 / 59.99 / 59.99 / 58.06 | 59.99 / 60.00 / 59.50 / 59.99 |
+| Metal / app memory (HUD) | 80–97 / 316–339 MiB | 91–130 / 323–361 MiB |
+
+Both versions reach the 60 Hz display limit on the title screen. The new
+renderer leaves far more GPU headroom. Atlas packing costs about 30 MiB more
+GPU memory.
+
+Evidence (local, under `build/metal-rearch/device/`):
+
+- `final-old.log`, `final-new.log`, `exp-block*.log`;
+- `*-hud.png` and `*-shot*.png`;
+- `new1.trace`.
 
 **Expected differences from the previous renderer.** These are intentional
 alignment changes. They are not comparison mismatches, because both

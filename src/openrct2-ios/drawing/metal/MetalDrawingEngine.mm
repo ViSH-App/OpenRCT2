@@ -49,8 +49,11 @@ using namespace OpenRCT2::Ui::Metal;
 namespace
 {
     constexpr uint32_t kFramesInFlight = TextureCache::kFramesInFlight;
-    // Dirty-region granularity in logical pixels, as X8DrawingEngine.
-    constexpr uint32_t kDirtyBlockSize = 128;
+    // Dirty-region granularity in logical pixels. X8DrawingEngine uses 128, but at Retina
+    // density a block is several hundred raster pixels and small animations then redraw most
+    // of the screen. On the iPad mini title screen 16 halved the redrawn area and GPU time
+    // compared with 128, without increasing CPU time (see VALIDATION.md).
+    constexpr uint32_t kDirtyBlockSize = 16;
     // Initial canvas contents, as X8DrawingEngine::Resize and the OpenGL engine.
     constexpr uint8_t kInitialCanvasIndex = 10;
     constexpr uint64_t kStatisticsInterval = 600;
@@ -175,8 +178,12 @@ namespace
         // Statistics for the periodic log.
         std::shared_ptr<GpuStatistics> _gpuStatistics = std::make_shared<GpuStatistics>();
         std::chrono::steady_clock::time_point _beginDrawTime;
-        double _cpuMilliseconds{}, _encodeMilliseconds{};
+        double _cpuMilliseconds{}, _encodeMilliseconds{}, _drawableWaitMilliseconds{};
         uint64_t _commandsRecorded{}, _framesDrawn{}, _fullRedraws{};
+        // Logical pixels redrawn by dirty blocks, by CopyRect fallbacks and by full redraws, and
+        // raster pixels covered by each pass's quads (fragment work before depth rejection).
+        uint64_t _dirtyArea{}, _copyRedrawArea{}, _copyRedraws{}, _fullArea{};
+        uint64_t _independentPixels{}, _dependentPixels{};
 
         // OPENRCT2_METAL_COMPARE_GPU resources.
         id<MTLBuffer> _referenceCanvas;
@@ -269,9 +276,10 @@ namespace
             _context = std::make_unique<DrawingContext>(*_textureCache);
             _weatherDrawer = std::make_unique<WeatherDrawer>(*_context);
             LOG_INFO(
-                "Metal drawing engine: %s; raster=%s; GPU comparison=%s; dirty regions=%s", _device.name.UTF8String,
+                "Metal drawing engine: %s; raster=%s; GPU comparison=%s; dirty regions=%s; block=%u", _device.name.UTF8String,
                 _debug.rasterMode == RasterMode::twoPass ? "two-pass" : "single-pass",
-                _debug.compareWithReference ? "on" : "off", _debug.fullRedraw ? "off" : "on");
+                _debug.compareWithReference ? "on" : "off", _debug.fullRedraw ? "off" : "on",
+                _debug.dirtyBlockSize != 0 ? _debug.dirtyBlockSize : kDirtyBlockSize);
         }
 
         void Resize(uint32_t width, uint32_t height) override
@@ -286,7 +294,8 @@ namespace
             _rt.width = width;
             _rt.height = height;
             _rt.pitch = 0;
-            _invalidationGrid.reset(width, height, kDirtyBlockSize, kDirtyBlockSize);
+            const uint32_t block = _debug.dirtyBlockSize != 0 ? std::clamp<uint32_t>(_debug.dirtyBlockSize, 16, 256) : kDirtyBlockSize;
+            _invalidationGrid.reset(width, height, block, block);
             // Rebuild the canvas and the logical mapping for the new layout.
             _rasterWidth = 0;
             _canvas = nil;
@@ -339,6 +348,7 @@ namespace
                 WindowDrawAll(_rt, 0, 0, _rt.width, _rt.height);
                 _forceFullRedraw = false;
                 ++_fullRedraws;
+                _fullArea += static_cast<uint64_t>(_rt.width) * _rt.height;
             }
             else
             {
@@ -380,6 +390,8 @@ namespace
             {
                 // A logical shift is not a whole number of raster pixels; redraw the moved area.
                 WindowDrawAll(_rt, x, y, x + width, y + height);
+                ++_copyRedraws;
+                _copyRedrawArea += static_cast<uint64_t>(width) * height;
             }
         }
 
@@ -429,6 +441,7 @@ namespace
         void DrawAllDirtyBlocks()
         {
             _invalidationGrid.traverseDirtyCells([this](int32_t left, int32_t top, int32_t right, int32_t bottom) {
+                _dirtyArea += static_cast<uint64_t>(right - left) * (bottom - top);
                 WindowDrawAll(_rt, left, top, right, bottom);
             });
         }
@@ -555,6 +568,14 @@ namespace
     {
         _order.clear();
         _order.reserve(frame.commands.size());
+        const auto* map = static_cast<const uint8_t*>(_rasterMap.contents);
+        const auto* edgesX = reinterpret_cast<const uint16_t*>(map + _edgesXOffset);
+        const auto* edgesY = reinterpret_cast<const uint16_t*>(map + _edgesYOffset);
+        for (const auto& c : frame.commands)
+        {
+            const uint64_t area = static_cast<uint64_t>(edgesX[c.right] - edgesX[c.left]) * (edgesY[c.bottom] - edgesY[c.top]);
+            ((c.flags & kCommandReadsDestination) != 0 ? _dependentPixels : _independentPixels) += area;
+        }
         _segmentDraws.clear();
         uint32_t begin = 0;
         for (const auto& segment : frame.segments)
@@ -674,7 +695,9 @@ namespace
 
     void MetalDrawingEngine::EncodePresent(id<MTLCommandBuffer> commandBuffer)
     {
+        const auto waitStart = std::chrono::steady_clock::now();
         id<CAMetalDrawable> drawable = [_layer nextDrawable];
+        _drawableWaitMilliseconds += Milliseconds(std::chrono::steady_clock::now() - waitStart);
         if (drawable == nil)
             return;
         auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
@@ -938,15 +961,25 @@ namespace
         const auto drawn = std::max<uint64_t>(_framesDrawn, 1);
         const auto stats = _textureCache->GetStats();
         LOG_INFO(
-            "Metal GPU frame=%llu duration=%.2fms max=%.2fms cpu=%.2fms encode=%.2fms commands=%zu avg_commands=%llu "
+            "Metal GPU frame=%llu duration=%.2fms max=%.2fms cpu=%.2fms encode=%.2fms drawable_wait=%.2fms commands=%zu avg_commands=%llu "
             "full_redraws=%llu/%llu atlas=%u layers %.1f MiB images=%zu text=%zu palettes=%zu",
             static_cast<unsigned long long>(_frame), frames != 0 ? microseconds / 1000.0 / frames : 0.0,
             maxMicroseconds / 1000.0, _cpuMilliseconds / drawn,
-            _encodeMilliseconds / drawn, commands, static_cast<unsigned long long>(_commandsRecorded / drawn),
+            _encodeMilliseconds / drawn, _drawableWaitMilliseconds / drawn, commands, static_cast<unsigned long long>(_commandsRecorded / drawn),
             static_cast<unsigned long long>(_fullRedraws), static_cast<unsigned long long>(drawn), stats.atlasLayers,
             stats.usedTexels * 2.0 / (1024 * 1024), stats.images, stats.bitmaps, stats.dynamicPalettes);
+        const double rasterPixels = static_cast<double>(_rasterWidth) * _rasterHeight;
+        const double logicalPixels = static_cast<double>(_rt.width) * _rt.height;
+        LOG_INFO(
+            "Metal redraw per frame: dirty=%.2f copy_redraw=%.2f (%.1f calls) full=%.2f screens; quad coverage independent=%.2f "
+            "dependent=%.2f screens",
+            _dirtyArea / logicalPixels / drawn, _copyRedrawArea / logicalPixels / drawn,
+            static_cast<double>(_copyRedraws) / drawn, _fullArea / logicalPixels / drawn,
+            _independentPixels / rasterPixels / drawn, _dependentPixels / rasterPixels / drawn);
+        _dirtyArea = _copyRedrawArea = _copyRedraws = _fullArea = _independentPixels = _dependentPixels = 0;
         _cpuMilliseconds = 0;
         _encodeMilliseconds = 0;
+        _drawableWaitMilliseconds = 0;
         _commandsRecorded = 0;
         _framesDrawn = 0;
         _fullRedraws = 0;

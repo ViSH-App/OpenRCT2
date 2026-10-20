@@ -138,7 +138,9 @@ Sources are in `drawing/metal/`:
 
 1. The canvas is an R8Uint texture of palette indices at the content viewport's
    physical size. It is kept between frames.
-2. `Invalidate` feeds an `InvalidationGrid` with 128-pixel logical blocks.
+2. `Invalidate` feeds an `InvalidationGrid` with 16-pixel logical blocks.
+   (X8 uses 128; at Retina density that redrew most of the title screen every
+   frame, see VALIDATION.md.)
    `PaintWindows` redraws only the dirty blocks, and `GetFlags` reports
    `dirtyOptimisations`. The whole screen is redrawn when:
    - weather is visible (as in the OpenGL engine);
@@ -221,6 +223,7 @@ switch to turn it off; do not set its value to `0`.
 | `OPENRCT2_METAL_RASTER=single` | Draw every command in order through the framebuffer-fetch pipeline (for comparing against the two-pass default). |
 | `OPENRCT2_METAL_FULL_REDRAW=1` | Ignore dirty regions; redraw every frame. |
 | `OPENRCT2_METAL_SERIAL=1` | Do not offer parallel viewport drawing. |
+| `OPENRCT2_METAL_DIRTY_BLOCK=n` | Dirty-region block size in logical pixels (16–256; default 16). |
 
 With `OPENRCT2_METAL_COMPARE_GPU=1`, every frame is also drawn by a simple
 reference compute rasterizer:
@@ -245,6 +248,12 @@ reports:
 - the number of commands;
 - how many frames were full redraws;
 - atlas usage.
+
+A second line, `Metal redraw per frame`, reports the area redrawn per frame (in
+screens) by dirty blocks, by CopyRect fallbacks and by full redraws. It also
+reports the raster pixels covered by each pass's quads, which is the fragment
+work before depth rejection. The drawable wait (`drawable_wait`) is part of the
+encode time, so CPU work per frame is `cpu − drawable_wait`.
 
 For performance testing:
 

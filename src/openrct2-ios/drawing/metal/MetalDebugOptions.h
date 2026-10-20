@@ -6,6 +6,7 @@
 
 #ifdef OPENRCT2_METAL
 
+    #include <cstdint>
     #include <cstdlib>
     #include <cstring>
 
@@ -29,12 +30,14 @@ namespace OpenRCT2::Ui::Metal
     //   OPENRCT2_METAL_RASTER=single     Use RasterMode::singlePass.
     //   OPENRCT2_METAL_FULL_REDRAW=1     Ignore dirty regions; redraw every frame.
     //   OPENRCT2_METAL_SERIAL=1          Do not offer parallel viewport drawing.
+    //   OPENRCT2_METAL_DIRTY_BLOCK=n     Dirty-region block size in logical pixels (16-256).
     struct DebugOptions
     {
         bool compareWithReference{};
         RasterMode rasterMode{ RasterMode::twoPass };
         bool fullRedraw{};
         bool serialDrawing{};
+        uint32_t dirtyBlockSize{};
 
         static const DebugOptions& Get()
         {
@@ -46,6 +49,8 @@ namespace OpenRCT2::Ui::Metal
                     result.rasterMode = RasterMode::singlePass;
                 result.fullRedraw = std::getenv("OPENRCT2_METAL_FULL_REDRAW") != nullptr;
                 result.serialDrawing = std::getenv("OPENRCT2_METAL_SERIAL") != nullptr;
+                if (const char* block = std::getenv("OPENRCT2_METAL_DIRTY_BLOCK"))
+                    result.dirtyBlockSize = static_cast<uint32_t>(std::strtoul(block, nullptr, 10));
                 return result;
             }();
             return options;
