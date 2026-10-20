@@ -7,6 +7,7 @@
 
     #include "InnoExtractor.h"
 
+    #include <openrct2/Version.h>
     #include <openrct2/platform/Platform.h>
     #include <openrct2/rct1/Csg.h>
     #include <zip.h>
@@ -15,11 +16,16 @@
     #include <string>
     #include <vector>
 
+NSErrorDomain const ORCTLauncherErrorDomain = @"OpenRCT2.Launcher";
+NSString* const ORCTLauncherMissingSlicesKey = @"missingSlices";
+NSString* const ORCTLauncherSlicesKey = @"slices";
+
 namespace
 {
     NSError* ImportError(NSString* message)
     {
-        return [NSError errorWithDomain:@"OpenRCT2.Launcher" code:1 userInfo:@{ NSLocalizedDescriptionKey: message }];
+        return [NSError errorWithDomain:ORCTLauncherErrorDomain code:ORCTLauncherErrorFailed
+                               userInfo:@{ NSLocalizedDescriptionKey: message }];
     }
 
     // Archive names use '/' separators; reject absolute paths and any '..' component.
@@ -42,6 +48,11 @@ namespace
 } // namespace
 
 @implementation ORCTLauncherBridge
+
++ (NSString*)openRCT2Version
+{
+    return @kOpenRCT2Version;
+}
 
 + (ORCTRCT2Variant)classifyRCT2AtPath:(NSString*)path
 {
@@ -70,7 +81,7 @@ namespace
     if (!zip)
     {
         if (error)
-            *error = ImportError(@"无法打开这个 ZIP 文件，它可能已损坏。");
+            *error = ImportError(NSLocalizedString(@"无法打开这个 ZIP 文件，它可能已损坏。", nil));
         return NO;
     }
     auto count = zip_get_num_entries(zip, 0);
@@ -94,7 +105,7 @@ namespace
         if (!SafeRelativePath(name))
         {
             if (error)
-                *error = ImportError(@"ZIP 里有不安全的文件路径，已停止导入。");
+                *error = ImportError(NSLocalizedString(@"ZIP 里有不安全的文件路径，已停止导入。", nil));
             ok = NO;
             break;
         }
@@ -122,7 +133,7 @@ namespace
             if (entry)
                 zip_fclose(entry);
             if (error)
-                *error = ImportError(@"解压时无法读取或写入文件，可能是存储空间不足。");
+                *error = ImportError(NSLocalizedString(@"解压时无法读取或写入文件，可能是存储空间不足。", nil));
             ok = NO;
             break;
         }
@@ -148,7 +159,7 @@ namespace
         if (read < 0)
         {
             if (error)
-                *error = read == -2 ? ImportError(@"已取消导入。") : ImportError(@"解压失败，可能是存储空间不足或文件已损坏。");
+                *error = read == -2 ? ImportError(NSLocalizedString(@"已取消导入。", nil)) : ImportError(NSLocalizedString(@"解压失败，可能是存储空间不足或文件已损坏。", nil));
             ok = NO;
         }
     }
@@ -185,23 +196,43 @@ namespace
     options.Cancelled = [cancelled]() { return static_cast<bool>(cancelled()); };
     try
     {
+        auto installer = Inno::Inspect(options.Installer);
+        auto missing = Inno::MissingSlices(installer, options.SliceCandidates);
+        if (!missing.empty())
+        {
+            NSMutableArray<NSString*>* names = [NSMutableArray array];
+            for (auto& name : missing)
+                [names addObject:@(name.c_str())];
+            NSMutableArray<NSString*>* slices = [NSMutableArray array];
+            for (auto& name : installer.Slices)
+                [slices addObject:@(name.c_str())];
+            if (error)
+                *error = [NSError errorWithDomain:ORCTLauncherErrorDomain code:ORCTLauncherErrorMissingSlices
+                                         userInfo:@{
+                                             NSLocalizedDescriptionKey: [NSString stringWithFormat:NSLocalizedString(@"缺少 %@。", nil), [NSListFormatter localizedStringByJoiningStrings:names]],
+                                             ORCTLauncherMissingSlicesKey: names,
+                                             ORCTLauncherSlicesKey: slices,
+                                         }];
+            return NO;
+        }
         Inno::Extract(options);
         return YES;
     }
     catch (const Inno::Error& failure)
     {
         if (error)
-            *error = ImportError(@(failure.what()));
+            *error = ImportError([NSLocalizedString(@(failure.what()), nil) stringByReplacingOccurrencesOfString:@"%@"
+                                                                                       withString:@(failure.argument.c_str())]);
     }
     catch (const Inno::Cancelled&)
     {
         if (error)
-            *error = ImportError(@"已取消导入。");
+            *error = ImportError(NSLocalizedString(@"已取消导入。", nil));
     }
     catch (const std::exception&)
     {
         if (error)
-            *error = ImportError(@"解压安装包失败，可能是存储空间不足或文件已损坏。");
+            *error = ImportError(NSLocalizedString(@"解压安装包失败，可能是存储空间不足或文件已损坏。", nil));
     }
     return NO;
 }

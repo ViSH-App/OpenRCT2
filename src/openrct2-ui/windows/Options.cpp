@@ -278,6 +278,13 @@ namespace OpenRCT2::Ui::Windows
 #endif
     static constexpr ScreenSize kWindowSize = { 310, 332 };
 
+#ifdef OPENRCT2_IOS
+    // Arabic needs a right-to-left pixel font with joining forms, which the iOS build does not bundle.
+    static constexpr int32_t kFirstListedLanguage = LANGUAGE_ARABIC + 1;
+#else
+    static constexpr int32_t kFirstListedLanguage = 1;
+#endif
+
     static constexpr auto kMainOptionsWidgets = makeWidgets(
         makeWindowShim(kWindowTitle, kWindowSize),
         makeWidget({   0, 43 }, { kWindowSize.width, 289 }, WidgetType::resize, WindowColour::secondary),
@@ -1301,13 +1308,19 @@ namespace OpenRCT2::Ui::Windows
                     gDropdown.items[static_cast<int32_t>(Config::Get().general.temperatureFormat)].setChecked(true);
                     break;
                 case WIDX_LANGUAGE_DROPDOWN:
-                    for (size_t i = 1; i < LANGUAGE_COUNT; i++)
+                {
+                    for (int32_t i = kFirstListedLanguage; i < LANGUAGE_COUNT; i++)
                     {
-                        gDropdown.items[i - 1] = Dropdown::MenuLabel(LanguagesDescriptors[i].native_name);
+                        gDropdown.items[i - kFirstListedLanguage] = Dropdown::MenuLabel(LanguagesDescriptors[i].native_name);
                     }
-                    ShowDropdown(widget, LANGUAGE_COUNT - 1);
-                    gDropdown.items[LocalisationService_GetCurrentLanguage() - 1].setChecked(true);
+                    ShowDropdown(widget, LANGUAGE_COUNT - kFirstListedLanguage);
+                    auto current = LocalisationService_GetCurrentLanguage();
+                    if (current >= kFirstListedLanguage)
+                    {
+                        gDropdown.items[current - kFirstListedLanguage].setChecked(true);
+                    }
                     break;
+                }
                 case WIDX_DATE_FORMAT_DROPDOWN:
                     for (size_t i = 0; i < 4; i++)
                     {
@@ -1363,9 +1376,10 @@ namespace OpenRCT2::Ui::Windows
                 case WIDX_LANGUAGE_DROPDOWN:
                 {
                     auto fallbackLanguage = LocalisationService_GetCurrentLanguage();
-                    if (dropdownIndex != LocalisationService_GetCurrentLanguage() - 1)
+                    auto language = dropdownIndex + kFirstListedLanguage;
+                    if (language != LocalisationService_GetCurrentLanguage())
                     {
-                        if (!LanguageOpen(dropdownIndex + 1))
+                        if (!LanguageOpen(language))
                         {
                             // Failed to open language file, try to recover by falling
                             // back to previously used language
@@ -1379,7 +1393,7 @@ namespace OpenRCT2::Ui::Windows
                         }
                         else
                         {
-                            Config::Get().general.language = dropdownIndex + 1;
+                            Config::Get().general.language = language;
                             Config::Save();
                             GfxInvalidateScreen();
                         }

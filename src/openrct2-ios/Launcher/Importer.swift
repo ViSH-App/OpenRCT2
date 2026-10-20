@@ -11,11 +11,11 @@ final class Importer: ObservableObject {
         case reading, checking, unpacking, verifying, installing
         var title: String {
             switch self {
-            case .reading: "读取文件"
-            case .checking: "查找游戏数据"
-            case .unpacking: "解压"
-            case .verifying: "复制并校验"
-            case .installing: "安装到游戏目录"
+            case .reading: String(localized: "读取文件")
+            case .checking: String(localized: "查找游戏数据")
+            case .unpacking: String(localized: "解压")
+            case .verifying: String(localized: "复制并校验")
+            case .installing: String(localized: "安装到游戏目录")
             }
         }
     }
@@ -24,14 +24,33 @@ final class Importer: ObservableObject {
     @Published private(set) var progress: Double = 0
     @Published private(set) var detail = ""
 
+    /// Set while the import waits for the user: the data found belongs to this slot, not the expected one.
+    @Published private(set) var unexpectedSlot: Slot?
+    private var confirmation: CheckedContinuation<Bool, Never>?
+
     private let cancelFlag = CancelFlag()
     func cancel() { cancelFlag.set() }
 
-    /// Imports the picked files or folders and returns what was installed.
-    func run(_ urls: [URL]) async throws -> [GameDataInfo] {
+    func resolveUnexpectedSlot(install: Bool) {
+        unexpectedSlot = nil
+        confirmation?.resume(returning: install)
+        confirmation = nil
+    }
+
+    private func confirmUnexpected(_ slot: Slot) async -> Bool {
+        await withCheckedContinuation { continuation in
+            confirmation = continuation
+            unexpectedSlot = slot
+        }
+    }
+
+    /// Imports the picked files or folders and returns what was installed. When the import was started for
+    /// one slot and only finds data for the other, it asks before replacing that one.
+    func run(_ urls: [URL], expecting expected: Slot? = nil) async throws -> [GameDataInfo] {
         let flag = cancelFlag
-        let report: @Sendable (Step, Double, String) -> Void = { step, progress, detail in
-            Task { @MainActor [weak self] in
+        let confirm: @Sendable (Slot) async -> Bool = { [weak self] slot in await self?.confirmUnexpected(slot) ?? false }
+        let report: @Sendable (Step, Double, String) -> Void = { [weak self] step, progress, detail in
+            Task { @MainActor in
                 guard let self else { return }
                 self.step = step
                 self.progress = progress
@@ -39,7 +58,7 @@ final class Importer: ObservableObject {
             }
         }
         return try await Task.detached(priority: .userInitiated) {
-            try Self.perform(urls, cancel: flag, report: report)
+            try await Self.perform(urls, expected: expected, cancel: flag, report: report, confirm: confirm)
         }.value
     }
 
@@ -50,7 +69,10 @@ final class Importer: ObservableObject {
         let score: Int
     }
 
-    private nonisolated static func perform(_ urls: [URL], cancel: CancelFlag, report: @escaping @Sendable (Step, Double, String) -> Void) throws -> [GameDataInfo] {
+    private nonisolated static func perform(
+        _ urls: [URL], expected: Slot?, cancel: CancelFlag, report: @escaping @Sendable (Step, Double, String) -> Void,
+        confirm: @Sendable (Slot) async -> Bool
+    ) async throws -> [GameDataInfo] {
         let files = FileManager.default
         let workspace = GameDataLocation.workspaces.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try files.createDirectory(at: workspace, withIntermediateDirectories: true)
@@ -60,7 +82,7 @@ final class Importer: ObservableObject {
         let scoped = urls.filter { $0.startAccessingSecurityScopedResource() }
         defer { scoped.forEach { $0.stopAccessingSecurityScopedResource() } }
 
-        report(.reading, 0, urls.map(\.lastPathComponent).joined(separator: "、"))
+        report(.reading, 0, urls.map(\.lastPathComponent).formatted(.list(type: .and)))
         var roots: [(URL, GameDataInfo.Source)] = []
         let picked = urls.filter { !files.isDirectory($0) }
         // Installers found inside a picked folder are a guess; their failure only matters if nothing else is found.
@@ -99,13 +121,13 @@ final class Importer: ObservableObject {
             case .gogSlice:
                 slices.append(url)
             case .otherArchive(let name):
-                throw GameDataError.message("暂不支持 \(name) 格式，后续版本会加入。现在请改用 ZIP，或直接选择游戏文件夹。")
+                throw GameDataError.message(String(localized: "暂不支持 \(name) 格式，后续版本会加入。现在请改用 ZIP，或直接选择游戏文件夹。"))
             case .unknown:
-                throw GameDataError.message("「\(url.lastPathComponent)」不是游戏文件夹、ZIP 压缩包或 GOG 安装包。")
+                throw GameDataError.message(String(localized: "「\(url.lastPathComponent)」不是游戏文件夹、ZIP 压缩包或 GOG 安装包。"))
             }
         }
         if installers.isEmpty, let slice = slices.first {
-            throw GameDataError.message("「\(slice.lastPathComponent)」只是 GOG 安装包的数据部分。请选择安装包所在的文件夹，或同时选中 .exe 和 .bin 文件。")
+            throw GameDataError.message(String(localized: "「\(slice.lastPathComponent)」只是 GOG 安装包的数据部分。请选择安装包所在的文件夹，或同时选中 .exe 和 .bin 文件。"))
         }
         for (exe, allCandidates, guessed) in installers {
             if cancel.isSet { throw CancellationError() }
@@ -123,6 +145,13 @@ final class Importer: ObservableObject {
                 try ORCTLauncherBridge.extractGogInstaller(
                     atPath: exe.path, sliceCandidates: candidates.map(\.path), toDirectory: target.path,
                     folders: gogFolders, progress: { report(.unpacking, $0, "") }, cancelled: { cancel.isSet })
+            } catch let error as ORCTLauncherError where error.code == .missingSlices {
+                let missing = error.userInfo[ORCTLauncherMissingSlicesKey] as? [String] ?? []
+                let slices = error.userInfo[ORCTLauncherSlicesKey] as? [String] ?? missing
+                let failure = GameDataError.missingSlices(installer: exe.lastPathComponent, slices: slices, missing: missing)
+                guard guessed else { throw failure }
+                installerError = installerError ?? failure
+                continue
             } catch {
                 if cancel.isSet { throw CancellationError() }
                 guard guessed else { throw error }
@@ -142,7 +171,10 @@ final class Importer: ObservableObject {
         }
         guard !chosen.isEmpty else {
             if let installerError { throw installerError }
-            throw GameDataError.message("没有找到游戏数据。RCT2 的文件夹里应当有 Data/g1.dat；Classic 应当有 Assets/g1.dat。")
+            throw GameDataError.message(String(localized: "没有找到游戏数据。RCT2 的文件夹里应当有 Data/g1.dat；Classic 应当有 Assets/g1.dat。"))
+        }
+        if let expected, chosen[expected] == nil, let found = chosen.keys.first {
+            guard await confirm(found) else { throw CancellationError() }
         }
 
         // Copy only what the engine reads into a staging folder per slot, then verify it.
@@ -160,14 +192,14 @@ final class Importer: ObservableObject {
                 try files.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
                 report(.verifying, Double(copied) / Double(total), relative)
                 do { try files.copyItem(at: item, to: target) } catch {
-                    throw GameDataError.message("复制「\(relative)」失败，可能是存储空间不足。")
+                    throw GameDataError.message(String(localized: "复制「\(relative)」失败，可能是存储空间不足。"))
                 }
                 copied += files.allocatedSize(of: item) + 1
             }
             let valid = candidate.slot == .rct2
                 ? ORCTLauncherBridge.classifyRCT2(atPath: staging.path) != .none
                 : ORCTLauncherBridge.rct1Present(atPath: staging.path)
-            guard valid else { throw GameDataError.message("复制后的数据不完整，请重新导入。") }
+            guard valid else { throw GameDataError.message(String(localized: "复制后的数据不完整，请重新导入。")) }
             staged.append((candidate, staging))
         }
 
@@ -221,7 +253,7 @@ final class Importer: ObservableObject {
         var innerError: Error?
         NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinatorError) { _ in
             if !FileManager.default.fileExists(atPath: url.path) {
-                innerError = GameDataError.message("无法读取「\(url.lastPathComponent)」。")
+                innerError = GameDataError.message(String(localized: "无法读取「\(url.lastPathComponent)」。"))
             }
         }
         if let error = coordinatorError ?? innerError { throw error }

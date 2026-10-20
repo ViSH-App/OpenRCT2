@@ -8,6 +8,16 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+extern NSErrorDomain const ORCTLauncherErrorDomain;
+typedef NS_ERROR_ENUM(ORCTLauncherErrorDomain, ORCTLauncherError) {
+    ORCTLauncherErrorFailed = 1,
+    // userInfo[ORCTLauncherMissingSlicesKey] lists the .bin names that were not found.
+    ORCTLauncherErrorMissingSlices = 2,
+};
+extern NSString* const ORCTLauncherMissingSlicesKey;
+// userInfo[ORCTLauncherSlicesKey] lists every .bin the installer needs.
+extern NSString* const ORCTLauncherSlicesKey;
+
 // Matches OpenRCT2::RCT2Variant; ORCTRCT2VariantNone when the folder holds no RCT2 data.
 typedef NS_ENUM(NSInteger, ORCTRCT2Variant) {
     ORCTRCT2VariantNone = -1,
@@ -19,6 +29,8 @@ typedef NS_ENUM(NSInteger, ORCTRCT2Variant) {
 
 // The engine's own data checks, for the launcher that runs before the engine starts.
 @interface ORCTLauncherBridge : NSObject
+// The OpenRCT2 release the engine is built from, e.g. "0.5.6".
+@property (class, readonly) NSString* openRCT2Version;
 + (ORCTRCT2Variant)classifyRCT2AtPath:(NSString*)path;
 // CSG1.DAT is present, whether or not it is the Loopy Landscapes version the engine can use.
 + (BOOL)rct1PresentAtPath:(NSString*)path;

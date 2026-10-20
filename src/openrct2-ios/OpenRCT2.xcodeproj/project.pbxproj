@@ -39,6 +39,8 @@
 		5524DDEC416E7E04C6FEEF15 /* GameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1FBCCA52F5869B9D67F2A44 /* GameData.swift */; };
 		80AAF369DBA9DBBBE23EC70A /* Importer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10C1D478A71DF6AF99F9D69A /* Importer.swift */; };
 		E74689C4F7A199EC14678DA7 /* LauncherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3EDBDC5CDFBD4194C2987A /* LauncherView.swift */; };
+		ACA81C5B92144918A11A8C5F /* ImportGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDC4D0474EA44D2B9485EA81 /* ImportGuide.swift */; };
+		5E1C3A7F2B8D4C6E9A0F1D21 /* Licenses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E1C3A7F2B8D4C6E9A0F1D22 /* Licenses.swift */; };
 		9BC40128589959B21FED0FBB /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D78F36697AB55F1EDB2B1 /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
@@ -99,6 +101,8 @@
 		F1FBCCA52F5869B9D67F2A44 /* GameData.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "GameData.swift"; sourceTree = "<group>"; };
 		10C1D478A71DF6AF99F9D69A /* Importer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Importer.swift"; sourceTree = "<group>"; };
 		EB3EDBDC5CDFBD4194C2987A /* LauncherView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "LauncherView.swift"; sourceTree = "<group>"; };
+		BDC4D0474EA44D2B9485EA81 /* ImportGuide.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "ImportGuide.swift"; sourceTree = "<group>"; };
+		5E1C3A7F2B8D4C6E9A0F1D22 /* Licenses.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Licenses.swift"; sourceTree = "<group>"; };
 		1D3D78F36697AB55F1EDB2B1 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -143,6 +147,8 @@
 				F1FBCCA52F5869B9D67F2A44 /* GameData.swift */,
 				10C1D478A71DF6AF99F9D69A /* Importer.swift */,
 				EB3EDBDC5CDFBD4194C2987A /* LauncherView.swift */,
+				BDC4D0474EA44D2B9485EA81 /* ImportGuide.swift */,
+				5E1C3A7F2B8D4C6E9A0F1D22 /* Licenses.swift */,
 			);
 			name = Launcher;
 			path = Launcher;
@@ -370,6 +376,8 @@
 				5524DDEC416E7E04C6FEEF15 /* GameData.swift in Sources */,
 				80AAF369DBA9DBBBE23EC70A /* Importer.swift in Sources */,
 				E74689C4F7A199EC14678DA7 /* LauncherView.swift in Sources */,
+				ACA81C5B92144918A11A8C5F /* ImportGuide.swift in Sources */,
+				5E1C3A7F2B8D4C6E9A0F1D21 /* Licenses.swift in Sources */,
 				3D6912058417FABE41950F9D /* UiContext.iOS.mm in Sources */,
 				91443F6FD34C03B348E347A0 /* Platform.iOS.mm in Sources */,
 				686C97F876199F778034BE1C /* MetalDrawingEngine.mm in Sources */,

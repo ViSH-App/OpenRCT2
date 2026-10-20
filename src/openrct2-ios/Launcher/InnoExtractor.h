@@ -13,14 +13,20 @@
 #include <functional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace OpenRCT2::Inno
 {
-    // The message is meant for the user.
+    // The message is meant for the user: what() is a localization key in which "%@" stands for the argument.
     struct Error : std::runtime_error
     {
-        using std::runtime_error::runtime_error;
+        std::string argument;
+        explicit Error(const std::string& message, std::string argument_ = {})
+            : std::runtime_error(message)
+            , argument(std::move(argument_))
+        {
+        }
     };
 
     struct Cancelled : std::exception

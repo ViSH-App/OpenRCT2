@@ -35,6 +35,22 @@ TTFFontSetDescriptor TTFFontWenQuanYiBitmapSong = { {
     { "WenQuanYi.Bitmap.Song.12px.ttf",           "WenQuanYi Bitmap Song 12px",    15, 1, -2, 14, HINTING_DISABLED, nullptr },
     { "WenQuanYi.Bitmap.Song.12px.ttf",           "WenQuanYi Bitmap Song 12px",    15, 1,  0, 14, HINTING_DISABLED, nullptr },
 } };
+
+// Shinonome 12 dot Mincho, converted from BDF onto the same grid (100 units per pixel, 15 px em).
+// Its kanji fill the 12 px cell, one row more than WenQuanYi's; that row hangs below.
+TTFFontSetDescriptor TTFFontShinonomeMincho = { {
+    { "Shinonome.Mincho.12.ttf",                  "Shinonome Mincho 12",           15, 1, -2, 14, HINTING_DISABLED, nullptr },
+    { "Shinonome.Mincho.12.ttf",                  "Shinonome Mincho 12",           15, 1, -2, 14, HINTING_DISABLED, nullptr },
+    { "Shinonome.Mincho.12.ttf",                  "Shinonome Mincho 12",           15, 1,  0, 14, HINTING_DISABLED, nullptr },
+} };
+
+// Galmuri11: 100 units per pixel on a 12 px em, so ptSize 12 is pixel-exact. Its Hangul sits one row
+// higher than WenQuanYi's Han glyphs; the offsets move it down to the same place.
+TTFFontSetDescriptor TTFFontGalmuri11 = { {
+    { "Galmuri11.ttf",                            "Galmuri11",                     12, 1, -1, 14, HINTING_DISABLED, nullptr },
+    { "Galmuri11.ttf",                            "Galmuri11",                     12, 1, -1, 14, HINTING_DISABLED, nullptr },
+    { "Galmuri11.ttf",                            "Galmuri11",                     12, 1,  1, 14, HINTING_DISABLED, nullptr },
+} };
 #endif
 
 TTFFontSetDescriptor TTFFontMSGothic = { {

@@ -57,6 +57,9 @@ namespace OpenRCT2::Ui::IOS
 {
     SDL_SetMainReady();
     SDL_AddHintCallback(SDL_HINT_IDLE_TIMER_DISABLED, IdleTimerChanged, nullptr);
+    // Auto-hide the home indicator and defer system gestures on every edge, so a
+    // stray swipe or top double-tap during play needs a second gesture to act.
+    SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "2");
     return YES;
 }
 - (UISceneConfiguration*)application:(UIApplication*)application

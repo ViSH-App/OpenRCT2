@@ -21,6 +21,9 @@ TTFontFamily const TTFFamilyChineseSimplified = {
 };
 
 TTFontFamily const TTFFamilyChineseTraditional = {
+    #ifdef OPENRCT2_IOS
+    &TTFFontWenQuanYiBitmapSong,
+    #endif
     &TTFFontMingLiu,
     &TTFFontLiHeiPro,
     &TTFFontMicroHei,
@@ -28,6 +31,9 @@ TTFontFamily const TTFFamilyChineseTraditional = {
 };
 
 TTFontFamily const TTFFamilyJapanese = {
+    #ifdef OPENRCT2_IOS
+    &TTFFontShinonomeMincho,
+    #endif
     &TTFFontHiragano,
     &TTFFontNotoSansMono,
     &TTFFontMSGothic,
@@ -35,6 +41,9 @@ TTFontFamily const TTFFamilyJapanese = {
 };
 
 TTFontFamily const TTFFamilyKorean = {
+    #ifdef OPENRCT2_IOS
+    &TTFFontGalmuri11,
+    #endif
     &TTFFontGulim,
     &TTFFontNanum,
     &TTFFontMalgun,
@@ -47,7 +56,11 @@ TTFontFamily const TTFFamilyArabic = {
     &TTFFontNotoNaskhArabic,
 };
 
+// Vietnamese, and the fallback when the fonts of another family are missing.
 TTFontFamily const TTFFamilySansSerif = {
+    #ifdef OPENRCT2_IOS
+    &TTFFontGalmuri11,
+    #endif
     &TTFFontArialUnicode,
     &TTFFontArial,
     &TTFFontRoboto,

@@ -28,6 +28,10 @@ fi
 if [[ ! -f "$ROOT/build/ios-deps/install/lib/liblzmasdk.a" ]]; then
     "$ROOT/src/openrct2-ios/scripts/build-dependencies.sh" --lzma-only
 fi
+# Preparations from before the Japanese and Korean pixel fonts lack them; fetch only the fonts.
+if [[ ! -f "$ROOT/build/ios-data/fonts/Galmuri11.ttf" || ! -f "$ROOT/build/ios-data/fonts/Shinonome.Mincho.12.ttf" ]]; then
+    python3 "$ROOT/src/openrct2-ios/scripts/fetch-fonts.py"
+fi
 # Replace only the old generator's configuration when migrating build/ipad.
 # Dependency downloads, installed libraries, assets, and their paths are preserved.
 CMAKE_ARGS=(

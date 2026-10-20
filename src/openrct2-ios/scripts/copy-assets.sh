@@ -14,5 +14,7 @@ rm -rf "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/fonts"
 for folder in language scenario_patches shaders; do
     /usr/bin/ditto "$ROOT/data/$folder" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/$folder"
 done
+# Licenses of everything the app ships, for the launcher's license page.
+python3 "$ROOT/src/openrct2-ios/scripts/collect-licenses.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/licenses"
 # Launcher sprites: OpenRCT2's own g2 artwork, recoloured with the RCT2 palette.
 /usr/bin/ditto "$ROOT/src/openrct2-ios/Launcher/Resources" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/launcher"

@@ -44,23 +44,23 @@ struct GameDataInfo: Codable, Equatable {
     }
 
     var edition: String? {
-        guard slot == .rct2, !isClassic else { return slot == .rct1 && rct1Usable == true ? "含 Loopy Landscapes" : nil }
+        guard slot == .rct2, !isClassic else { return slot == .rct1 && rct1Usable == true ? String(localized: "含 Loopy Landscapes") : nil }
         let ww = (wackyWorlds ?? 0) >= 0.99, tt = (timeTwister ?? 0) >= 0.99
         switch (ww, tt) {
         case (true, true): return "Triple Thrill Pack"
-        case (true, false): return "含 Wacky Worlds"
-        case (false, true): return "含 Time Twister"
-        case (false, false): return "原版（无扩展包）"
+        case (true, false): return String(localized: "含 Wacky Worlds")
+        case (false, true): return String(localized: "含 Time Twister")
+        case (false, false): return String(localized: "原版（无扩展包）")
         }
     }
 
     var sourceLine: String {
         var parts: [String] = []
         switch source.kind {
-        case .folder: parts.append("来自文件夹")
-        case .zip: parts.append("来自 ZIP")
-        case .gogInstaller: parts.append("来自 GOG 安装包")
-        case .migrated: parts.append("旧版本导入")
+        case .folder: parts.append(String(localized: "来自文件夹"))
+        case .zip: parts.append(String(localized: "来自 ZIP"))
+        case .gogInstaller: parts.append(String(localized: "来自 GOG 安装包"))
+        case .migrated: parts.append(String(localized: "旧版本导入"))
         }
         if let name = source.gogName { parts.append("GOG · \(name)") }
         if let language = source.language { parts.append(language) }
@@ -70,8 +70,13 @@ struct GameDataInfo: Codable, Equatable {
 
 enum GameDataError: LocalizedError {
     case message(String)
+    /// A GOG installer whose .bin slices were not among the picked files.
+    case missingSlices(installer: String, slices: [String], missing: [String])
     var errorDescription: String? {
-        switch self { case .message(let text): text }
+        switch self {
+        case .message(let text): text
+        case .missingSlices(_, _, let missing): String(localized: "缺少 \(missing.formatted(.list(type: .and)))。")
+        }
     }
 }
 

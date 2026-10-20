@@ -36,6 +36,7 @@ struct Ramp {
     static let darkGreen = Ramp([0x17471f, 0x23532b, 0x2f633b, 0x3b734b, 0x4f875f, 0x639b77, 0x7baf8b, 0x93c7a7])
     static let darkYellow = Ramp([0x471b00, 0x5f2b00, 0x5f2b00, 0x773f00, 0x8f5307, 0xa76f07, 0xbf8b0f, 0xd7a713])
     static let bordeauxRed = Ramp([0x5f0707, 0x6f0f0f, 0x7f1b1b, 0x8f2727, 0xa33b3b, 0xb34f4f, 0xc76767, 0xd77f7f])
+    static let lightPurple = Ramp([0x333767, 0x3f4377, 0x53538b, 0x63639b, 0x7777af, 0x8b8bbf, 0x9f9fcf, 0xb7b7df])
     static let brightGreen = Ramp([0x176700, 0x1f7b00, 0x278f07, 0x379f17, 0x47af27, 0x5bbf3f, 0x6fcf57, 0x8bdf73])
 }
 
@@ -50,32 +51,44 @@ enum Palette {
 // MARK: - Fonts
 
 enum PixelFont {
-    // Filled once on the main thread before the first view is built.
-    nonisolated(unsafe) private static var names: [Int: String] = [:]
-
-    /// Registers the pixel faces the engine already bundles under data/fonts.
-    static func register() {
-        let fonts = Bundle.main.resourceURL!.appendingPathComponent("data/fonts")
-        let files = [12: "WenQuanYi.Bitmap.Song.12px.ttf"]
-        for (size, file) in files {
-            let url = fonts.appendingPathComponent(file)
-            guard let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor],
-                let name = descriptors.first.flatMap({ CTFontDescriptorCopyAttribute($0, kCTFontNameAttribute) as? String })
-            else { continue }
-            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
-            names[size] = name
-        }
+    /// One of the pixel faces the engine bundles under data/fonts; em is its em size in font pixels.
+    private struct Face {
+        let file: String
+        let em: CGFloat
     }
 
-    /// The WenQuanYi 12 px face has a 15 px em. Body text: it at 1.5× (3 device pixels per font pixel at 2×
-    /// screen scale). Small: it at 1×. Title: the WenQuanYi face at 2×.
-    static let body = font(12, 22.5)
-    static let small = font(12, 15)
-    static let title = font(12, 30)
+    /// The face for the launcher's language, as for the game: WenQuanYi for Chinese, Shinonome for Japanese,
+    /// and Galmuri11, which also covers Latin, Cyrillic and Vietnamese letters, for every other language.
+    private static let face: Face = {
+        let language = Bundle.main.preferredLocalizations.first ?? "en"
+        if language.hasPrefix("zh") { return Face(file: "WenQuanYi.Bitmap.Song.12px.ttf", em: 15) }
+        if language.hasPrefix("ja") { return Face(file: "Shinonome.Mincho.12.ttf", em: 15) }
+        return Face(file: "Galmuri11.ttf", em: 12)
+    }()
 
-    private static func font(_ design: Int, _ size: CGFloat) -> Font {
-        if names.isEmpty { register() }
-        guard let name = names[design] else { return .system(size: size * 0.8, weight: .bold, design: .monospaced) }
+    // Filled once on the main thread before the first view is built.
+    nonisolated(unsafe) private static var name: String?
+
+    static func register() {
+        let url = Bundle.main.resourceURL!.appendingPathComponent("data/fonts").appendingPathComponent(face.file)
+        guard name == nil,
+            let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor],
+            let found = descriptors.first.flatMap({ CTFontDescriptorCopyAttribute($0, kCTFontNameAttribute) as? String })
+        else { return }
+        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        name = found
+    }
+
+    /// Whole multiples of the face's em, so every font pixel covers whole screen pixels. Body text: 1.5× (3
+    /// device pixels per font pixel at 2× screen scale). Small: 1×. Title: 2×.
+    static let body = font(1.5)
+    static let small = font(1)
+    static let title = font(2)
+
+    private static func font(_ scale: CGFloat) -> Font {
+        register()
+        let size = face.em * scale
+        guard let name else { return .system(size: size * 0.8, weight: .bold, design: .monospaced) }
         return .custom(name, fixedSize: size)
     }
 }
@@ -341,7 +354,7 @@ struct Sprite: View {
 
 /// Pixel icons drawn from rectangles in game pixels.
 struct PixelIcon: View {
-    enum Kind { case download, folder }
+    enum Kind { case download, folder, zip, app, share }
     let kind: Kind
     var body: some View {
         Canvas { context, _ in
@@ -360,6 +373,22 @@ struct PixelIcon: View {
                 fill([(1, 2, 7, 2), (1, 4, 18, 13)], 0xd7a713)
                 fill([(1, 6, 18, 11)], 0xf3cb1b)
                 fill([(2, 7, 16, 1)], 0xfff35f)
+            case .zip:
+                let page = [(3, 1, 10, 18), (13, 5, 4, 14)]
+                fill(page.map { ($0.0 + 1, $0.1 + 1, $0.2, $0.3) }, 0x172323)
+                fill(page, 0xeff3f3)
+                fill([(13, 1, 1, 4), (14, 2, 1, 3), (15, 3, 1, 2), (16, 4, 1, 1)], 0x9fafaf)
+                fill([(9, 2, 2, 1), (8, 3, 2, 1), (9, 4, 2, 1), (8, 5, 2, 1), (9, 6, 2, 1), (8, 7, 3, 4)], 0x3f5353)
+                fill([(9, 9, 1, 1)], 0xeff3f3)
+            case .app:
+                fill([(4, 3, 14, 16)], 0x172323)
+                fill([(3, 2, 14, 16)], 0x4387e3)
+                fill([(4, 3, 12, 1)], 0x8fd3f3)
+                fill([(6, 7, 8, 2), (8, 11, 4, 4)], 0xfff35f)
+            case .share:
+                let arrow = [(9, 2, 2, 10), (7, 4, 6, 1), (6, 5, 2, 1), (12, 5, 2, 1), (3, 8, 2, 11), (5, 8, 2, 2), (15, 8, 2, 11), (13, 8, 2, 2), (5, 17, 10, 2)]
+                fill(arrow.map { ($0.0 + 1, $0.1 + 1, $0.2, $0.3) }, 0x172323)
+                fill(arrow, 0xeff3f3)
             }
         }
         .frame(width: 40, height: 40)

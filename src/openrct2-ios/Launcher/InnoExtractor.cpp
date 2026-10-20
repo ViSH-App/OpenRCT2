@@ -203,7 +203,7 @@ namespace OpenRCT2::Inno
         {
             std::ifstream stream(path, std::ios::binary);
             if (!stream)
-                throw Error("无法读取「" + fs::path(path).filename().string() + "」。");
+                throw Error("无法读取「%@」。", fs::path(path).filename().string());
             return stream;
         }
 
@@ -608,9 +608,10 @@ namespace OpenRCT2::Inno
                 throw Error("安装包已损坏或不完整。");
             auto version = ParseVersion(name);
             if (version < kOldestSupported || version >= kFirstUnsupported)
-                throw Error("暂不支持这个版本的安装包（Inno Setup " + std::to_string(version.Value >> 24) + "."
-                            + std::to_string((version.Value >> 16) & 0xFF) + "." + std::to_string((version.Value >> 8) & 0xFF)
-                            + "）。请改为导入解包后的文件夹。");
+                throw Error(
+                    "暂不支持这个版本的安装包（Inno Setup %@）。请改为导入解包后的文件夹。",
+                    std::to_string(version.Value >> 24) + "." + std::to_string((version.Value >> 16) & 0xFF) + "."
+                        + std::to_string((version.Value >> 8) & 0xFF));
 
             std::vector<uint8_t> primary, data;
             try
@@ -744,7 +745,7 @@ namespace OpenRCT2::Inno
                     throw Error("安装包数据不完整，缺少 .bin 文件。");
                 _stream.open(_paths[slice], std::ios::binary | std::ios::ate);
                 if (!_stream)
-                    throw Error("无法读取「" + fs::path(_paths[slice]).filename().string() + "」。");
+                    throw Error("无法读取「%@」。", fs::path(_paths[slice]).filename().string());
                 auto fileSize = uint64_t(_stream.tellg());
                 _stream.seekg(0);
                 char magic[8];
@@ -752,7 +753,7 @@ namespace OpenRCT2::Inno
                 _size = LoadFrom<uint32_t>(_stream);
                 if (!_stream || (std::memcmp(magic, "idska32\x1a", 8) != 0 && std::memcmp(magic, "idska16\x1a", 8) != 0)
                     || _size > fileSize)
-                    throw Error("「" + fs::path(_paths[slice]).filename().string() + "」不是这个安装包的数据文件，或者已损坏。");
+                    throw Error("「%@」不是这个安装包的数据文件，或者已损坏。", fs::path(_paths[slice]).filename().string());
             }
 
             std::vector<std::string> _paths;
@@ -1136,7 +1137,7 @@ namespace OpenRCT2::Inno
                 _file.open(path, std::ios::binary | std::ios::in | std::ios::out);
                 _file.seekp(std::streamoff(part.Offset));
                 if (!_file)
-                    throw Error("无法写入「" + path.filename().string() + "」，可能是存储空间不足。");
+                    throw Error("无法写入「%@」，可能是存储空间不足。", path.filename().string());
                 if (part.Zlib)
                 {
                     _zlib = std::make_unique<z_stream>();
@@ -1167,7 +1168,7 @@ namespace OpenRCT2::Inno
                     _zlib->avail_out = sizeof(out);
                     int result = inflate(_zlib.get(), Z_NO_FLUSH);
                     if (result != Z_OK && result != Z_STREAM_END)
-                        throw Error("「" + _path.filename().string() + "」解压失败，安装包可能已损坏。");
+                        throw Error("「%@」解压失败，安装包可能已损坏。", _path.filename().string());
                     Put(out, sizeof(out) - _zlib->avail_out);
                     _ended = result == Z_STREAM_END;
                 }
@@ -1179,7 +1180,7 @@ namespace OpenRCT2::Inno
                 if (!_file)
                     throw Error("写入文件失败，可能是存储空间不足。");
                 if ((_zlib && !_ended) || _written != _expected)
-                    throw Error("「" + _path.filename().string() + "」不完整，安装包可能已损坏。");
+                    throw Error("「%@」不完整，安装包可能已损坏。", _path.filename().string());
             }
 
         private:
@@ -1236,7 +1237,7 @@ namespace OpenRCT2::Inno
         {
             auto path = FindCandidate(name, options.SliceCandidates);
             if (!path)
-                throw Error("还缺少「" + name + "」。请选择安装包所在的文件夹，或同时选中 .exe 和 .bin 文件。");
+                throw Error("还缺少「%@」。请选择安装包所在的文件夹，或同时选中 .exe 和 .bin 文件。", name);
             slicePaths.push_back(*path);
         }
 
@@ -1319,7 +1320,7 @@ namespace OpenRCT2::Inno
                     left -= step;
                 }
                 if (digest.Final() != data.Checksum)
-                    throw Error("「" + consumers[location].front().first->Path + "」校验失败，安装包可能已损坏。");
+                    throw Error("「%@」校验失败，安装包可能已损坏。", consumers[location].front().first->Path);
                 for (auto& writer : writers)
                     writer->Finish();
                 position = data.FileOffset + data.FileSize;
