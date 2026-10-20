@@ -14,7 +14,7 @@
 
 #include <cmath>
 #ifdef OPENRCT2_IOS
-    #include "../UiContext.iOS.h"
+    #include <openrct2-ios/UiContext.iOS.h>
 #endif
 #include <openrct2-ui/interface/Dropdown.h>
 #include <openrct2-ui/interface/Theme.h>

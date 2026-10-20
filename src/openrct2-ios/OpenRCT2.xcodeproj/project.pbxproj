@@ -1,0 +1,501 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0579DC0B9344CE08E27CBA74 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D09441E6E1C360811C9B0EC /* OpenGLES.framework */; };
+		066679BC7E43E9147E45CD23 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 51DFD39ECCD8F9763D9D5829 /* CoreBluetooth.framework */; };
+		0A8D8B53FF31BB3AA7CA1CEB /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58D11B9D14A65598E6A130BD /* QuartzCore.framework */; };
+		0E885CBCAE61509BA35C0D61 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3A3C42D812AC8177096320B /* CoreVideo.framework */; };
+		11509B8890BFEC30AF1688DF /* IosApplication.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2C916D5125193E553D308F88 /* IosApplication.mm */; };
+		1FE8DD6D8F5E004125CEDAEC /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B61481309CB9D2C3496A7245 /* UniformTypeIdentifiers.framework */; };
+		24D130D648933240D47F7319 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1AB9872CC73821FE155BDA6 /* Metal.framework */; };
+		2A3CDD2F66794FA2D1EBA372 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20119E2806DFA58DB57445FD /* CoreAudio.framework */; };
+		3C1F9580AA5BD451563B4F1C /* AVFAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FFFED382526939223C01B9E5 /* AVFAudio.framework */; };
+		3D6912058417FABE41950F9D /* UiContext.iOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5CD8E88126CF4F31BC39307E /* UiContext.iOS.mm */; };
+		686C97F876199F778034BE1C /* MetalDrawingEngine.mm in Sources */ = {isa = PBXBuildFile; fileRef = C7F6D7B142E2BCC6CDF73F96 /* MetalDrawingEngine.mm */; };
+		78E2F5A00636538FD70CA191 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3070E89493AF489DFE39A4C4 /* UIKit.framework */; };
+		7C870D22386F10B20D300445 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0481F0881BE3E7BC35551E72 /* GameController.framework */; };
+		82AEEF68C82B43A859783EA6 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1E80AF1F1C7174AEDA623818 /* CoreHaptics.framework */; };
+		8ABF661E22754E11BE350064 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F8BAD812D0AC0823EDD6C6FB /* AVFoundation.framework */; };
+		91443F6FD34C03B348E347A0 /* Platform.iOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5F9AE2F558F3212B862AD66C /* Platform.iOS.mm */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		94C14255DF4EB86C9B7FC642 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A02A6D7150754E3037BAAC0E /* CoreGraphics.framework */; };
+		9970D4642F0F303627551BD2 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9F1246A8574809C718FCE47E /* Security.framework */; };
+		B43D9C87C857DF8DE2063687 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B8EC6F960D6FA2D8E5BD232 /* Foundation.framework */; };
+		CB84C6F1E6E3B52007D603CA /* CoreText.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DA7AE49EE1B8F675AC8C5BB0 /* CoreText.framework */; };
+		EC42BFCF2F800886AA2CC79D /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 003E453A7FD8A4DA39EFBECE /* CoreMotion.framework */; };
+		F4FC51DCF51AFFDEBEF7FCCD /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1230E28C1EAF187C254BC4AA /* AudioToolbox.framework */; };
+		FBAEFCB2E9890BAE56D8DD94 /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 59731A7AD531B9009F0FD5F3 /* MetalShaders.metal */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		003E453A7FD8A4DA39EFBECE /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
+		02451A0BDF89D00A66F03E8B /* fetch-dependencies.py */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.python; path = "fetch-dependencies.py"; sourceTree = "<group>"; };
+		0481F0881BE3E7BC35551E72 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
+		08CFB922FBE16B4C31C365EC /* OpenRCT2-iPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OpenRCT2-iPad.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1230E28C1EAF187C254BC4AA /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		1D09441E6E1C360811C9B0EC /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
+		1E80AF1F1C7174AEDA623818 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
+		20119E2806DFA58DB57445FD /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		2C916D5125193E553D308F88 /* IosApplication.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = IosApplication.mm; sourceTree = "<group>"; };
+		2F5943C4FD314D61FFD54DD0 /* UiContext.iOS.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = UiContext.iOS.h; sourceTree = "<group>"; };
+		3070E89493AF489DFE39A4C4 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		33E8AFE69031B83EDA776C04 /* prepare.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = prepare.sh; sourceTree = "<group>"; };
+		4B8EC6F960D6FA2D8E5BD232 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		51DFD39ECCD8F9763D9D5829 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		51F456367E1F2B0488D1ABD7 /* VALIDATION.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; path = VALIDATION.md; sourceTree = "<group>"; };
+		58D11B9D14A65598E6A130BD /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		59731A7AD531B9009F0FD5F3 /* MetalShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = MetalShaders.metal; sourceTree = "<group>"; };
+		5CD8E88126CF4F31BC39307E /* UiContext.iOS.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = UiContext.iOS.mm; sourceTree = "<group>"; };
+		5E1756F3118C4B86BD3E0498 /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		5F9AE2F558F3212B862AD66C /* Platform.iOS.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = Platform.iOS.mm; sourceTree = "<group>"; };
+		6CD64164EC3F3AA85283A5F0 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9F1246A8574809C718FCE47E /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		A02A6D7150754E3037BAAC0E /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		A3A3C42D812AC8177096320B /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
+		A7D6037DDF05F263C5C5E93C /* copy-assets.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "copy-assets.sh"; sourceTree = "<group>"; };
+		A9756B5DF49F459E055509BE /* OpenRCT2.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = OpenRCT2.xcconfig; sourceTree = "<group>"; };
+		B1EA91C2B72F79821AD74CE2 /* build-native.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "build-native.sh"; sourceTree = "<group>"; };
+		B61481309CB9D2C3496A7245 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
+		B7653433107752A8AD33E1AA /* fetch-fonts.py */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.python; path = "fetch-fonts.py"; sourceTree = "<group>"; };
+		BC971E830878941E08175765 /* prepare-assets.py */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.python; path = "prepare-assets.py"; sourceTree = "<group>"; };
+		C7F6D7B142E2BCC6CDF73F96 /* MetalDrawingEngine.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = MetalDrawingEngine.mm; sourceTree = "<group>"; };
+		CF23B950C32828820059E5F7 /* build-dependencies.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "build-dependencies.sh"; sourceTree = "<group>"; };
+		DA7AE49EE1B8F675AC8C5BB0 /* CoreText.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreText.framework; path = System/Library/Frameworks/CoreText.framework; sourceTree = SDKROOT; };
+		DD2149C20552AD42856C20E3 /* options.cmake */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = options.cmake; sourceTree = "<group>"; };
+		E1AB9872CC73821FE155BDA6 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		ED47E1ECF596C3071A2A23DC /* CMakeLists.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		F8BAD812D0AC0823EDD6C6FB /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		FFFED382526939223C01B9E5 /* AVFAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFAudio.framework; path = System/Library/Frameworks/AVFAudio.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		55D11C5888A158270B3037D6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B43D9C87C857DF8DE2063687 /* Foundation.framework in Frameworks */,
+				78E2F5A00636538FD70CA191 /* UIKit.framework in Frameworks */,
+				CB84C6F1E6E3B52007D603CA /* CoreText.framework in Frameworks */,
+				1FE8DD6D8F5E004125CEDAEC /* UniformTypeIdentifiers.framework in Frameworks */,
+				3C1F9580AA5BD451563B4F1C /* AVFAudio.framework in Frameworks */,
+				8ABF661E22754E11BE350064 /* AVFoundation.framework in Frameworks */,
+				F4FC51DCF51AFFDEBEF7FCCD /* AudioToolbox.framework in Frameworks */,
+				2A3CDD2F66794FA2D1EBA372 /* CoreAudio.framework in Frameworks */,
+				066679BC7E43E9147E45CD23 /* CoreBluetooth.framework in Frameworks */,
+				94C14255DF4EB86C9B7FC642 /* CoreGraphics.framework in Frameworks */,
+				82AEEF68C82B43A859783EA6 /* CoreHaptics.framework in Frameworks */,
+				EC42BFCF2F800886AA2CC79D /* CoreMotion.framework in Frameworks */,
+				0E885CBCAE61509BA35C0D61 /* CoreVideo.framework in Frameworks */,
+				7C870D22386F10B20D300445 /* GameController.framework in Frameworks */,
+				24D130D648933240D47F7319 /* Metal.framework in Frameworks */,
+				0579DC0B9344CE08E27CBA74 /* OpenGLES.framework in Frameworks */,
+				0A8D8B53FF31BB3AA7CA1CEB /* QuartzCore.framework in Frameworks */,
+				9970D4642F0F303627551BD2 /* Security.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		38585D1C806C452E109E8726 /* Metal */ = {
+			isa = PBXGroup;
+			children = (
+				C7F6D7B142E2BCC6CDF73F96 /* MetalDrawingEngine.mm */,
+				59731A7AD531B9009F0FD5F3 /* MetalShaders.metal */,
+			);
+			name = Metal;
+			path = drawing/metal;
+			sourceTree = "<group>";
+		};
+		55F2E313DEA85F8E02134CBC /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				CF23B950C32828820059E5F7 /* build-dependencies.sh */,
+				B1EA91C2B72F79821AD74CE2 /* build-native.sh */,
+				A7D6037DDF05F263C5C5E93C /* copy-assets.sh */,
+				02451A0BDF89D00A66F03E8B /* fetch-dependencies.py */,
+				B7653433107752A8AD33E1AA /* fetch-fonts.py */,
+				BC971E830878941E08175765 /* prepare-assets.py */,
+				33E8AFE69031B83EDA776C04 /* prepare.sh */,
+			);
+			name = Scripts;
+			path = scripts;
+			sourceTree = "<group>";
+		};
+		5970B24ECB06B69E41995EBE /* CMake */ = {
+			isa = PBXGroup;
+			children = (
+				DD2149C20552AD42856C20E3 /* options.cmake */,
+			);
+			name = CMake;
+			path = cmake;
+			sourceTree = "<group>";
+		};
+		67AB031679422D373AB779D6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				08CFB922FBE16B4C31C365EC /* OpenRCT2-iPad.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AC0BBC7344450A467A5B2838 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				4B8EC6F960D6FA2D8E5BD232 /* Foundation.framework */,
+				3070E89493AF489DFE39A4C4 /* UIKit.framework */,
+				DA7AE49EE1B8F675AC8C5BB0 /* CoreText.framework */,
+				B61481309CB9D2C3496A7245 /* UniformTypeIdentifiers.framework */,
+				FFFED382526939223C01B9E5 /* AVFAudio.framework */,
+				F8BAD812D0AC0823EDD6C6FB /* AVFoundation.framework */,
+				1230E28C1EAF187C254BC4AA /* AudioToolbox.framework */,
+				20119E2806DFA58DB57445FD /* CoreAudio.framework */,
+				51DFD39ECCD8F9763D9D5829 /* CoreBluetooth.framework */,
+				A02A6D7150754E3037BAAC0E /* CoreGraphics.framework */,
+				1E80AF1F1C7174AEDA623818 /* CoreHaptics.framework */,
+				003E453A7FD8A4DA39EFBECE /* CoreMotion.framework */,
+				A3A3C42D812AC8177096320B /* CoreVideo.framework */,
+				0481F0881BE3E7BC35551E72 /* GameController.framework */,
+				E1AB9872CC73821FE155BDA6 /* Metal.framework */,
+				1D09441E6E1C360811C9B0EC /* OpenGLES.framework */,
+				58D11B9D14A65598E6A130BD /* QuartzCore.framework */,
+				9F1246A8574809C718FCE47E /* Security.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		AFF230164D604803CF3A8E13 = {
+			isa = PBXGroup;
+			children = (
+				67AB031679422D373AB779D6 /* Products */,
+				BF6EE936D723DDEAE52EFC00 /* Frameworks */,
+				A9756B5DF49F459E055509BE /* OpenRCT2.xcconfig */,
+				6CD64164EC3F3AA85283A5F0 /* Info.plist */,
+				5E1756F3118C4B86BD3E0498 /* README.md */,
+				51F456367E1F2B0488D1ABD7 /* VALIDATION.md */,
+				ED47E1ECF596C3071A2A23DC /* CMakeLists.txt */,
+				2C916D5125193E553D308F88 /* IosApplication.mm */,
+				5CD8E88126CF4F31BC39307E /* UiContext.iOS.mm */,
+				5F9AE2F558F3212B862AD66C /* Platform.iOS.mm */,
+				2F5943C4FD314D61FFD54DD0 /* UiContext.iOS.h */,
+				38585D1C806C452E109E8726 /* Metal */,
+				55F2E313DEA85F8E02134CBC /* Scripts */,
+				5970B24ECB06B69E41995EBE /* CMake */,
+			);
+			sourceTree = "<group>";
+		};
+		BF6EE936D723DDEAE52EFC00 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AC0BBC7344450A467A5B2838 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9C0FAD05B79AC51A2C03FE61 /* OpenRCT2 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B1A7CD623BA54CB70B97380 /* Build configuration list for PBXNativeTarget "OpenRCT2" */;
+			buildPhases = (
+				ED3A2FF54BCAD7FD313159B4 /* Build shared C++ libraries */,
+				355679B034182E6C185D247D /* Sources */,
+				55D11C5888A158270B3037D6 /* Frameworks */,
+				59B03AC51AD64105A2B55AA9 /* Resources */,
+				190B4D11552531A02F39DC29 /* Copy OpenRCT2 assets */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OpenRCT2;
+			productName = OpenRCT2;
+			productReference = 08CFB922FBE16B4C31C365EC /* OpenRCT2-iPad.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B13E8DC56BFAF945A3347525 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 2700;
+			};
+			buildConfigurationList = 3D7BECFA1B5F1E634A6C6859 /* Build configuration list for PBXProject "OpenRCT2" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AFF230164D604803CF3A8E13;
+			productRefGroup = 67AB031679422D373AB779D6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9C0FAD05B79AC51A2C03FE61 /* OpenRCT2 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		59B03AC51AD64105A2B55AA9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		190B4D11552531A02F39DC29 /* Copy OpenRCT2 assets */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy OpenRCT2 assets";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/data/g2.dat",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "\"$SRCROOT/scripts/copy-assets.sh\"\n";
+		};
+		ED3A2FF54BCAD7FD313159B4 /* Build shared C++ libraries */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build shared C++ libraries";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/../../build/ipad/$(CONFIGURATION)/libOpenRCT2UI.a",
+				"$(SRCROOT)/../../build/ipad/$(CONFIGURATION)/libopenrct2.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "\"$SRCROOT/scripts/build-native.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		355679B034182E6C185D247D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				11509B8890BFEC30AF1688DF /* IosApplication.mm in Sources */,
+				3D6912058417FABE41950F9D /* UiContext.iOS.mm in Sources */,
+				91443F6FD34C03B348E347A0 /* Platform.iOS.mm in Sources */,
+				686C97F876199F778034BE1C /* MetalDrawingEngine.mm in Sources */,
+				FBAEFCB2E9890BAE56D8DD94 /* MetalShaders.metal in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A8ED14D2BC36263B20EAD807 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A9756B5DF49F459E055509BE /* OpenRCT2.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = BURS7B2MHX;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"NDEBUG=1",
+				);
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.simulation-games";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CFFEA24AB5F7F2C6B540C5E2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D5E50BB068B99023997EEF4B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		DF15620FDDB057FEAF75D40E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A9756B5DF49F459E055509BE /* OpenRCT2.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = BURS7B2MHX;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.simulation-games";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3D7BECFA1B5F1E634A6C6859 /* Build configuration list for PBXProject "OpenRCT2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CFFEA24AB5F7F2C6B540C5E2 /* Debug */,
+				D5E50BB068B99023997EEF4B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4B1A7CD623BA54CB70B97380 /* Build configuration list for PBXNativeTarget "OpenRCT2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A8ED14D2BC36263B20EAD807 /* Release */,
+				DF15620FDDB057FEAF75D40E /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B13E8DC56BFAF945A3347525 /* Project object */;
+}

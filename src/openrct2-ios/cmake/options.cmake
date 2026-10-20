@@ -3,8 +3,6 @@ if(NOT CMAKE_OSX_SYSROOT MATCHES "iphoneos|iPhoneOS")
     message(FATAL_ERROR "The iPad port requires the iPhoneOS SDK (no simulator).")
 endif()
 add_compile_definitions(OPENRCT2_IOS)
-# Match the upstream warning set rather than Xcode's extra narrowing warnings.
-set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_64_TO_32_BIT_CONVERSION NO)
 set(IOS_DEPENDENCIES "${CMAKE_SOURCE_DIR}/build/ios-deps/install" CACHE PATH "arm64 iPhoneOS dependencies")
 list(PREPEND CMAKE_PREFIX_PATH "${IOS_DEPENDENCIES}")
 list(PREPEND CMAKE_FIND_ROOT_PATH "${IOS_DEPENDENCIES}")

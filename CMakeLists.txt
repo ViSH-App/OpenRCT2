@@ -52,7 +52,7 @@ endif ()
 project(openrct2 CXX C)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    include(cmake/ios/options.cmake)
+    include(src/openrct2-ios/cmake/options.cmake)
 endif()
 
 include(cmake/platform.cmake)

@@ -1,5 +1,48 @@
 # iPad port validation — 2026-10-20
 
+## Maintained Xcode project migration
+
+The application now builds from the checked-in
+`src/openrct2-ios/OpenRCT2.xcodeproj`, shared scheme `OpenRCT2`. Xcode compiles
+UIKit/platform Objective-C++ and Metal sources, links the CMake-built C++ static
+libraries, copies prepared assets, and owns application signing/settings.
+CMake uses Ninja Multi-Config for the libraries and no longer generates the app
+project. Existing dependency/cache paths were retained.
+
+Validation performed for this migration:
+
+- `xcodebuild -list` reads the app target, shared scheme, Debug and Release
+  configurations without generating a project.
+- Dependency/asset preparation completed, including the native host graphics
+  generator and static iPhoneOS FreeType/SDL/ICU dependencies.
+- Full Release compilation, linking, and packaging passed with:
+
+  ```sh
+  xcodebuild -project src/openrct2-ios/OpenRCT2.xcodeproj -scheme OpenRCT2 \
+    -configuration Release -destination 'generic/platform=iOS' \
+    CODE_SIGNING_ALLOWED=NO build
+  ```
+
+- A subsequent incremental build passed; Ninja reported `no work to do` for
+  the native libraries. The redundant Info.plist device-family declaration was
+  removed; Xcode's `TARGETED_DEVICE_FAMILY=2` supplies the verified app value.
+- The resulting executable is arm64, platform iOS, minimum OS 16.0. Its dynamic
+  dependencies are exclusively system libraries/frameworks, with no host macOS
+  or Homebrew dylib paths.
+- Bundle identifier `io.openrct2.personal.ipad`, version `0.1.0`, build `7`, and
+  iPad-only device family were verified in the built Info.plist.
+- `OpenRCT2.metallib`, generated graphics data, and the bundled Chinese font
+  are present and nonempty. No proprietary `g1.dat` is bundled.
+- Project references, script syntax, include paths, and whitespace checks pass.
+
+Evidence: `build/ios-validation/native-project-{prepare,release,incremental}.log`,
+`native-project-list.json`, `native-project-settings.json`, and
+`native-project-product.txt` (the latter records the normal Xcode product path).
+
+This migration was validated without signing, installation, or launch. The
+runtime/device results below predate the project migration and must not be
+interpreted as runtime acceptance of the new Xcode build.
+
 ## Verified on My Mac (Designed for iPad)
 
 Host: Apple Silicon MacBookPro18,1, macOS 27.0; Xcode 27.1 (27A9275), iPhoneOS 27.1 SDK. Release build, deployment target iOS 16.0, arm64, UIKit. No simulator or Catalyst was run. The source checkout was initially clean and contained no applicable AGENTS.md. Validation was completed before the playable-baseline commit. No push was performed.

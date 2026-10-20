@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
-ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 DEPS="$ROOT/build/ios-deps"
 PREFIX="$DEPS/install"
 JOBS=${JOBS:-8}
 SDK=$(xcrun --sdk iphoneos --show-sdk-path)
 mkdir -p "$PREFIX/include" "$DEPS/logs"
-python3 "$ROOT/scripts/ios/fetch-dependencies.py"
+python3 "$ROOT/src/openrct2-ios/scripts/fetch-dependencies.py"
 # These are architecture-independent C++ headers from the checksum-pinned host dependency pack.
 for header in nlohmann fmt rapidjson; do
     cp -R "$ROOT/lib/macos/include/$header" "$PREFIX/include/"
@@ -14,6 +14,7 @@ done
 COMMON=(-G Ninja -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT="$SDK" -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PREFIX" -DCMAKE_PREFIX_PATH="$PREFIX" -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO -DBUILD_SHARED_LIBS=OFF)
 build() {
  local name=$1; local source=$2; shift 2
+ printf 'Building iPhoneOS dependency: %s (log: %s)\n' "$name" "$DEPS/logs/$name.log"
  cmake -S "$source" -B "$DEPS/$name" "${COMMON[@]}" "$@" > "$DEPS/logs/$name.log" 2>&1
  cmake --build "$DEPS/$name" -j "$JOBS" >> "$DEPS/logs/$name.log" 2>&1
  cmake --install "$DEPS/$name" >> "$DEPS/logs/$name.log" 2>&1
@@ -28,10 +29,12 @@ mkdir -p "$DEPS/icu-host" "$DEPS/icu-ios"
 if [[ ! -f "$DEPS/icu-host/config.status" ]]; then
  (cd "$DEPS/icu-host"; "$DEPS/sources/icu/source/configure" --disable-shared --enable-static --disable-tests --disable-samples > "$DEPS/logs/icu-host.log" 2>&1)
 fi
+printf 'Building ICU host tools (log: %s)\n' "$DEPS/logs/icu-host.log"
 make -C "$DEPS/icu-host" -j "$JOBS" >> "$DEPS/logs/icu-host.log" 2>&1
 if [[ ! -f "$DEPS/icu-ios/config.status" ]]; then
  (cd "$DEPS/icu-ios"; CC="$(xcrun -f clang)" CXX="$(xcrun -f clang++)" CFLAGS="-arch arm64 -isysroot $SDK -miphoneos-version-min=16.0" CXXFLAGS="-arch arm64 -isysroot $SDK -miphoneos-version-min=16.0" LDFLAGS="-arch arm64 -isysroot $SDK -miphoneos-version-min=16.0" "$DEPS/sources/icu/source/configure" --host=aarch64-apple-darwin --with-cross-build="$DEPS/icu-host" --prefix="$PREFIX" --disable-shared --enable-static --disable-tests --disable-samples --disable-tools --disable-extras > "$DEPS/logs/icu-ios.log" 2>&1)
 fi
+printf 'Building ICU for iPhoneOS (log: %s)\n' "$DEPS/logs/icu-ios.log"
 make -C "$DEPS/icu-ios" -j "$JOBS" >> "$DEPS/logs/icu-ios.log" 2>&1
 make -C "$DEPS/icu-ios" install >> "$DEPS/logs/icu-ios.log" 2>&1
 printf 'iPhoneOS dependencies ready: %s\n' "$PREFIX"

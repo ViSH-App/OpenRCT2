@@ -7,7 +7,6 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 
-#include "../../UiContext.iOS.h"
 #include "DrawingEngineFactory.hpp"
 
 #include <SDL_hints.h>
@@ -15,6 +14,7 @@
 #include <SDL_version.h>
 #include <cmath>
 #include <memory>
+#include <openrct2-ios/UiContext.iOS.h>
 #include <openrct2/Diagnostic.h>
 #include <openrct2/Game.h>
 #include <openrct2/config/Config.h>

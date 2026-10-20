@@ -1,0 +1,29 @@
+// Application configuration. CMake configures only the shared native libraries.
+PRODUCT_NAME = OpenRCT2-iPad
+PRODUCT_BUNDLE_IDENTIFIER = com.xu1s.openrct2
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 7
+INFOPLIST_FILE = $(SRCROOT)/Info.plist
+GENERATE_INFOPLIST_FILE = NO
+SDKROOT = iphoneos
+SUPPORTED_PLATFORMS = iphoneos
+ARCHS = arm64
+IPHONEOS_DEPLOYMENT_TARGET = 16.0
+TARGETED_DEVICE_FAMILY = 2
+SUPPORTS_MACCATALYST = NO
+SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES
+CODE_SIGN_STYLE = Automatic
+ENABLE_USER_SCRIPT_SANDBOXING = NO
+CLANG_CXX_LANGUAGE_STANDARD = c++20
+CLANG_CXX_LIBRARY = libc++
+CLANG_ENABLE_MODULES = YES
+CLANG_ENABLE_OBJC_ARC = YES
+GCC_WARN_64_TO_32_BIT_CONVERSION = NO
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) OPENRCT2_IOS OPENRCT2_METAL DISABLE_NETWORK DISABLE_HTTP DISABLE_VERSION_CHECKER DISABLE_OPENGL DISABLE_FLAC DISABLE_VORBIS _FILE_OFFSET_BITS=64
+OTHER_CPLUSPLUSFLAGS = $(inherited) -fno-char8_t -Wno-deprecated-declarations
+HEADER_SEARCH_PATHS = $(inherited) "$(SRCROOT)/.." "$(SRCROOT)/../thirdparty" "$(SRCROOT)/../../build/ios-deps/install/include" "$(SRCROOT)/../../build/ios-deps/install/include/SDL2" "$(SRCROOT)/../../build/ios-deps/install/include/freetype2"
+LIBRARY_SEARCH_PATHS = $(inherited) "$(SRCROOT)/../../build/ipad/$(CONFIGURATION)" "$(SRCROOT)/../../build/ios-deps/install/lib"
+OTHER_LDFLAGS = $(inherited) -lOpenRCT2UI -lopenrct2 -lSDL2 -lfreetype -lpng16 -lzip -lzstd -licui18n -licuuc -licudata -lz -liconv -ObjC
+METAL_LIBRARY_FILE_BASE = OpenRCT2
+MTL_LANGUAGE_REVISION = Metal23
+MTL_FAST_MATH = YES

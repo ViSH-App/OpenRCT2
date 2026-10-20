@@ -6,7 +6,7 @@ import shutil
 import tarfile
 import urllib.request
 
-ROOT = pathlib.Path(__file__).resolve().parents[2] / 'build/ios-deps/sources'
+ROOT = pathlib.Path(__file__).resolve().parents[3] / 'build/ios-deps/sources'
 SOURCES = {
     'SDL': ('https://codeload.github.com/libsdl-org/SDL/tar.gz/refs/tags/release-2.32.10',
             '03f9d7c191a837525c9cda6406af2f2e48be02b5e7eb03d949cc9f1e9ca41c8b'),

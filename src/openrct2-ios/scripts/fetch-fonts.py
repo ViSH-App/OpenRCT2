@@ -5,7 +5,7 @@ import shutil
 import sys
 import urllib.request
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
+ROOT = pathlib.Path(__file__).resolve().parents[3]
 BASE = 'https://raw.githubusercontent.com/notofonts/noto-cjk/523d033d6cb47f4a80c58a35753646f5c3608a78/'
 FILES = {
     'NotoSansCJKsc-Regular.otf': ('Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',

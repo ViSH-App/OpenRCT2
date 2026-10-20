@@ -3,10 +3,10 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 #ifdef OPENRCT2_IOS
-    #include "UiContext.h"
+    #include <openrct2-ui/UiContext.h>
 
     #include "UiContext.iOS.h"
-    #include "windows/Windows.h"
+    #include <openrct2-ui/windows/Windows.h>
 
     #import <AVFAudio/AVFAudio.h>
     #include <SDL.h>

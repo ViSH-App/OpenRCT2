@@ -1,6 +1,6 @@
 """Bundle the repository-matched assets; never bundle proprietary RCT2 data."""
 import hashlib, json, pathlib, shutil, subprocess, sys, urllib.request, zipfile
-root = pathlib.Path(__file__).resolve().parents[2]
+root = pathlib.Path(__file__).resolve().parents[3]
 out = root / 'build/ios-data'
 out.mkdir(parents=True, exist_ok=True)
 for folder in ('language', 'scenario_patches', 'shaders'):
@@ -20,5 +20,5 @@ for name, target in [('objects','object'), ('title-sequences','sequence'), ('ope
 for name in ('licence.txt','contributors.md','PRIVACY.md'):
     shutil.copy2(root/name,out)
 shutil.copy2(root/'distribution/changelog.txt', out/'changelog.txt')
-subprocess.run([sys.executable, str(root/"scripts/ios/fetch-fonts.py"), str(out/"fonts")], check=True)
+subprocess.run([sys.executable, str(root/"src/openrct2-ios/scripts/fetch-fonts.py"), str(out/"fonts")], check=True)
 print(out)

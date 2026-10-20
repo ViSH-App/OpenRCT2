@@ -3,8 +3,8 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 #ifdef OPENRCT2_METAL
-    #include "../../../UiContext.iOS.h"
-    #include "../DrawingEngineFactory.hpp"
+    #include <openrct2-ios/UiContext.iOS.h>
+    #include <openrct2-ui/drawing/engines/DrawingEngineFactory.hpp>
 
     #import <Metal/Metal.h>
     #import <QuartzCore/CAMetalLayer.h>

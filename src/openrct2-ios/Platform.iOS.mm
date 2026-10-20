@@ -3,11 +3,11 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 #ifdef OPENRCT2_IOS
-    #include "Platform.h"
+    #include <openrct2/platform/Platform.h>
 
-    #include "../core/Path.hpp"
-    #include "../drawing/Font.h"
-    #include "../localisation/Language.h"
+    #include <openrct2/core/Path.hpp>
+    #include <openrct2/drawing/Font.h>
+    #include <openrct2/localisation/Language.h>
 
     #import <CoreText/CoreText.h>
     #import <Foundation/Foundation.h>

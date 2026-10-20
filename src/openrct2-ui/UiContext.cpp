@@ -12,7 +12,6 @@
 #include "CursorRepository.h"
 #include "SDLException.h"
 #include "TextComposition.h"
-#include "UiContext.iOS.h"
 #include "WindowManager.h"
 #include "drawing/engines/DrawingEngineFactory.hpp"
 #include "input/ShortcutManager.h"
@@ -26,6 +25,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <memory>
+#include <openrct2-ios/UiContext.iOS.h>
 #include <openrct2-ui/input/InputManager.h>
 #include <openrct2-ui/input/MouseInput.h>
 #include <openrct2-ui/interface/Window.h>

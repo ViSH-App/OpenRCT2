@@ -51,11 +51,13 @@ endif ()
 
 # Outputs
 if(IOS)
-    add_executable(openrct2 MACOSX_BUNDLE ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES})
+    # The checked-in Xcode app links the shared UI as a native static library.
+    add_library(openrct2 STATIC ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES})
+    add_library(OpenRCT2::openrct2 ALIAS openrct2)
 else()
     add_executable(openrct2 ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES})
+    add_executable(OpenRCT2::openrct2 ALIAS openrct2)
 endif()
-add_executable(OpenRCT2::openrct2 ALIAS openrct2)
 
 SET_CHECK_CXX_FLAGS(openrct2)
 ipo_set_target_properties(openrct2)
@@ -277,5 +279,5 @@ if(MACOS_BUNDLE)
 endif ()
 
 if(IOS)
-    include("${ROOT_DIR}/cmake/ios/bundle.cmake")
+    include("${ROOT_DIR}/src/openrct2-ios/CMakeLists.txt")
 endif()
