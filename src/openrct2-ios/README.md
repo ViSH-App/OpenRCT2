@@ -107,6 +107,14 @@ Use the game's normal save and load windows. Saves are stored under `Documents/O
 
 Configuration is kept alongside user data in `Documents/OpenRCT2`, and survives application restarts.
 
+For testing and measurement, the launch environment variable
+`OPENRCT2_IOS_OPEN_PARK` opens a park at startup. It accepts an absolute path, a
+path relative to `Documents`, or a file name in `Documents/OpenRCT2/save` (the
+`.park` extension may be omitted). Example:
+`xcrun devicectl device process launch --device <udid> --environment-variables
+'{"OPENRCT2_IOS_OPEN_PARK":"Six Flags Belgium"}' com.xu1s.openrct2`.
+Without the variable, startup is unchanged.
+
 The application pauses the park and audio when entering the background, attempts an autosave for a running park, and restores the previous pause state on foregrounding. Audio interruptions stop playback and resume according to the sound preference. These mechanisms still require validation on physical iPad hardware; force termination does not guarantee a background callback.
 
 ## Scope and platform separation

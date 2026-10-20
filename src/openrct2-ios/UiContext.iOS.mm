@@ -23,6 +23,7 @@
     #include <openrct2/platform/Platform.h>
     #include <openrct2/scenes/SceneManager.h>
     #include <openrct2/ui/UiContext.h>
+    #include <cstdlib>
     #include <unistd.h>
 
 using namespace OpenRCT2;
@@ -701,7 +702,35 @@ extern "C" int SDL_main(int argc, char** argv)
         bootstrapWindow = nil;
         // Use a writable working directory; game data is located explicitly in the bundle.
         chdir(Documents().UTF8String);
-        // UIKit/Xcode may append Cocoa launch arguments, which are not game file paths.
+        // UIKit/Xcode may append Cocoa launch arguments, which are not game file paths. A park
+        // to open at startup can be named explicitly instead (testing and measurement): an
+        // absolute path, a path relative to Documents, or a name in OpenRCT2/save.
+        if (const char* park = std::getenv("OPENRCT2_IOS_OPEN_PARK"); park != nullptr && *park != '\0')
+        {
+            NSString* requested = @(park);
+            NSFileManager* files = NSFileManager.defaultManager;
+            NSString* saves = [Documents() stringByAppendingPathComponent:@"OpenRCT2/save"];
+            NSString* resolved = nil;
+            for (NSString* candidate in @[
+                     requested, [Documents() stringByAppendingPathComponent:requested],
+                     [saves stringByAppendingPathComponent:requested],
+                     [saves stringByAppendingPathComponent:[requested stringByAppendingPathExtension:@"park"]]
+                 ])
+            {
+                if (candidate.isAbsolutePath && [files fileExistsAtPath:candidate])
+                {
+                    resolved = candidate;
+                    break;
+                }
+            }
+            if (resolved != nil)
+            {
+                fprintf(stderr, "Opening park at startup: %s\n", resolved.UTF8String);
+                const char* arguments[] = { argv[0], resolved.UTF8String, nullptr };
+                return IosGameMain(2, arguments);
+            }
+            fprintf(stderr, "OPENRCT2_IOS_OPEN_PARK not found: %s\n", park);
+        }
         return IosGameMain(1, const_cast<const char**>(argv));
     }
 }
