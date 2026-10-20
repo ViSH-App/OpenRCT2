@@ -38,6 +38,10 @@ namespace OpenRCT2::Ui::Metal
     //   OPENRCT2_METAL_FULL_AREA=f       Redraw the whole screen instead when dirty regions cover
     //                                    at least this fraction of it (0-1).
     //   OPENRCT2_METAL_MAX_RECTS=n       ... or when they need more than n rectangles.
+    //   OPENRCT2_METAL_DIRTY_PAD=n       Expand every invalidated rectangle by n logical pixels.
+    //   OPENRCT2_METAL_VERIFY_DIRTY=1    Every 30th frame, redraw the whole screen into a second
+    //                                    canvas within the same frame and compare it with the
+    //                                    dirty-region canvas (detects missed invalidations).
     //   OPENRCT2_METAL_PROFILE=n         Fragment-shader profiling variant (see MetalShaders.metal).
     struct DebugOptions
     {
@@ -51,6 +55,8 @@ namespace OpenRCT2::Ui::Metal
         float fullRedrawArea{ -1.0f };
         int32_t maxDirtyRects{ -1 };
         uint32_t profileMode{};
+        bool verifyDirty{};
+        int32_t dirtyPad{ -1 };
 
         static const DebugOptions& Get()
         {
@@ -70,6 +76,9 @@ namespace OpenRCT2::Ui::Metal
                     result.dirtyBlockSize = static_cast<uint32_t>(std::strtoul(block, nullptr, 10));
                 if (const char* area = std::getenv("OPENRCT2_METAL_FULL_AREA"))
                     result.fullRedrawArea = std::strtof(area, nullptr);
+                result.verifyDirty = std::getenv("OPENRCT2_METAL_VERIFY_DIRTY") != nullptr;
+                if (const char* pad = std::getenv("OPENRCT2_METAL_DIRTY_PAD"))
+                    result.dirtyPad = static_cast<int32_t>(std::strtol(pad, nullptr, 10));
                 if (const char* profile = std::getenv("OPENRCT2_METAL_PROFILE"))
                     result.profileMode = static_cast<uint32_t>(std::strtoul(profile, nullptr, 10));
                 if (const char* rects = std::getenv("OPENRCT2_METAL_MAX_RECTS"))

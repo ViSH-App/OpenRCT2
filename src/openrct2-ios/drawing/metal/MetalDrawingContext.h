@@ -32,6 +32,14 @@ namespace OpenRCT2::Ui::Metal
         int32_t x, y, width, height, dx, dy;
     };
 
+    // Debug markers splitting a frame for OPENRCT2_METAL_VERIFY_DIRTY.
+    enum class SegmentMarker : uint8_t
+    {
+        none,
+        snapshotCanvas, // Read the canvas back after this segment.
+        verifyCanvas,   // Draw this segment into the verification canvas from scratch.
+    };
+
     // Commands of one frame in submission order, split where canvas copies must happen.
     struct RecordedFrame
     {
@@ -39,6 +47,7 @@ namespace OpenRCT2::Ui::Metal
         {
             uint32_t end;
             std::optional<CopyOperation> copy; // Applied after the segment's commands.
+            SegmentMarker marker{};
         };
         std::vector<DrawCommand> commands;
         std::vector<Segment> segments;
@@ -61,6 +70,7 @@ namespace OpenRCT2::Ui::Metal
         void SetTarget(const Drawing::RenderTarget& mainRT, uint32_t rasterWidth, uint32_t rasterHeight);
         void BeginFrame(bool threadSafe);
         void AddCopy(const CopyOperation& copy);
+        void AddMarker(SegmentMarker marker);
         // Merges the per-thread lists. Valid until the next BeginFrame.
         RecordedFrame& EndFrame();
         bool IsActive() const noexcept
@@ -99,7 +109,8 @@ namespace OpenRCT2::Ui::Metal
         struct Boundary
         {
             uint32_t ticket;
-            CopyOperation copy;
+            std::optional<CopyOperation> copy;
+            SegmentMarker marker{};
         };
         struct RemapInfo
         {

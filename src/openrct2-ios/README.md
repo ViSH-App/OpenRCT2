@@ -146,9 +146,10 @@ Sources are in `drawing/metal/`:
 
 1. The canvas is an R8Uint texture of palette indices at the content viewport's
    physical size. It is kept between frames.
-2. `Invalidate` feeds an `InvalidationGrid` with 16-pixel logical blocks.
-   (X8 uses 128; at Retina density that redrew most of the title screen every
-   frame, see VALIDATION.md.)
+2. `Invalidate` feeds an `InvalidationGrid` with 128-pixel logical blocks, as
+   X8 does. Smaller blocks redraw much less, but they no longer match a full
+   redraw exactly. `OPENRCT2_METAL_VERIFY_DIRTY` showed differences in most
+   checked park frames with 16-pixel blocks; see VALIDATION.md.
    `PaintWindows` redraws only the dirty blocks, and `GetFlags` reports
    `dirtyOptimisations`. The whole screen is redrawn when:
    - weather is visible (as in the OpenGL engine);
@@ -243,7 +244,9 @@ switch to turn it off; do not set its value to `0`.
 | `OPENRCT2_METAL_RASTER=single` | Draw every command in order through the framebuffer-fetch pipeline (for comparing against the two-pass default). |
 | `OPENRCT2_METAL_FULL_REDRAW=1` | Ignore dirty regions; redraw every frame. |
 | `OPENRCT2_METAL_PARALLEL=1` | Offer parallel viewport drawing (off by default; see above). |
-| `OPENRCT2_METAL_DIRTY_BLOCK=n` | Dirty-region block size in logical pixels (16–256; default 16). |
+| `OPENRCT2_METAL_DIRTY_BLOCK=n` | Dirty-region block size in logical pixels (16–256; default 128). |
+| `OPENRCT2_METAL_DIRTY_PAD=n` | Expand every invalidated rectangle by `n` logical pixels (default 0). |
+| `OPENRCT2_METAL_VERIFY_DIRTY=1` | Every 30th frame, redraw the whole screen into a second canvas within the same frame and compare it with the dirty-region canvas. Logs `Metal dirty verification ... mismatches=`. |
 | `OPENRCT2_METAL_INTERIOR=n` | Opaque interior bands per sprite (default 12; 0 disables). |
 | `OPENRCT2_METAL_FULL_AREA=f`, `OPENRCT2_METAL_MAX_RECTS=n` | Redraw the whole screen when dirty regions cover at least fraction `f`, or need more than `n` rectangles (off by default; this made pacing worse). |
 | `OPENRCT2_METAL_COARSEN=n` | Re-merge dirty regions on a 64-pixel grid above `n` rectangles (off by default; this made pacing worse). |

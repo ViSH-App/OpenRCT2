@@ -101,7 +101,12 @@ void DrawingContext::BeginFrame(bool threadSafe)
 
 void DrawingContext::AddCopy(const CopyOperation& copy)
 {
-    _boundaries.push_back({ _ticket.load(std::memory_order_relaxed), copy });
+    _boundaries.push_back({ _ticket.load(std::memory_order_relaxed), copy, SegmentMarker::none });
+}
+
+void DrawingContext::AddMarker(SegmentMarker marker)
+{
+    _boundaries.push_back({ _ticket.load(std::memory_order_relaxed), std::nullopt, marker });
 }
 
 RecordedFrame& DrawingContext::EndFrame()
@@ -141,7 +146,8 @@ void DrawingContext::MergeLists()
         }
         while (boundary < _boundaries.size() && (best == heads.size() || _boundaries[boundary].ticket <= ticket))
         {
-            _frame.segments.push_back({ static_cast<uint32_t>(_frame.commands.size()), _boundaries[boundary].copy });
+            _frame.segments.push_back(
+                { static_cast<uint32_t>(_frame.commands.size()), _boundaries[boundary].copy, _boundaries[boundary].marker });
             ++boundary;
         }
         if (best == heads.size())

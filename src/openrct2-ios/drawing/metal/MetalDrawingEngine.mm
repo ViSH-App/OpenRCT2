@@ -50,11 +50,13 @@ using namespace OpenRCT2::Ui::Metal;
 namespace
 {
     constexpr uint32_t kFramesInFlight = TextureCache::kFramesInFlight;
-    // Dirty-region granularity in logical pixels. X8DrawingEngine uses 128, but at Retina
-    // density a block is several hundred raster pixels and small animations then redraw most
-    // of the screen. On the iPad mini title screen 16 halved the redrawn area and GPU time
-    // compared with 128, without increasing CPU time (see VALIDATION.md).
-    constexpr uint32_t kDirtyBlockSize = 16;
+    // Dirty-region granularity in logical pixels, as X8DrawingEngine. Smaller blocks redraw
+    // less (16 halved title-screen GPU time on the iPad mini), but OPENRCT2_METAL_VERIFY_DIRTY
+    // showed they no longer match a full redraw: with 16-pixel blocks 96 % of checked park
+    // frames differed in the viewport (38 % with an 8-pixel margin), with 128 only 2 %.
+    constexpr uint32_t kDirtyBlockSize = 128;
+    // Margin added around every invalidated rectangle, in logical pixels.
+    constexpr int32_t kDirtyPad = 0;
     // Dirty regions covering at least this fraction of the screen, or needing more rectangles,
     // are drawn as one full-screen redraw instead.
     constexpr float kFullRedrawArea = 2.0f;
@@ -132,6 +134,7 @@ namespace
         uint32_t independentOffset, independentCount;
         uint32_t dependentOffset, dependentCount;
         std::optional<CopyOperation> copy;
+        SegmentMarker marker{};
     };
 
     bool EnsureBuffer(id<MTLDevice> device, id<MTLBuffer> __strong& buffer, size_t size, NSString* label)
@@ -195,6 +198,11 @@ namespace
         bool _forceFullRedraw{ true };
         bool _ignoreCopyRect{};
         bool _parallelThisFrame{};
+        bool _verifyThisFrame{};
+        id<MTLTexture> _verifyCanvas;
+        id<MTLBuffer> _verifyDirtyPixels;
+        id<MTLBuffer> _verifyFullPixels;
+        uint64_t _verifiedFrames{}, _verifyFailures{};
 
         dispatch_semaphore_t _inflight = dispatch_semaphore_create(kFramesInFlight);
         std::array<FrameSlot, kFramesInFlight> _slots;
@@ -322,12 +330,12 @@ namespace
             _context = std::make_unique<DrawingContext>(*_textureCache);
             _weatherDrawer = std::make_unique<WeatherDrawer>(*_context);
             LOG_INFO(
-                "Metal drawing engine: %s; raster=%s; GPU comparison=%s; dirty regions=%s; block=%u full_area=%.2f max_rects=%d profile=%u",
+                "Metal drawing engine: %s; raster=%s; GPU comparison=%s; dirty regions=%s; block=%u pad=%d full_area=%.2f max_rects=%d profile=%u",
                 _device.name.UTF8String,
                 _debug.rasterMode == RasterMode::twoPass ? "two-pass" : "single-pass",
                 _debug.compareWithReference ? "on" : "off", _debug.fullRedraw ? "off" : "on",
                 _debug.dirtyBlockSize != 0 ? _debug.dirtyBlockSize : kDirtyBlockSize,
-                _debug.fullRedrawArea >= 0 ? _debug.fullRedrawArea : kFullRedrawArea,
+                _debug.dirtyPad >= 0 ? _debug.dirtyPad : kDirtyPad, _debug.fullRedrawArea >= 0 ? _debug.fullRedrawArea : kFullRedrawArea,
                 _debug.maxDirtyRects >= 0 ? _debug.maxDirtyRects : kMaxDirtyRects, _debug.profileMode);
         }
 
@@ -365,7 +373,10 @@ namespace
 
         void Invalidate(int32_t left, int32_t top, int32_t right, int32_t bottom) override
         {
-            _invalidationGrid.invalidate(left, top, right, bottom);
+            // Small blocks leave no slack around the core's invalidation rectangles, which are
+            // sometimes tighter than what is drawn; widen them by a margin.
+            const int32_t pad = _debug.dirtyPad >= 0 ? _debug.dirtyPad : kDirtyPad;
+            _invalidationGrid.invalidate(left - pad, top - pad, right + pad, bottom + pad);
         }
 
         void BeginDraw() override
@@ -414,6 +425,14 @@ namespace
                 DrawAllDirtyBlocks();
                 WindowUpdateAllViewports();
                 DrawAllDirtyBlocks();
+                if (_debug.verifyDirty && !_debug.compareWithReference && _frame % 30 == 0)
+                {
+                    // Same game state, whole screen from scratch, into a separate canvas.
+                    _context->AddMarker(SegmentMarker::snapshotCanvas);
+                    WindowDrawAll(_rt, 0, 0, _rt.width, _rt.height);
+                    _context->AddMarker(SegmentMarker::verifyCanvas);
+                    _verifyThisFrame = true;
+                }
             }
         }
 
@@ -549,13 +568,17 @@ namespace
         void BuildOrder(const RecordedFrame& frame);
         bool BuildReferenceTiles(const RecordedFrame& frame, FrameSlot& slot, uint32_t& tilesAcross, uint32_t& tilesDown);
         void EncodeSegment(
-            id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms);
+            id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms,
+            id<MTLTexture> target, bool clear);
+        void EncodeReadback(id<MTLCommandBuffer> commandBuffer, id<MTLTexture> source, id<MTLBuffer> destination);
+        void CompareDirtyWithFull();
         void EncodeCopy(id<MTLCommandBuffer> commandBuffer, const CopyOperation& copy);
         void EncodeReference(
             id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms);
         void EncodePresent(id<MTLCommandBuffer> commandBuffer);
         void CompareWithReference();
         bool ReadCanvas();
+        bool EnsureVerificationResources();
         void LogStatistics(size_t commands);
     };
 
@@ -683,6 +706,7 @@ namespace
         {
             SegmentDraw draw{ begin, segment.end };
             draw.copy = segment.copy;
+            draw.marker = segment.marker;
             draw.opaqueOffset = static_cast<uint32_t>(_order.size());
             if (_debug.rasterMode == RasterMode::twoPass)
             {
@@ -716,20 +740,22 @@ namespace
     }
 
     void MetalDrawingEngine::EncodeSegment(
-        id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms)
+        id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms,
+        id<MTLTexture> target, bool clear)
     {
-        if (segment.opaqueCount == 0 && segment.independentCount == 0 && segment.dependentCount == 0 && !_canvasNeedsClear)
+        if (segment.opaqueCount == 0 && segment.independentCount == 0 && segment.dependentCount == 0 && !clear)
             return;
         auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
-        pass.colorAttachments[0].texture = _canvas;
-        pass.colorAttachments[0].loadAction = _canvasNeedsClear ? MTLLoadActionClear : MTLLoadActionLoad;
+        pass.colorAttachments[0].texture = target;
+        pass.colorAttachments[0].loadAction = clear ? MTLLoadActionClear : MTLLoadActionLoad;
         pass.colorAttachments[0].clearColor = MTLClearColorMake(kInitialCanvasIndex, 0, 0, 0);
         pass.colorAttachments[0].storeAction = MTLStoreActionStore;
         pass.depthAttachment.texture = _depth;
         pass.depthAttachment.loadAction = MTLLoadActionClear;
         pass.depthAttachment.clearDepth = 1.0;
         pass.depthAttachment.storeAction = MTLStoreActionDontCare;
-        _canvasNeedsClear = false;
+        if (target == _canvas)
+            _canvasNeedsClear = false;
 
         auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
         encoder.label = @"OpenRCT2 indexed commands";
@@ -986,6 +1012,77 @@ namespace
         }
     }
 
+    bool MetalDrawingEngine::EnsureVerificationResources()
+    {
+        const size_t bytes = static_cast<size_t>(_rasterWidth) * _rasterHeight;
+        if (_verifyCanvas == nil || _verifyCanvas.width != _rasterWidth || _verifyCanvas.height != _rasterHeight)
+        {
+            auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Uint
+                                                                                 width:_rasterWidth
+                                                                                height:_rasterHeight
+                                                                             mipmapped:NO];
+            descriptor.storageMode = MTLStorageModePrivate;
+            descriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+            _verifyCanvas = [_device newTextureWithDescriptor:descriptor];
+            _verifyDirtyPixels = [_device newBufferWithLength:bytes options:MTLResourceStorageModeShared];
+            _verifyFullPixels = [_device newBufferWithLength:bytes options:MTLResourceStorageModeShared];
+        }
+        return _verifyCanvas != nil && _verifyDirtyPixels != nil && _verifyFullPixels != nil;
+    }
+
+    void MetalDrawingEngine::EncodeReadback(id<MTLCommandBuffer> commandBuffer, id<MTLTexture> source, id<MTLBuffer> destination)
+    {
+        auto blit = [commandBuffer blitCommandEncoder];
+        [blit copyFromTexture:source
+                         sourceSlice:0
+                         sourceLevel:0
+                        sourceOrigin:MTLOriginMake(0, 0, 0)
+                          sourceSize:MTLSizeMake(_rasterWidth, _rasterHeight, 1)
+                            toBuffer:destination
+                   destinationOffset:0
+              destinationBytesPerRow:_rasterWidth
+            destinationBytesPerImage:static_cast<NSUInteger>(_rasterWidth) * _rasterHeight];
+        [blit endEncoding];
+    }
+
+    // Compares the canvas maintained by dirty regions with a from-scratch redraw of the same
+    // game state. Differences mean some change was drawn without being invalidated.
+    void MetalDrawingEngine::CompareDirtyWithFull()
+    {
+        const auto* dirty = static_cast<const uint8_t*>(_verifyDirtyPixels.contents);
+        const auto* full = static_cast<const uint8_t*>(_verifyFullPixels.contents);
+        size_t mismatches = 0;
+        uint32_t minX = UINT32_MAX, minY = UINT32_MAX, maxX = 0, maxY = 0;
+        for (uint32_t y = 0; y < _rasterHeight; ++y)
+            for (uint32_t x = 0; x < _rasterWidth; ++x)
+            {
+                const size_t i = static_cast<size_t>(y) * _rasterWidth + x;
+                if (dirty[i] != full[i])
+                {
+                    ++mismatches;
+                    minX = std::min(minX, x);
+                    minY = std::min(minY, y);
+                    maxX = std::max(maxX, x);
+                    maxY = std::max(maxY, y);
+                }
+            }
+        ++_verifiedFrames;
+        if (mismatches != 0)
+        {
+            ++_verifyFailures;
+            LOG_INFO(
+                "Metal dirty verification frame=%llu mismatches=%zu raster_box=(%u,%u)-(%u,%u) failures=%llu/%llu",
+                static_cast<unsigned long long>(_frame), mismatches, minX, minY, maxX, maxY,
+                static_cast<unsigned long long>(_verifyFailures), static_cast<unsigned long long>(_verifiedFrames));
+        }
+        else if (_verifiedFrames % 20 == 0)
+        {
+            LOG_INFO(
+                "Metal dirty verification frame=%llu mismatches=0 failures=%llu/%llu", static_cast<unsigned long long>(_frame),
+                static_cast<unsigned long long>(_verifyFailures), static_cast<unsigned long long>(_verifiedFrames));
+        }
+    }
+
     void MetalDrawingEngine::EndDraw()
     {
         auto& frame = _context->EndFrame();
@@ -1027,9 +1124,18 @@ namespace
                 _forceFullRedraw = true;
                 return;
             }
+            const bool verify = _verifyThisFrame && EnsureVerificationResources();
             for (const auto& segment : _segmentDraws)
             {
-                EncodeSegment(commandBuffer, slot, segment, uniforms);
+                if (verify && segment.marker == SegmentMarker::verifyCanvas)
+                {
+                    EncodeSegment(commandBuffer, slot, segment, uniforms, _verifyCanvas, true);
+                    EncodeReadback(commandBuffer, _verifyCanvas, _verifyFullPixels);
+                    continue;
+                }
+                EncodeSegment(commandBuffer, slot, segment, uniforms, _canvas, _canvasNeedsClear);
+                if (verify && segment.marker == SegmentMarker::snapshotCanvas)
+                    EncodeReadback(commandBuffer, _canvas, _verifyDirtyPixels);
                 if (compare)
                     EncodeReference(commandBuffer, slot, segment, uniforms);
                 if (segment.copy)
@@ -1091,6 +1197,12 @@ namespace
 
             if (compare)
                 CompareWithReference();
+            if (verify)
+            {
+                [commandBuffer waitUntilCompleted];
+                CompareDirtyWithFull();
+            }
+            _verifyThisFrame = false;
         }
         const auto end = std::chrono::steady_clock::now();
         _encodeMilliseconds += Milliseconds(end - encodeStart);

@@ -32,6 +32,41 @@ an atlas, dirty regions and parallel drawing. The design is described in
 The earlier Metal results further down describe the previous compute
 rasterizer.
 
+> **Default changed after the performance measurements below.** The
+> title-screen and saved-park comparisons were measured with 16-pixel dirty
+> blocks. Correctness checks then showed that 16-pixel blocks do not match a
+> full redraw (next section), so the default is back to 128-pixel blocks. With
+> 128, more of the screen is redrawn per frame, so GPU time is higher than
+> those tables show. The block-size experiments measured 12–14 ms on the title
+> screen, before the opaque-interior optimisation. The current default has
+> **not** been re-measured over full cycles.
+
+### Dirty-region correctness (2026-10-20)
+
+`OPENRCT2_METAL_VERIFY_DIRTY=1` tests whether dirty-region redrawing is
+correct. Every 30th frame, after the normal dirty-region drawing, the whole
+screen is redrawn into a second canvas *within the same frame*, so the game
+state is identical. The two canvases are then compared pixel by pixel. A
+missed or too-small invalidation shows up as a difference. GPU comparison
+cannot see these, because both of its rasterizers consume the same commands.
+
+The user's Six Flags Belgium save was opened at its saved view and left
+untouched:
+
+| Configuration | Checks | With differences in the park view | Pixels per differing check (median / max) |
+| --- | --- | --- | --- |
+| 16-px blocks | 1,596 (13 min) | 96 % in the first 252 checks | 316 / 2,530 in the first 252 checks; up to 12,706 later |
+| 16-px blocks, 8-px margin | 134 (67 s) | 38 % | — |
+| 128-px blocks (`DIRTY_BLOCK=128`) | 252 (2 min) | 2 % | 78 / 188 |
+| **Default (128, no margin)** | 209 (105 s) | **0.5 %** (1 check, 91 px) | 78 / 91 |
+
+Every configuration also shows a constant 78-pixel difference in the
+bottom-right status bar (date, temperature, weather), raster box
+(2107,1282)–(2259,1357), independent of block size. It probably comes from
+how the core draws or invalidates that widget; it has not been investigated.
+The differences are small (78 px of 3.4 M) and not visible to the eye, but
+16-pixel blocks let them accumulate, so the default stays at X8's 128.
+
 ### iPad mini 6 title screen (2026-10-20)
 
 **Setup**
