@@ -1429,7 +1429,7 @@ namespace
                 CompareDirtyWithFull();
             }
             _verifyThisFrame = false;
-            if (_debug.shadedShotInterval != 0 && _framesDrawn % _debug.shadedShotInterval == 0)
+            if (_debug.shadedShotInterval != 0 && _frame % _debug.shadedShotInterval == 0)
                 SaveShadedImage();
         }
         const auto end = std::chrono::steady_clock::now();
@@ -1482,7 +1482,7 @@ namespace
             kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Little);
         auto image = CGBitmapContextCreateImage(context);
         NSString* documents = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
-        NSString* path = [documents stringByAppendingFormat:@"/metal-shaded-%llu.png", static_cast<unsigned long long>(_framesDrawn)];
+        NSString* path = [documents stringByAppendingFormat:@"/metal-shaded-%llu.png", static_cast<unsigned long long>(_frame)];
         if (image != nullptr && [UIImagePNGRepresentation([UIImage imageWithCGImage:image]) writeToFile:path atomically:YES])
             LOG_INFO(
                 "Metal shaded image: %s lights=%zu mode=%u night=%.2f", path.UTF8String, _lights.size(), _ambient.mode,
