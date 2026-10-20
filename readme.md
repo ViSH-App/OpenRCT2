@@ -17,6 +17,28 @@
 
 ---
 
+### iPhone and iPad port
+
+This fork adds a native iOS and iPadOS port of OpenRCT2 in [`src/openrct2-ios`](src/openrct2-ios). The engine and interface are shared with the desktop game. Device measurements are recorded in [VALIDATION.md](src/openrct2-ios/VALIDATION.md).
+
+**Platform adaptation**
+- UIKit application in a standalone Xcode project, targeting iPhone, iPad, the iOS simulator and *My Mac (Designed for iPad)*. A dedicated build target compiles all third-party dependencies from pinned, checksum-verified sources; Xcode Cloud uses the same build.
+- SwiftUI launcher in the game's pixel style, localised into the game's languages, supporting portrait and landscape. It imports original game data from an RCT2 directory or directly from a GOG installer.
+- Touch input based on [OpenRCT2Touch](https://github.com/chrissotraidis/OpenRCT2Touch) (GPL-3.0): placement preview with double-tap confirmation, hold-to-paint tools, two-finger panning, pinch zoom and twist rotation. Lists scroll by dragging, and lifted touches do not trigger edge scrolling.
+- Touch-oriented interface: enlarged controls enabled by default; touch layouts for the Options window and file browser; confirmation for consequential single-tap actions such as starting a scenario, demolition, and opening or closing all rides. Options without effect on iOS are hidden.
+- Interface scale in steps of 0.5, so that each logical pixel maps to an integer number of physical pixels; layout respects the safe area.
+- Bundled 12 px bitmap fonts for Chinese, Japanese, Korean and Vietnamese, rasterised in monochrome without hinting.
+- Saves, configuration and logs are stored in `Documents` and exposed through the Files app. Parks can be imported and exported. On entering the background, the game is paused and the park is autosaved.
+
+**Metal renderer**
+- Native indexed-colour Metal drawing engine, replacing the software and OpenGL engines on iOS. The game is rendered into a palette-index canvas at logical resolution, which is retained between frames and presented with nearest-neighbour scaling.
+- Draw commands are rendered as instanced quads. Opaque sprite interiors use a pipeline without `discard`, and commands are submitted front-to-back with depth testing, so hidden-surface removal eliminates occluded fragments. Translucent and palette-filter commands read the destination via framebuffer fetch in a single pass.
+- Dirty-region rendering in 128-pixel blocks, with canvas blits for viewport scrolling.
+- Day-night cycle and LightFX lighting computed per pixel on the GPU, using per-pixel world height to limit light to nearby surfaces. Shading is evaluated once per logical pixel before scaling. An optional CRT effect is included.
+- GPU time on an iPad mini is approximately 2.5 ms per frame in a large saved park.
+
+---
+
 ### Download
 | Latest release                                                                                                       | Latest development build |
 |----------------------------------------------------------------------------------------------------------------------|--------------------------|
@@ -92,7 +114,7 @@ Some \*BSD operating systems offer native packages:
 # 3. Building the game
 - [Building OpenRCT2 on Linux](https://github.com/OpenRCT2/OpenRCT2/wiki/Building-OpenRCT2-on-Linux)
 - [Building OpenRCT2 on macOS using CMake](https://github.com/OpenRCT2/OpenRCT2/wiki/Building-OpenRCT2-on-macOS-using-CMake)
-- [Building the personal iPad app](src/openrct2-ios/README.md)
+- Building the iPhone and iPad app: open [`src/openrct2-ios/OpenRCT2.xcodeproj`](src/openrct2-ios/OpenRCT2.xcodeproj) in Xcode and run the **OpenRCT2** scheme
 - [Building OpenRCT2 on Windows](https://github.com/OpenRCT2/OpenRCT2/wiki/Building-OpenRCT2-on-Windows)
 - [Building OpenRCT2 on Windows Subsystem for Linux](https://github.com/OpenRCT2/OpenRCT2/wiki/Building-OpenRCT2-on-Windows-Subsystem-for-Linux)
 - [Building OpenRCT2 on MSYS2 MinGW](https://github.com/OpenRCT2/OpenRCT2/wiki/Building-OpenRCT2-on-MSYS2-MinGW)

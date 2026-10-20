@@ -63,7 +63,6 @@
 		58D11B9D14A65598E6A130BD /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		59731A7AD531B9009F0FD5F3 /* MetalShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = MetalShaders.metal; sourceTree = "<group>"; };
 		5CD8E88126CF4F31BC39307E /* UiContext.iOS.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = UiContext.iOS.mm; sourceTree = "<group>"; };
-		5E1756F3118C4B86BD3E0498 /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		5F9AE2F558F3212B862AD66C /* Platform.iOS.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = Platform.iOS.mm; sourceTree = "<group>"; };
 		6CD64164EC3F3AA85283A5F0 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9F1246A8574809C718FCE47E /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
@@ -265,7 +264,6 @@
 				BF6EE936D723DDEAE52EFC00 /* Frameworks */,
 				A9756B5DF49F459E055509BE /* OpenRCT2.xcconfig */,
 				6CD64164EC3F3AA85283A5F0 /* Info.plist */,
-				5E1756F3118C4B86BD3E0498 /* README.md */,
 				51F456367E1F2B0488D1ABD7 /* VALIDATION.md */,
 				ED47E1ECF596C3071A2A23DC /* CMakeLists.txt */,
 				2C916D5125193E553D308F88 /* IosApplication.mm */,

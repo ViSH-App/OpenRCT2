@@ -3,8 +3,7 @@
 ## Metal renderer rearchitecture — status
 
 This is a rewrite of the Metal renderer: instanced quads, framebuffer fetch,
-an atlas, dirty regions and parallel drawing. The design is described in
-[README.md](README.md#metal-renderer).
+an atlas, dirty regions and parallel drawing; the sources are in `drawing/metal/`.
 
 **Verified:**
 
