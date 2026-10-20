@@ -203,8 +203,9 @@ if (EMSCRIPTEN)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXPORTED_FUNCTIONS=${EMSCRIPTEN_EXPORTED_FUNCTIONS} --js-library ${ROOT_DIR}/emscripten/deps.js")
 endif()
 
-if (NOT MINGW AND NOT MSVC AND NOT EMSCRIPTEN)
-    if (APPLE AND NOT IOS AND NOT MACOS_USE_DEPENDENCIES)
+# iOS converts text with the system's iconv and CoreFoundation instead (see core/String.cpp).
+if (NOT MINGW AND NOT MSVC AND NOT EMSCRIPTEN AND NOT IOS)
+    if (APPLE AND NOT MACOS_USE_DEPENDENCIES)
         execute_process(COMMAND brew --prefix icu4c OUTPUT_VARIABLE HOMEBREW_PREFIX_ICU OUTPUT_STRIP_TRAILING_WHITESPACE)
         # Needed for linking with non-broken icu on Apple platforms
         list(APPEND CMAKE_PREFIX_PATH "${HOMEBREW_PREFIX_ICU}")
@@ -218,9 +219,6 @@ if (NOT MINGW AND NOT MSVC AND NOT EMSCRIPTEN)
         target_link_libraries(libopenrct2 ${ICU_STATIC_LIBRARIES})
     else ()
         target_link_libraries(libopenrct2 ${ICU_LIBRARIES})
-        if(IOS)
-            target_link_libraries(libopenrct2 "${IOS_DEPENDENCIES}/lib/libicudata.a")
-        endif()
     endif ()
 endif ()
 

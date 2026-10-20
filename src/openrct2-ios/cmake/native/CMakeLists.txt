@@ -72,22 +72,6 @@ ExternalProject_Add(7zip ${source} CONFIGURE_COMMAND "" BUILD_COMMAND "" INSTALL
 ExternalProject_Add(lzmasdk SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/lzma" DEPENDS 7zip
     CMAKE_ARGS ${IOS_CMAKE_ARGS} -DLZMA_SDK_SOURCE=${IOS_SOURCES}/7zip/C)
 
-# ICU cross-compiles with data-generation tools built for the host first.
-pinned_source(source icu)
-ExternalProject_Add(icu-host ${source}
-    CONFIGURE_COMMAND <SOURCE_DIR>/source/configure --disable-shared --enable-static --disable-tests --disable-samples
-    BUILD_COMMAND ${MAKE_PROGRAM} -j${JOBS}
-    INSTALL_COMMAND "")
-ExternalProject_Get_Property(icu-host BINARY_DIR)
-set(ICU_FLAGS "-target ${IOS_TARGET} -isysroot ${IOS_SDK_PATH}")
-ExternalProject_Add(icu DOWNLOAD_COMMAND "" SOURCE_DIR "${IOS_SOURCES}/icu" DEPENDS icu-host
-    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env CC=${CLANG} CXX=${CLANGXX} "CFLAGS=${ICU_FLAGS}" "CXXFLAGS=${ICU_FLAGS}"
-        "LDFLAGS=${ICU_FLAGS}" <SOURCE_DIR>/source/configure --host=aarch64-apple-darwin --with-cross-build=${BINARY_DIR}
-        --prefix=${IOS_PREFIX} --disable-shared --enable-static --disable-tests --disable-samples --disable-tools
-        --disable-extras
-    BUILD_COMMAND ${MAKE_PROGRAM} -j${JOBS}
-    INSTALL_COMMAND ${MAKE_PROGRAM} install)
-
 # g2.dat, fonts.dat, palettes.dat and tracks.dat come from the repository's sprites, packed by a
 # macOS build of the engine; shared by both SDKs and rebuilt incrementally.
 ExternalProject_Add(graphics SOURCE_DIR "${REPO_ROOT}" BINARY_DIR "${IOS_HOST_DIR}"

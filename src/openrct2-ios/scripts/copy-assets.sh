@@ -15,6 +15,9 @@ rm -rf "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/fonts"
 for folder in language scenario_patches shaders; do
     /usr/bin/ditto "$ROOT/data/$folder" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/$folder"
 done
+# Arabic needs right-to-left reordering, which this build does not have; without the file a
+# configured Arabic falls back to English.
+rm -f "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/language/ar-EG.txt"
 # Licenses of everything the app ships, for the launcher's license page.
 python3 "$ROOT/src/openrct2-ios/scripts/collect-licenses.py" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/licenses" \
     "$ROOT/build/ios/$PLATFORM_NAME/sources" "$ASSETS/fonts"

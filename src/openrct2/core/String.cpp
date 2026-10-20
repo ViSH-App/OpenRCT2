@@ -22,8 +22,15 @@
     #if defined(__linux__) || defined(__sun)
         #include <alloca.h>
     #endif
-    #include <unicode/unistr.h>
-    #include <unicode/utypes.h>
+    #ifdef OPENRCT2_IOS
+        // iOS converts with the system's iconv and CoreFoundation instead of bundling ICU.
+        #include <CoreFoundation/CoreFoundation.h>
+        #include <cerrno>
+        #include <iconv.h>
+    #else
+        #include <unicode/unistr.h>
+        #include <unicode/utypes.h>
+    #endif
 #else
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
@@ -48,6 +55,42 @@ namespace OpenRCT2::String
         return std::string(str);
     }
 
+#ifdef OPENRCT2_IOS
+    // Decodes src from an iconv encoding to UTF-32; each byte that does not decode becomes U+FFFD, as with ICU.
+    static std::wstring decodeWithIconv(std::string_view src, const char* encoding)
+    {
+        std::wstring result;
+        iconv_t cd = iconv_open("UTF-32LE", encoding);
+        if (cd == reinterpret_cast<iconv_t>(-1))
+        {
+            LOG_ERROR("iconv cannot convert from %s", encoding);
+            return result;
+        }
+        auto* in = const_cast<char*>(src.data());
+        size_t inLeft = src.size();
+        wchar_t buffer[256];
+        while (inLeft > 0)
+        {
+            auto* out = reinterpret_cast<char*>(buffer);
+            size_t outLeft = sizeof(buffer);
+            size_t converted = iconv(cd, &in, &inLeft, &out, &outLeft);
+            result.append(buffer, reinterpret_cast<wchar_t*>(out) - buffer);
+            if (converted == static_cast<size_t>(-1) && errno != E2BIG)
+            {
+                result.push_back(L'�');
+                // EINVAL: the input ends inside a multi-byte sequence.
+                if (errno == EINVAL)
+                    break;
+                in++;
+                inLeft--;
+                iconv(cd, nullptr, nullptr, nullptr, nullptr);
+            }
+        }
+        iconv_close(cd);
+        return result;
+    }
+#endif
+
     std::string toUtf8(std::wstring_view src)
     {
 #ifdef _WIN32
@@ -55,6 +98,18 @@ namespace OpenRCT2::String
         int sizeReq = WideCharToMultiByte(EnumValue(CodePage::utf8), 0, src.data(), srcLen, nullptr, 0, nullptr, nullptr);
         auto result = std::string(sizeReq, 0);
         WideCharToMultiByte(EnumValue(CodePage::utf8), 0, src.data(), srcLen, result.data(), sizeReq, nullptr, nullptr);
+        return result;
+#elif defined(OPENRCT2_IOS)
+        std::string result;
+        result.reserve(src.size());
+        for (auto c : src)
+        {
+            auto codepoint = static_cast<uint32_t>(c);
+            if (codepoint > 0x10FFFF || (codepoint >= 0xD800 && codepoint <= 0xDFFF))
+                codepoint = 0xFFFD;
+            utf8 buffer[4];
+            result.append(buffer, UTF8WriteCodepoint(buffer, codepoint));
+        }
         return result;
 #else
     // Which constructor to use depends on the size of wchar_t...
@@ -84,6 +139,8 @@ namespace OpenRCT2::String
         auto result = std::wstring(sizeReq, 0);
         MultiByteToWideChar(EnumValue(CodePage::utf8), 0, src.data(), srcLen, result.data(), sizeReq);
         return result;
+#elif defined(OPENRCT2_IOS)
+        return decodeWithIconv(src, "UTF-8");
 #else
         icu::UnicodeString str = icu::UnicodeString::fromUTF8(std::string(src));
 
@@ -559,7 +616,7 @@ namespace OpenRCT2::String
         return std::string(startSubstr, stringLength);
     }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(OPENRCT2_IOS)
     static const char* getIcuCodePage(OpenRCT2::CodePage codePage)
     {
         switch (codePage)
@@ -581,6 +638,34 @@ namespace OpenRCT2::String
 
             case OpenRCT2::CodePage::utf8:
                 return "utf-8";
+
+            default:
+                throw std::runtime_error("Unsupported code page: " + std::to_string(EnumValue(codePage)));
+        }
+    }
+#elif defined(OPENRCT2_IOS)
+    // iconv's names for the Windows code pages; cp936 also decodes the GBK characters beyond GB2312.
+    static const char* getIconvCodePage(OpenRCT2::CodePage codePage)
+    {
+        switch (codePage)
+        {
+            case OpenRCT2::CodePage::cp932:
+                return "CP932";
+
+            case OpenRCT2::CodePage::cp936:
+                return "CP936";
+
+            case OpenRCT2::CodePage::cp949:
+                return "CP949";
+
+            case OpenRCT2::CodePage::cp950:
+                return "CP950";
+
+            case OpenRCT2::CodePage::cp1252:
+                return "CP1252";
+
+            case OpenRCT2::CodePage::utf8:
+                return "UTF-8";
 
             default:
                 throw std::runtime_error("Unsupported code page: " + std::to_string(EnumValue(codePage)));
@@ -610,6 +695,9 @@ namespace OpenRCT2::String
         }
 
         return dst;
+#elif defined(OPENRCT2_IOS)
+        // ICU reads src up to its first null character.
+        return toUtf8(decodeWithIconv(src.substr(0, src.find('\0')), getIconvCodePage(srcCodePage)));
 #else
         const char* codepage = getIcuCodePage(srcCodePage);
         icu::UnicodeString convertString(src.data(), codepage);
@@ -647,6 +735,26 @@ namespace OpenRCT2::String
         }
 
         return toUtf8(dstW);
+#elif defined(OPENRCT2_IOS)
+        auto str = CFStringCreateWithBytes(
+            nullptr, reinterpret_cast<const UInt8*>(src.data()), src.size(), kCFStringEncodingUTF8, false);
+        if (str == nullptr)
+        {
+            LOG_WARNING("toUpper: invalid UTF-8");
+            return std::string(src);
+        }
+        auto upper = CFStringCreateMutableCopy(nullptr, 0, str);
+        CFRelease(str);
+        // No locale, like ICU's root locale.
+        CFStringUppercase(upper, nullptr);
+
+        auto range = CFRangeMake(0, CFStringGetLength(upper));
+        CFIndex size = 0;
+        CFStringGetBytes(upper, range, kCFStringEncodingUTF8, 0, false, nullptr, 0, &size);
+        std::string result(size, '\0');
+        CFStringGetBytes(upper, range, kCFStringEncodingUTF8, 0, false, reinterpret_cast<UInt8*>(result.data()), size, nullptr);
+        CFRelease(upper);
+        return result;
 #else
         icu::UnicodeString str = icu::UnicodeString::fromUTF8(std::string(src));
         str.toUpper();

@@ -11,7 +11,7 @@ ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 OUT="$ROOT/build/ios"
 # Homebrew supplies cmake, ninja, pkg-config and Python, locally and on Xcode Cloud.
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-# Host tools (ICU's data tools, the graphics generator) build for macOS: under Xcode a bare cc
+# Host tools (the graphics generator) build for macOS: under Xcode a bare cc
 # finds no SDK at all. The iOS builds name their own sysroot.
 unset IPHONEOS_DEPLOYMENT_TARGET MACOSX_DEPLOYMENT_TARGET
 export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)

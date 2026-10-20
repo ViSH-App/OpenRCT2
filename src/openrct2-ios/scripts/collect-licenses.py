@@ -97,7 +97,6 @@ def entries():
     yield ('freetype', 'FreeType', dependency_version('freetype'), 'FTL', 'https://freetype.org',
            'Portions of this software are copyright © The FreeType Project (www.freetype.org). All rights reserved.\n\n'
            + read(SOURCES / 'freetype/docs/FTL.TXT'))
-    yield 'icu', 'ICU', dependency_version('icu'), 'Unicode-3.0', 'https://icu.unicode.org', read(SOURCES / 'icu/LICENSE')
     yield 'libpng', 'libpng', dependency_version('libpng'), 'libpng-2.0', 'http://www.libpng.org', read(SOURCES / 'libpng/LICENSE')
     yield 'libzip', 'libzip', dependency_version('libzip'), 'BSD-3-Clause', 'https://libzip.org', read(SOURCES / 'libzip/LICENSE')
     yield 'zstd', 'Zstandard', dependency_version('zstd'), 'BSD-3-Clause', 'https://facebook.github.io/zstd/', read(SOURCES / 'zstd/LICENSE')

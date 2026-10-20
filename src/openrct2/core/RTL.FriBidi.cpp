@@ -49,7 +49,7 @@ std::string FixRTL(std::string& input)
 
     return std::string(outputString);
 }
-#elif defined(_WIN32)
+#elif defined(_WIN32) || defined(OPENRCT2_IOS)
     #include "../Diagnostic.h"
     #include "RTL.h"
 
