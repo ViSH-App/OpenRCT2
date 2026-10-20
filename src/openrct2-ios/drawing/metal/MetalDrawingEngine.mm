@@ -6,6 +6,7 @@
 
     #include "MetalDebugOptions.h"
     #include "MetalDrawingContext.h"
+    #include "MetalFrameTiming.h"
     #include "MetalShaderTypes.h"
     #include "MetalTextureCache.h"
     #include "MetalWeatherDrawer.h"
@@ -65,6 +66,7 @@ namespace
         std::atomic<uint64_t> maxMicroseconds{};
         std::atomic<uint32_t> frames{};
         std::atomic<bool> failed{};
+        FrameTiming timing;
     };
 
     // Releases the frame-in-flight slot unless ownership passed to a committed command buffer.
@@ -934,6 +936,7 @@ namespace
                   {
                   }
                   ++statistics->frames;
+                  statistics->timing.AddGpuFrame(microseconds / 1000.0);
               }
               dispatch_semaphore_signal(semaphore);
             }];
@@ -976,6 +979,7 @@ namespace
             _dirtyArea / logicalPixels / drawn, _copyRedrawArea / logicalPixels / drawn,
             static_cast<double>(_copyRedraws) / drawn, _fullArea / logicalPixels / drawn,
             _independentPixels / rasterPixels / drawn, _dependentPixels / rasterPixels / drawn);
+        LOG_INFO("Metal frame timing (GPU ms) %s", _gpuStatistics->timing.Summarise().c_str());
         _dirtyArea = _copyRedrawArea = _copyRedraws = _fullArea = _independentPixels = _dependentPixels = 0;
         _cpuMilliseconds = 0;
         _encodeMilliseconds = 0;

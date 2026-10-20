@@ -82,6 +82,7 @@
 		0D786881D740B276EE49F25B /* MetalShaderTypes.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalShaderTypes.h; sourceTree = "<group>"; };
 		AF8001A0175854DC5EA53702 /* MetalTextureCache.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalTextureCache.h; sourceTree = "<group>"; };
 		F6933461214FA43D67D8C12D /* MetalWeatherDrawer.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalWeatherDrawer.h; sourceTree = "<group>"; };
+		64813D105F10473E6E6D1D28 /* MetalFrameTiming.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalFrameTiming.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +121,7 @@
 				F3C857353059A086183DE7F8 /* MetalDrawingContext.h */,
 				A75D3CAB39C8D2D3AF72ACD0 /* MetalDrawingContext.mm */,
 				C7F6D7B142E2BCC6CDF73F96 /* MetalDrawingEngine.mm */,
+				64813D105F10473E6E6D1D28 /* MetalFrameTiming.h */,
 				0D786881D740B276EE49F25B /* MetalShaderTypes.h */,
 				59731A7AD531B9009F0FD5F3 /* MetalShaders.metal */,
 				AF8001A0175854DC5EA53702 /* MetalTextureCache.h */,
