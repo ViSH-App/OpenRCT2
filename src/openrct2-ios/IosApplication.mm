@@ -104,7 +104,10 @@ namespace OpenRCT2::Ui::IOS
     char* arguments[] = { name, nullptr };
     // Keep OpenRCT2 on the main thread. SDL's existing UIKit event pump services
     // scene events while the game's normal loop is running.
-    SDL_main(1, arguments);
+    int status = SDL_main(1, arguments);
+    // Quitting from the game has torn down the engine and its window; leave the
+    // app instead of showing an empty screen.
+    exit(status);
 }
 - (void)sceneDidBecomeActive:(UIScene*)scene
 {

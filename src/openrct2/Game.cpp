@@ -9,6 +9,9 @@
 
 #include "Game.h"
 
+#include <cstdio>
+#include <cstdlib>
+
 #include "Context.h"
 #include "Diagnostic.h"
 #include "GameState.h"
@@ -740,6 +743,12 @@ void GameLoadOrQuitNoSavePrompt()
         default:
             GameUnloadScripts();
             getGameState().entities.resetAllEntities();
+#ifdef OPENRCT2_IOS
+            // Tearing down the engine leaves iOS with no window (a black screen), and
+            // shutdown can block on background threads. Leave the app directly.
+            std::fflush(nullptr);
+            std::_Exit(EXIT_SUCCESS);
+#endif
             GetContext()->Finish();
             break;
     }
