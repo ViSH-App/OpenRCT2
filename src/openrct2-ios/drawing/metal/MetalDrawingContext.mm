@@ -32,15 +32,12 @@ using namespace OpenRCT2::Ui::Metal;
 
 namespace
 {
-    // Bitmap-cache key tags: core TTF surfaces (keyed by pixels) and Retina text (keyed by
-    // font, size and string) share the atlas but never each other's keys.
-    constexpr uint64_t kLogicalTextTag = uint64_t{ 1 } << 62;
-    constexpr uint64_t kRetinaTextTag = uint64_t{ 1 } << 61;
-    constexpr uint64_t kTagMask = kLogicalTextTag | kRetinaTextTag;
+    // Bitmap-cache key tag for core TTF surfaces (keyed by pixels).
+    constexpr uint64_t kTextTag = uint64_t{ 1 } << 62;
+    constexpr uint64_t kTagMask = kTextTag;
     // Keyed palette maps (TextureCache::FindKeyedPalette).
     constexpr uint32_t kKeySecondaryRemap = 1u << 24;
     constexpr uint32_t kKeySolidColour = 2u << 24;
-    constexpr size_t kMaxRetinaFaces = 8;
     // Opaque interior rectangles emitted per sprite, and their minimum logical area.
     constexpr int32_t kMaxInteriorRects = 12;
     constexpr int32_t kMinInteriorArea = 24;
@@ -68,21 +65,11 @@ DrawingContext::DrawingContext(TextureCache& textureCache)
 {
 }
 
-DrawingContext::~DrawingContext()
-{
-    #ifndef DISABLE_TTF
-    for (auto& [key, face] : _retinaFaces)
-        TTF_CloseFont(face.font);
-    if (_ownsTTF)
-        TTF_Quit();
-    #endif
-}
+DrawingContext::~DrawingContext() = default;
 
-void DrawingContext::SetTarget(const RenderTarget& mainRT, uint32_t rasterWidth, uint32_t rasterHeight)
+void DrawingContext::SetTarget(const RenderTarget& mainRT)
 {
     _mainRT = mainRT;
-    _density = std::max(
-        static_cast<float>(rasterWidth) / std::max(mainRT.width, 1), static_cast<float>(rasterHeight) / std::max(mainRT.height, 1));
 }
 
 void DrawingContext::BeginFrame(bool threadSafe)
@@ -436,12 +423,31 @@ void DrawingContext::DrawImage(RenderTarget& rt, ImageId image, const ScreenCoor
     if (!region.IsValid())
         return;
 
-    // Unrounded logical position: sprites are sampled at raster density without seams.
+    // Logical pixel p samples texel floor((p - origin) * step). Minified sprites start on a
+    // whole logical pixel as in GfxDrawSpritePaletteSetSoftware: BMP sprites round the left edge
+    // up and the top edge down; RLE sprites are first moved by step - 1 world pixels, rounding the
+    // left edge down and keeping the top edge's world phase.
     const auto origin = Origin(rt);
     const float step = std::ldexp(1.0f, zoom);
+    float worldLeft = static_cast<float>(position.x + g1->xOffset) / step;
+    float worldTop = static_cast<float>(position.y + g1->yOffset) / step;
+    if (zoom > 0)
+    {
+        const int32_t mask = (1 << zoom) - 1;
+        if (g1->flags.has(G1Flag::hasRLECompression))
+        {
+            worldLeft = std::floor(worldLeft);
+            worldTop = static_cast<float>(position.y + g1->yOffset - mask) / step;
+        }
+        else
+        {
+            worldLeft = std::ceil(worldLeft);
+            worldTop = std::floor(worldTop);
+        }
+    }
     DrawCommand c{};
-    c.originX = (position.x + g1->xOffset) / step - rt.x + origin.x;
-    c.originY = (position.y + g1->yOffset) / step - rt.y + origin.y;
+    c.originX = worldLeft - rt.x + origin.x;
+    c.originY = worldTop - rt.y + origin.y;
     c.scaleX = step;
     c.scaleY = step;
     c.left = ClampLogical(static_cast<int32_t>(std::floor(c.originX)));
@@ -466,9 +472,9 @@ void DrawingContext::DrawImage(RenderTarget& rt, ImageId image, const ScreenCoor
     // Fully opaque interior rectangles follow the sprite as separate commands drawn without
     // discard. They write exactly the texels the sprite writes there, so the image is
     // unchanged; the sprite itself is then depth-rejected inside them and only shades its
-    // edges. Each rectangle is shrunk to whole logical pixels such that every raster pixel it
-    // covers samples a texel inside the rectangle: positions are multiples of 1/8 logical pixel
-    // and float rounding is monotonic, so ceil() suffices at the left/top edge, while the
+    // edges. Each rectangle is shrunk to whole logical pixels such that every pixel it covers
+    // samples a texel inside the rectangle: positions are multiples of 1/8 logical pixel and
+    // float rounding is monotonic, so ceil() suffices at the left/top edge, while the
     // right/bottom edge must stay strictly inside.
     if ((remap.flags & kCommandRemapDestination) != 0 || ((remap.flags & kCommandRemapSource) != 0 && !remap.zeroFree))
         return;
@@ -599,24 +605,21 @@ void DrawingContext::DrawSpriteRawMasked(RenderTarget& rt, int32_t x, int32_t y,
 // TrueType text
 
 void DrawingContext::PushText(
-    RenderTarget& rt, const AtlasRegion& region, int32_t x, int32_t y, PaletteIndex colour, uint8_t threshold,
-    int32_t logicalWidth, int32_t logicalHeight, int32_t multiple)
+    RenderTarget& rt, const AtlasRegion& region, int32_t x, int32_t y, PaletteIndex colour, uint8_t threshold)
 {
     const auto origin = Origin(rt);
     const int32_t left = x - rt.x + origin.x;
     const int32_t top = y - rt.y + origin.y;
-    const int32_t width = logicalWidth != 0 ? logicalWidth : region.width;
-    const int32_t height = logicalHeight != 0 ? logicalHeight : region.height;
+    const int32_t width = region.width;
+    const int32_t height = region.height;
     DrawCommand c{};
     c.flags = kCommandText;
     c.colour = EnumValue(colour);
     c.threshold = threshold;
     c.originX = static_cast<float>(left);
     c.originY = static_cast<float>(top);
-    // A bitmap rendered at an exact multiple of the logical size is scaled by that multiple:
-    // its size is not always the multiple of the logical one (see TryDrawTTFText).
-    c.scaleX = multiple != 0 ? static_cast<float>(multiple) : static_cast<float>(region.width) / width;
-    c.scaleY = multiple != 0 ? static_cast<float>(multiple) : static_cast<float>(region.height) / height;
+    c.scaleX = 1;
+    c.scaleY = 1;
     c.left = ClampLogical(left);
     c.top = ClampLogical(top);
     c.right = ClampLogical(left + width);
@@ -637,19 +640,17 @@ void DrawingContext::PushText(
 // Pass structure of X8DrawingContext::DrawTTFBitmap: outline and inset passes in the shadow
 // colour without hinting, then the fill with the font's hinting threshold.
 void DrawingContext::PushTextPasses(
-    RenderTarget& rt, const TextDrawInfo& info, const AtlasRegion& region, int32_t x, int32_t y, uint8_t threshold,
-    int32_t logicalWidth, int32_t logicalHeight, int32_t multiple)
+    RenderTarget& rt, const TextDrawInfo& info, const AtlasRegion& region, int32_t x, int32_t y, uint8_t threshold)
 {
     if (info.colourFlags.has(ColourFlag::withOutline))
     {
         constexpr std::array<ScreenCoordsXY, 4> kOutline{ { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } };
         for (const auto& delta : kOutline)
-            PushText(
-                rt, region, x + delta.x, y + delta.y, info.palette.shadowOutline, 0, logicalWidth, logicalHeight, multiple);
+            PushText(rt, region, x + delta.x, y + delta.y, info.palette.shadowOutline, 0);
     }
     if (info.colourFlags.has(ColourFlag::inset))
-        PushText(rt, region, x + 1, y + 1, info.palette.shadowOutline, 0, logicalWidth, logicalHeight, multiple);
-    PushText(rt, region, x, y, info.palette.fill, threshold, logicalWidth, logicalHeight, multiple);
+        PushText(rt, region, x + 1, y + 1, info.palette.shadowOutline, 0);
+    PushText(rt, region, x, y, info.palette.fill, threshold);
 }
 
 void DrawingContext::DrawTTFBitmap(
@@ -662,7 +663,7 @@ void DrawingContext::DrawTTFBitmap(
     const auto* pixels = static_cast<const uint8_t*>(surface->pixels);
     const size_t size = static_cast<size_t>(surface->w) * surface->h;
     const uint64_t key = (HashBytes(pixels, size, (static_cast<uint64_t>(surface->w) << 32) | surface->h) & ~kTagMask)
-        | kLogicalTextTag;
+        | kTextTag;
     AtlasRegion region;
     {
         auto lock = LockCache();
@@ -670,110 +671,7 @@ void DrawingContext::DrawTTFBitmap(
         region = found ? *found : _textureCache.AddBitmap(key, pixels, surface->w, surface->h, surface->w);
     }
     if (region.IsValid())
-        PushTextPasses(rt, info, region, x, y, hintingThreshold, 0, 0);
-    #endif
-}
-
-TTF_Font* DrawingContext::GetRetinaFace(const TTFFontDescriptor& fontDesc, int32_t pointSize, bool hinting)
-{
-    #ifndef DISABLE_TTF
-    if (!_ownsTTF)
-    {
-        if (TTF_Init() != 0)
-            return nullptr;
-        _ownsTTF = true;
-    }
-    auto key = std::string(fontDesc.filename) + ":" + std::to_string(pointSize);
-    auto found = _retinaFaces.find(key);
-    if (found == _retinaFaces.end())
-    {
-        if (_retinaFaces.size() >= kMaxRetinaFaces)
-        {
-            auto oldest = std::min_element(_retinaFaces.begin(), _retinaFaces.end(), [](const auto& a, const auto& b) {
-                return a.second.lastUsed < b.second.lastUsed;
-            });
-            TTF_CloseFont(oldest->second.font);
-            _retinaFaces.erase(oldest);
-        }
-        const auto path = Platform::GetFontPath(fontDesc);
-        auto* font = TTF_OpenFont(path.c_str(), pointSize);
-        if (font == nullptr)
-            return nullptr;
-        found = _retinaFaces.emplace(std::move(key), RetinaFace{ font }).first;
-        LOG_VERBOSE(
-            "Metal Retina font: %s logical=%d raster=%d pt density=%.3f", fontDesc.font_name, fontDesc.ptSize, pointSize,
-            _density);
-    }
-    auto& face = found->second;
-    face.lastUsed = _frameNumber;
-    // Same hinting mode as TTFToggleHinting: light hinting for shaded rendering.
-    const int mode = hinting ? 1 : 0;
-    if (face.hinting != mode)
-    {
-        TTF_SetFontHinting(face.font, mode);
-        face.hinting = mode;
-    }
-    return face.font;
-    #else
-    return nullptr;
-    #endif
-}
-
-bool DrawingContext::TryDrawTTFText(
-    RenderTarget& rt, const TextDrawInfo& info, const TTFFontDescriptor& fontDesc, std::string_view text,
-    const TTFSurface& logical, int32_t x, int32_t y)
-{
-    #ifndef DISABLE_TTF
-    if (logical.w <= 0 || logical.h <= 0 || _density <= 1.0f || rt.zoom_level != ZoomLevel{ 0 })
-        return false;
-    // The CRT effect draws one scanline per logical row; Retina glyph pixels would straddle them.
-    if (Config::Get().general.crtEffect)
-        return false;
-    // Same hinting policy as the core's logical surfaces (TTFToggleHinting, ttfDrawStringRaw).
-    const bool enableHinting = Config::Get().fonts.enableHinting;
-    const bool useHinting = enableHinting && fontDesc.hinting_threshold != 0;
-    const auto threshold = static_cast<uint8_t>(enableHinting ? fontDesc.hinting_threshold : 0);
-    // Pixel fonts (no hinting threshold) need a whole-number multiple: the density is slightly above an
-    // integer (e.g. 2266 / 755), and ceil would make 12pt at 3x render at 37pt with uneven pixels.
-    const int32_t multiple = fontDesc.hinting_threshold != 0 ? 0 : std::max(1, static_cast<int32_t>(std::lround(_density)));
-    const auto pointSize = multiple == 0 ? static_cast<int32_t>(std::ceil(fontDesc.ptSize * _density))
-                                         : fontDesc.ptSize * multiple;
-
-    uint64_t key = HashBytes(text.data(), text.size(), HashBytes(fontDesc.filename, std::strlen(fontDesc.filename)));
-    key = (HashBytes(&key, sizeof(key), (static_cast<uint64_t>(pointSize) << 1) | (useHinting ? 1 : 0)) & ~kTagMask)
-        | kRetinaTextTag;
-    AtlasRegion region;
-    {
-        auto lock = LockCache();
-        auto found = _textureCache.FindBitmap(key);
-        if (found)
-        {
-            region = *found;
-        }
-        else
-        {
-            auto* font = GetRetinaFace(fontDesc, pointSize, useHinting);
-            if (font == nullptr)
-                return false;
-            auto* surface = TTF_RenderUTF8(font, std::string(text).c_str(), useHinting);
-            if (surface == nullptr)
-                return false;
-            if (surface->w <= AtlasAllocator::kLayerSize && surface->h <= AtlasAllocator::kLayerSize)
-                region = _textureCache.AddBitmap(
-                    key, static_cast<const uint8_t*>(surface->pixels), surface->w, surface->h, surface->w);
-            TTFFreeSurface(surface);
-        }
-    }
-    if (!region.IsValid())
-        return false; // Too large for the atlas: use the logical bitmap.
-    // Glyphs scale exactly with the point size, but the bitmap height includes a one-pixel baseline
-    // row at every size (TTFSDLPort: ascent - descent + 1), so 10pt is 15 rows and 30pt 43, not 45.
-    // Scaling pixel fonts by region / logical size (43 / 15) would stretch glyph rows across
-    // logical rows; scale them by the multiple.
-    PushTextPasses(rt, info, region, x, y, threshold, logical.w, logical.h, multiple);
-    return true;
-    #else
-    return false;
+        PushTextPasses(rt, info, region, x, y, hintingThreshold);
     #endif
 }
 

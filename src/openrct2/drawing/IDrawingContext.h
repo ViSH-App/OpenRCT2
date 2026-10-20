@@ -44,13 +44,6 @@ namespace OpenRCT2::Drawing
         virtual void DrawTTFBitmap(
             RenderTarget& rt, const TextDrawInfo& info, TTFSurface* surface, int32_t x, int32_t y,
             uint8_t hintingThreshold) = 0;
-        // Optional high-density text path. Layout and advances still use the
-        // logical surface; existing renderers retain their bitmap behaviour.
-        virtual bool TryDrawTTFText(
-            RenderTarget&, const TextDrawInfo&, const TTFFontDescriptor&, std::string_view, const TTFSurface&, int32_t, int32_t)
-        {
-            return false;
-        }
     };
 
 } // namespace OpenRCT2::Drawing

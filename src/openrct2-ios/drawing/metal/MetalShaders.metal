@@ -6,10 +6,10 @@
 using namespace metal;
 using namespace OpenRCT2::Ui::Metal;
 
-// The canvas holds palette indices at raster (physical pixel) resolution. Every command is
-// expressed in logical pixels; a raster pixel belongs to logical pixel samples[px].logical
-// and samples sources at samples[px].point. Both rasterizers below share these tables and
-// the per-pixel operation, so they only differ in how they find and order commands.
+// The canvas holds one palette index per logical pixel, as X8DrawingEngine's buffer, and is
+// scaled to the display by a whole number at presentation. Pixel p samples a command's source
+// at its top-left corner. Both rasterizers below share the per-pixel operation, so they only
+// differ in how they find and order commands.
 
 constant int kNoWrite = -1;
 
@@ -115,7 +115,7 @@ inline int resolvePixel(
 
 // ---------------------------------------------------------------------------------------
 // Instanced-quad rasterizer. One instance per command; the rasterizer clips exactly to the
-// command's raster rectangle and the depth test (two-pass mode) discards hidden fragments.
+// command's clip rectangle and the depth test (two-pass mode) discards hidden fragments.
 
 struct RasterVertex
 {
@@ -133,19 +133,16 @@ struct RasterOutput
 vertex RasterVertex rasterVertex(
     uint vertexId [[vertex_id]], uint instanceId [[instance_id]],
     device const DrawCommand* commands [[buffer(kBufferCommands)]],
-    device const uint* order [[buffer(kBufferOrder)]],
-    device const ushort* edgesX [[buffer(kBufferEdgesX)]],
-    device const ushort* edgesY [[buffer(kBufferEdgesY)]],
-    constant FrameUniforms& frame [[buffer(kBufferUniforms)]])
+    device const uint* order [[buffer(kBufferOrder)]], constant FrameUniforms& frame [[buffer(kBufferUniforms)]])
 {
     const uint index = order[instanceId];
     const DrawCommand c = commands[index];
-    // Raster rectangle covering exactly the pixels whose logical position is inside the clip.
-    const float x = edgesX[(vertexId & 1) != 0 ? c.right : c.left];
-    const float y = edgesY[(vertexId & 2) != 0 ? c.bottom : c.top];
+    // The command's clip rectangle.
+    const float x = (vertexId & 1) != 0 ? c.right : c.left;
+    const float y = (vertexId & 2) != 0 ? c.bottom : c.top;
     RasterVertex out;
     out.position = float4(
-        x / float(frame.rasterWidth) * 2.0f - 1.0f, 1.0f - y / float(frame.rasterHeight) * 2.0f,
+        x / float(frame.width) * 2.0f - 1.0f, 1.0f - y / float(frame.height) * 2.0f,
         float(kDepthOrigin - index) * (1.0f / 16777216.0f), 1.0f);
     out.sampling = float4(c.originX, c.originY, c.scaleX, c.scaleY);
     out.source = uint4(c.flags, c.mapLength, uint(c.layer) | (uint(c.mapRow) << 16), uint(c.atlasX) | (uint(c.atlasY) << 16));
@@ -174,42 +171,23 @@ inline CommandState stateFromVertex(RasterVertex in)
     return s;
 }
 
-// Profiling variants (OPENRCT2_METAL_PROFILE): 1 skips palette remaps, 2 computes the sample
-// point arithmetically instead of reading the raster tables, 3 never discards. Only for
-// measuring where full-frame time goes; 2 and 3 do not produce correct images.
+// Profiling variants (OPENRCT2_METAL_PROFILE): 1 skips palette remaps, 3 never discards.
+// Only for measuring where full-frame time goes; 3 does not produce correct images.
 constant uint kProfileModeConstant [[function_constant(0)]];
 constant uint kProfileMode = is_function_constant_defined(kProfileModeConstant) ? kProfileModeConstant : 0;
 
 // Commands whose result does not depend on the destination. In two-pass mode these are
 // drawn latest-first with depth writes, so earlier commands hidden behind them never shade.
 fragment RasterOutput rasterIndependent(
-    RasterVertex in [[stage_in]], device const RasterSample* samplesX [[buffer(kBufferSamplesX)]],
-    device const RasterSample* samplesY [[buffer(kBufferSamplesY)]],
-    texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
+    RasterVertex in [[stage_in]], texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
     texture2d<uint, access::read> palettes [[texture(kTexturePalettes)]],
-    texture2d<uint, access::read> blend [[texture(kTextureBlend)]],
-    constant FrameUniforms& frame [[buffer(kBufferUniforms)]])
+    texture2d<uint, access::read> blend [[texture(kTextureBlend)]])
 {
-    const uint2 pixel = uint2(in.position.xy);
+    const int2 pixel = int2(in.position.xy);
     CommandState c = stateFromVertex(in);
-    float2 point;
-    int2 logical;
-    if (kProfileMode == 2)
-    {
-        point = (float2(pixel) + 0.5f) * float2(frame.logicalWidth, frame.logicalHeight)
-            / float2(frame.rasterWidth, frame.rasterHeight);
-        logical = int2(point);
-    }
-    else
-    {
-        const RasterSample sx = samplesX[pixel.x];
-        const RasterSample sy = samplesY[pixel.y];
-        point = float2(sx.point, sy.point);
-        logical = int2(sx.logical, sy.logical);
-    }
     if (kProfileMode == 1)
         c.flags &= ~(kCommandRemapSource | kCommandRemapDestination);
-    const int colour = resolvePixel(c, point, logical, 0u, atlas, palettes, blend);
+    const int colour = resolvePixel(c, float2(pixel), pixel, 0u, atlas, palettes, blend);
     if (colour == kNoWrite)
     {
         if (kProfileMode == 3)
@@ -223,18 +201,13 @@ fragment RasterOutput rasterIndependent(
 // interiors of sprites). Without a discard path the GPU's hidden-surface removal can skip
 // everything they hide before it is shaded.
 fragment RasterOutput rasterOpaque(
-    RasterVertex in [[stage_in]], device const RasterSample* samplesX [[buffer(kBufferSamplesX)]],
-    device const RasterSample* samplesY [[buffer(kBufferSamplesY)]],
-    texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
+    RasterVertex in [[stage_in]], texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
     texture2d<uint, access::read> palettes [[texture(kTexturePalettes)]],
     texture2d<uint, access::read> blend [[texture(kTextureBlend)]])
 {
-    const uint2 pixel = uint2(in.position.xy);
-    const RasterSample sx = samplesX[pixel.x];
-    const RasterSample sy = samplesY[pixel.y];
+    const int2 pixel = int2(in.position.xy);
     const CommandState c = stateFromVertex(in);
-    const int colour = resolvePixel(
-        c, float2(sx.point, sy.point), int2(sx.logical, sy.logical), 0u, atlas, palettes, blend);
+    const int colour = resolvePixel(c, float2(pixel), pixel, 0u, atlas, palettes, blend);
     return { uint(max(colour, 0)) };
 }
 
@@ -243,25 +216,20 @@ fragment RasterOutput rasterOpaque(
 // blending gives exact painter's-algorithm semantics within the render pass.
 fragment RasterOutput rasterDependent(
     RasterVertex in [[stage_in]], uint destination [[color(0)]],
-    device const RasterSample* samplesX [[buffer(kBufferSamplesX)]],
-    device const RasterSample* samplesY [[buffer(kBufferSamplesY)]],
     texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
     texture2d<uint, access::read> palettes [[texture(kTexturePalettes)]],
     texture2d<uint, access::read> blend [[texture(kTextureBlend)]])
 {
-    const uint2 pixel = uint2(in.position.xy);
-    const RasterSample sx = samplesX[pixel.x];
-    const RasterSample sy = samplesY[pixel.y];
+    const int2 pixel = int2(in.position.xy);
     const CommandState c = stateFromVertex(in);
-    const int colour = resolvePixel(
-        c, float2(sx.point, sy.point), int2(sx.logical, sy.logical), destination, atlas, palettes, blend);
+    const int colour = resolvePixel(c, float2(pixel), pixel, destination, atlas, palettes, blend);
     if (colour == kNoWrite)
         discard_fragment();
     return { uint(colour) };
 }
 
 // ---------------------------------------------------------------------------------------
-// Presentation: palette lookup of the indexed canvas straight into the drawable.
+// Presentation: palette lookup of the indexed canvas, each logical pixel a scale × scale square.
 
 struct PresentVertex
 {
@@ -278,28 +246,24 @@ fragment float4 presentFragment(
     PresentVertex in [[stage_in]], texture2d<uint, access::read> canvas [[texture(kTextureCanvas)]],
     constant uchar4* palette [[buffer(kBufferPalette)]], constant PresentUniforms& present [[buffer(kBufferUniforms)]])
 {
-    const uint2 pixel = uint2(in.position.xy) - uint2(present.offsetX, present.offsetY);
+    const uint2 pixel = (uint2(in.position.xy) - uint2(present.offsetX, present.offsetY)) / present.scale;
     return float4(palette[canvas.read(pixel).r]) * (1.0f / 255.0f);
 }
 
 // ---------------------------------------------------------------------------------------
-// CRT presentation, in two passes. crtSignal resamples the canvas once per logical pixel (the
-// game's own resolution, the "video signal") into a small linear-light texture, using a palette
-// already decoded with the CRT gamma. Text is drawn on the logical grid while the effect is on
-// (see TryDrawTTFText), so every glyph pixel is one signal sample. crtFragment then draws every
-// output pixel from the two nearest scanlines with two bilinear fetches.
+// CRT presentation, in two passes. crtSignal decodes the canvas (the game's own resolution, the
+// "video signal") into a linear-light texture of the same size, using a palette already decoded
+// with the CRT gamma. crtFragment then draws every output pixel from the two nearest scanlines
+// with two bilinear fetches.
 //
-// The beam profile is precomputed per raster density into a small table (see CrtBeamTable in
+// The beam profile is precomputed per scale into a small table (see CrtBeamTable in
 // MetalDrawingEngine.mm), indexed by intensity and distance from the beam centre.
 
 fragment half4 crtSignal(
     PresentVertex in [[stage_in]], texture2d<uint, access::read> canvas [[texture(kTextureCanvas)]],
-    constant half4* palette [[buffer(kBufferPalette)]], constant CrtUniforms& u [[buffer(kBufferUniforms)]])
+    constant half4* palette [[buffer(kBufferPalette)]])
 {
-    const uint2 raster = min(
-        uint2((floor(in.position.xy) + 0.5f) * float2(u.rasterPerLogicalX, u.rasterPerLogicalY)),
-        uint2(u.rasterWidth - 1, u.rasterHeight - 1));
-    return palette[canvas.read(raster).r];
+    return palette[canvas.read(uint2(in.position.xy)).r];
 }
 
 fragment float4 crtFragment(
@@ -308,7 +272,7 @@ fragment float4 crtFragment(
 {
     constexpr sampler bilinear(filter::linear, address::clamp_to_edge);
     const float2 pixel = in.position.xy - float2(u.offsetX, u.offsetY);
-    const float2 position = pixel * float2(u.logicalPerRasterX, u.logicalPerRasterY);
+    const float2 position = pixel * u.logicalPerPixel;
 
     // Horizontal band limit: bilinear between neighbouring signal samples, with the transition
     // steepened around the pixel edge by `sharpness` (1 is plain linear interpolation).
@@ -336,14 +300,12 @@ fragment float4 crtFragment(
 }
 
 // ---------------------------------------------------------------------------------------
-// Reference rasterizer for OPENRCT2_METAL_COMPARE_GPU. One thread per raster pixel walks the
+// Reference rasterizer for OPENRCT2_METAL_COMPARE_GPU. One thread per pixel walks the
 // commands binned to its tile in submission order, starting from the persistent reference
 // canvas. It is deliberately simple and is never used for normal frames.
 
 kernel void referenceRasterize(
     device const DrawCommand* commands [[buffer(kReferenceCommands)]],
-    device const RasterSample* samplesX [[buffer(kReferenceSamplesX)]],
-    device const RasterSample* samplesY [[buffer(kReferenceSamplesY)]],
     constant FrameUniforms& frame [[buffer(kReferenceUniforms)]],
     device const uint2* tileRanges [[buffer(kReferenceTileRanges)]],
     device const uint* tileIndices [[buffer(kReferenceTileIndices)]],
@@ -353,15 +315,12 @@ kernel void referenceRasterize(
     texture2d<uint, access::read> palettes [[texture(kTexturePalettes)]],
     texture2d<uint, access::read> blend [[texture(kTextureBlend)]], uint2 pixel [[thread_position_in_grid]])
 {
-    if (pixel.x >= frame.rasterWidth || pixel.y >= frame.rasterHeight)
+    if (pixel.x >= frame.width || pixel.y >= frame.height)
         return;
-    const RasterSample sx = samplesX[pixel.x];
-    const RasterSample sy = samplesY[pixel.y];
-    const int2 logical = int2(sx.logical, sy.logical);
-    const float2 point = float2(sx.point, sy.point);
-    const uint2 range = tileRanges
-        [(uint(logical.y) / kReferenceTileSize) * frame.tilesAcross + uint(logical.x) / kReferenceTileSize];
-    const uint offset = pixel.y * frame.rasterWidth + pixel.x;
+    const int2 logical = int2(pixel);
+    const float2 point = float2(pixel);
+    const uint2 range = tileRanges[(pixel.y / kReferenceTileSize) * frame.tilesAcross + pixel.x / kReferenceTileSize];
+    const uint offset = pixel.y * frame.width + pixel.x;
     uint colour = canvas[offset];
     for (uint i = range.x; i < range.y; ++i)
     {

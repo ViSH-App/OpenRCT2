@@ -93,7 +93,7 @@ The importer uses security-scoped access and file coordination. It copies the re
 
 ## Playing and saving
 
-The existing OpenRCT2 interface and construction tools are retained. The default interface scale is 1.25 with enlarged controls enabled; use Options → Display to adjust it. Options → Display → Drawing Engine offers **Software** and **Metal**. Software uses the original CPU rasterizer with SDL Metal presentation. Metal uses a native indexed-colour GPU renderer for sprites, palette remapping/filtering, text and weather (see **Metal renderer** below). It composes directly into a canvas matching the physical content viewport (Retina pixels), rather than enlarging the logical game framebuffer. UI layout, park view scale, hit testing and touch coordinates stay in the original logical space. TrueType text is rasterized at the corresponding higher font size while retaining the core’s logical text advances and bounds. New installations start with Metal; existing installations keep their selected engine. If Metal cannot start, the game falls back to Software and saves that choice. Like the desktop OpenGL engine, Metal does not provide LightFX. Game coordinates and input coordinates exclude the native top strip and safe-area insets. Retina pixels are not confused with UIKit points.
+The existing OpenRCT2 interface and construction tools are retained. The default interface scale is 1.5 with enlarged controls enabled; use Options → Display to adjust it. Interface scales step by 0.5 (1.0, 1.5, 2.0, …) so that every logical pixel is a whole number of physical pixels (2, 3, 4, … on the iPad's 2× display); other values in an older configuration are rounded to the nearest such scale. The logical size is the content viewport divided by that number, and physical pixels left over below one logical pixel stay black at the right and bottom edges. Options → Display → Drawing Engine offers **Software** and **Metal**. Software uses the original CPU rasterizer with SDL Metal presentation. Metal uses a native indexed-colour GPU renderer for sprites, palette remapping/filtering, text and weather (see **Metal renderer** below). Both engines draw the game at its logical resolution, one canvas pixel per logical pixel as in the original software renderer, and show it scaled by that whole number with nearest-neighbour sampling. UI layout, park view scale, hit testing and touch coordinates use the same logical space. New installations start with Metal; existing installations keep their selected engine. If Metal cannot start, the game falls back to Software and saves that choice. Like the desktop OpenGL engine, Metal does not provide LightFX. Game coordinates and input coordinates exclude the native top strip and safe-area insets. Retina pixels are not confused with UIKit points.
 
 - Tap menus and buttons once.
 - With a placement tool active, move one finger to position the existing construction preview. Release to inspect it,
@@ -134,7 +134,7 @@ The application pauses the park and audio when entering the background, attempts
 
 ## Scope and platform separation
 
-`OPENRCT2_IOS` is defined in the iOS Xcode configuration and the CMake iOS library build. UIKit implementations are in `Platform.iOS.mm` and `UiContext.iOS.mm`; Cocoa, CoreServices/FSEvents and subprocess execution are excluded from this build. Existing macOS, Windows, Linux and Android branches retain their own behavior. Networking, HTTP/version checks, Discord, JavaScript plugins, FLAC and Vorbis are disabled in this MVP. There is no OpenGL in the iPad build: the OpenGL drawing engine is compiled out (`DISABLE_OPENGL`), SDL is built with `SDL_OPENGLES=OFF` (Metal video and renderer only), and the app does not link `OpenGLES.framework`. `build-native.sh` rebuilds just SDL if an older preparation still contains OpenGL ES. Existing PCM game sounds remain supported. The initial UI language is English; other language selection remains in the game. Simplified Chinese uses the bundled [Fusion Pixel Font](https://github.com/TakWolf/fusion-pixel-font) (10px proportional zh_hans for small/medium text, 8px for tiny text; OFL and upstream licenses included under data/fonts), so it does not depend on downloadable system fonts. Being a pixel font, it is rasterised as monochrome bitmaps without anti-aliasing, including on the Metal Retina text path. On the Metal path it is rasterised at a whole-number multiple of its pixel size; glyph pixels are perfectly even only when the Retina density (2 × UI scale on a 2× display) is an integer, i.e. UI scale 1.0, 1.5 or 2.0. A UIKit scene delegate starts SDL and forwards lifecycle notifications, including on iPadOS 27.
+`OPENRCT2_IOS` is defined in the iOS Xcode configuration and the CMake iOS library build. UIKit implementations are in `Platform.iOS.mm` and `UiContext.iOS.mm`; Cocoa, CoreServices/FSEvents and subprocess execution are excluded from this build. Existing macOS, Windows, Linux and Android branches retain their own behavior. Networking, HTTP/version checks, Discord, JavaScript plugins, FLAC and Vorbis are disabled in this MVP. There is no OpenGL in the iPad build: the OpenGL drawing engine is compiled out (`DISABLE_OPENGL`), SDL is built with `SDL_OPENGLES=OFF` (Metal video and renderer only), and the app does not link `OpenGLES.framework`. `build-native.sh` rebuilds just SDL if an older preparation still contains OpenGL ES. Existing PCM game sounds remain supported. The initial UI language is English; other language selection remains in the game. Simplified Chinese uses the bundled [Fusion Pixel Font](https://github.com/TakWolf/fusion-pixel-font) (10px proportional zh_hans for small/medium text, 8px for tiny text; OFL and upstream licenses included under data/fonts), so it does not depend on downloadable system fonts. Being a pixel font, it is rasterised as monochrome bitmaps without anti-aliasing, and every glyph pixel is shown as an even square of physical pixels. A UIKit scene delegate starts SDL and forwards lifecycle notifications, including on iPadOS 27.
 
 Runtime stdout/stderr is appended to `Documents/OpenRCT2-ios.log`, accessible through Files. Build logs used during development are described in `VALIDATION.md`.
 
@@ -147,9 +147,9 @@ Sources are in `drawing/metal/`:
 - `MetalShaderTypes.h`: the draw-command layout, flags and buffer/texture
   bindings, shared by the Objective-C++ code and `MetalShaders.metal`.
 - `MetalDrawingContext.*`: records `IDrawingContext` calls as commands in
-  logical pixels. The pixel rules follow `X8DrawingContext`. Sprite and text
-  positions keep their fractional logical position so they can be sampled at
-  Retina density.
+  logical pixels. The pixel rules follow `X8DrawingContext`: each canvas pixel
+  samples a command's source at its top-left corner, and minified sprites start
+  on the same whole logical pixel as in `GfxDrawSpritePaletteSetSoftware`.
 - `MetalTextureCache.*`: an R16Uint 2D-array atlas for sprites and TrueType
   coverage, plus the palette-row texture and the TrueType blend table.
 - `MetalWeatherDrawer.*`: rain and snow.
@@ -159,8 +159,8 @@ Sources are in `drawing/metal/`:
 
 ### How a frame is drawn
 
-1. The canvas is an R8Uint texture of palette indices at the content viewport's
-   physical size. It is kept between frames.
+1. The canvas is an R8Uint texture of palette indices at the logical size, the
+   same image as X8's buffer. It is kept between frames.
 2. `Invalidate` feeds an `InvalidationGrid` with 128-pixel logical blocks, as
    X8 does. Smaller blocks redraw much less, but they no longer match a full
    redraw exactly. `OPENRCT2_METAL_VERIFY_DIRTY` showed differences in most
@@ -171,11 +171,7 @@ Sources are in `drawing/metal/`:
    - `gPaintForceRedraw` is set;
    - the window has been resized;
    - a GPU frame has failed (for example in the background).
-3. `CopyRect` (viewport scrolling):
-   - When the raster size is an exact integer multiple of the logical size,
-     it blits the canvas.
-   - Otherwise a logical shift is not a whole number of raster pixels, so the
-     moved area is redrawn. This is the case at the default 1.25 UI scale.
+3. `CopyRect` (viewport scrolling) blits the canvas.
 4. Each command is one instance of a quad, drawn into the canvas in a single
    render pass per copy segment:
    - **Opaque commands** (plain fills, and the fully opaque interior bands that
@@ -183,8 +179,8 @@ Sources are in `drawing/metal/`:
      path, so the GPU's hidden-surface removal skips everything they hide.
      Discarding shaders defeat hidden-surface removal; profiling showed this
      dominated full-frame cost. An interior band is the sprite's own texels,
-     shrunk to whole logical pixels so every covered raster pixel samples
-     inside it. It therefore never changes the image.
+     shrunk to whole logical pixels so every covered pixel samples inside
+     it. It therefore never changes the image.
    - **Other destination-independent commands** (fills, sprites, glyphs, unhinted
      text) are drawn latest-first. Their depth is the command index (LESS
      test, depth writes on), so earlier commands that are hidden behind them
@@ -196,7 +192,10 @@ Sources are in `drawing/metal/`:
      order, so the result is exactly the painter's algorithm, with no depth
      peeling.
 5. One presentation pass looks up the palette for each canvas index and writes
-   straight into the drawable. There is no intermediate RGBA texture.
+   straight into the drawable, each logical pixel as a square of `scale` ×
+   `scale` drawable pixels. There is no intermediate RGBA texture. With the CRT
+   effect, the canvas is first decoded into a linear-light texture of the same
+   size, the scanline signal.
 
 Per-frame command data uses ring buffers, one per frame in flight (three).
 Uploads to the atlas and palette textures are staged and encoded as blits at
@@ -219,16 +218,15 @@ textures.
 
 - **Zoomed-out sprites.** At zoom > 0, sprites that have pre-minified
   variants (`hasZoomSprite`) use those variants, as in
-  `GfxDrawSpritePaletteSetSoftware`. Sprites without a variant are still
-  sampled from the original at native density. `noZoomDraw` is unchanged.
-- **Retina TrueType text.** It now follows the same settings as the core's
-  logical surfaces:
-  - `fonts.enableHinting` and the font's `hinting_threshold` choose light
-    hinting with shaded rendering, and set the fill threshold;
-  - outline and inset passes use threshold 0, as in
-    `X8DrawingContext::DrawTTFBitmap`.
-
-  Previously the threshold was fixed at 64 for every pass.
+  `GfxDrawSpritePaletteSetSoftware`. Other sprites take every 2^zoom-th
+  texel from the same starting pixel as the software renderer (BMP sprites
+  round their left edge up; RLE sprites are moved by 2^zoom − 1 world pixels
+  first). `noZoomDraw` is unchanged.
+- **TrueType text** uses the core's logical surfaces, with the pass structure
+  and hinting thresholds of `X8DrawingContext::DrawTTFBitmap`.
+- **Comparison with Software.** Game screenshots of both engines, taken at
+  the same tick of the same park at zoom 0 to 3, were identical pixel for
+  pixel apart from animation frames.
 
 ### Parallel drawing
 
@@ -265,7 +263,7 @@ switch to turn it off; do not set its value to `0`.
 | `OPENRCT2_METAL_INTERIOR=n` | Opaque interior bands per sprite (default 12; 0 disables). |
 | `OPENRCT2_METAL_FULL_AREA=f`, `OPENRCT2_METAL_MAX_RECTS=n` | Redraw the whole screen when dirty regions cover at least fraction `f`, or need more than `n` rectangles (off by default; this made pacing worse). |
 | `OPENRCT2_METAL_COARSEN=n` | Re-merge dirty regions on a 64-pixel grid above `n` rectangles (off by default; this made pacing worse). |
-| `OPENRCT2_METAL_PROFILE=n` | Fragment-shader profiling variants. 3 deliberately draws a broken image. |
+| `OPENRCT2_METAL_PROFILE=n` | Fragment-shader profiling variants: 1 skips palette remaps, 3 never discards (deliberately draws a broken image). |
 
 With `OPENRCT2_METAL_COMPARE_GPU=1`, every frame is also drawn by a simple
 reference compute rasterizer:
@@ -299,8 +297,8 @@ sequence changes scenes on wall-clock timers, so compare renderers over whole
 title cycles (≥ 5 minutes), not individual frames or screenshots.
 
 A second line, `Metal redraw per frame`, reports the area redrawn per frame (in
-screens) by dirty blocks, by CopyRect fallbacks and by full redraws. It also
-reports the raster pixels covered by each pass's quads, which is the fragment
+screens) by dirty blocks and by full redraws. It also
+reports the pixels covered by each pass's quads, which is the fragment
 work before depth rejection. The drawable wait (`drawable_wait`) is part of the
 encode time, so CPU work per frame is `cpu − drawable_wait`.
 
@@ -312,5 +310,4 @@ For performance testing:
 
 The renderer is compiled only for iPadOS (`OPENRCT2_METAL`). Shaders are
 compiled with Xcode's iPhoneOS Metal toolchain into `OpenRCT2.metallib`.
-Game screenshots are saved at the canvas's pixel size. Pixel-art assets
-keep their original source detail.
+Game screenshots are saved at the logical size, as with the software engine.

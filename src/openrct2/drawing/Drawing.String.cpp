@@ -511,8 +511,7 @@ namespace OpenRCT2::Drawing
             int32_t drawY = info.current.y + fontDesc->offset_y;
             uint8_t hintThresh = Config::Get().fonts.enableHinting ? fontDesc->hinting_threshold : 0;
             IDrawingContext* dc = drawingEngine->GetDrawingContext();
-            if (!dc->TryDrawTTFText(rt, info, *fontDesc, text, *surface, drawX, drawY))
-                dc->DrawTTFBitmap(rt, info, surface, drawX, drawY, hintThresh);
+            dc->DrawTTFBitmap(rt, info, surface, drawX, drawY, hintThresh);
         }
         info.current.x += surface->w;
     }

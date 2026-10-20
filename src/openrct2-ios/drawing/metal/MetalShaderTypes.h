@@ -75,7 +75,7 @@ namespace OpenRCT2
             struct DrawCommand
             {
                 // Source sampling: texel = floor((point - origin) * scale), where point is the
-                // logical position of the raster pixel centre. Fills store their pattern origin.
+                // logical pixel (its top-left corner). Fills store their pattern origin.
                 float originX;
                 float originY;
                 float scaleX;
@@ -104,19 +104,10 @@ namespace OpenRCT2
                 MetalUChar threshold; // Text hinting threshold; 0 disables blending.
             };
 
-            // Per-axis mapping from a raster pixel to logical space.
-            struct RasterSample
-            {
-                float point;      // Logical coordinate of the raster pixel centre.
-                MetalInt logical; // floor(point): the logical pixel used for clipping.
-            };
-
             struct FrameUniforms
             {
-                MetalUInt rasterWidth;
-                MetalUInt rasterHeight;
-                MetalUInt logicalWidth;
-                MetalUInt logicalHeight;
+                MetalUInt width; // Canvas size in logical pixels.
+                MetalUInt height;
                 MetalUInt tilesAcross; // Reference rasterizer only.
                 MetalUInt tilesDown;
             };
@@ -142,6 +133,7 @@ namespace OpenRCT2
             {
                 MetalUInt offsetX; // Content origin in drawable pixels.
                 MetalUInt offsetY;
+                MetalUInt scale; // Drawable pixels per logical pixel.
             };
 
             // CRT presentation: one scanline per logical row, drawn as gaussian electron beams.
@@ -149,15 +141,10 @@ namespace OpenRCT2
             {
                 MetalUInt offsetX; // Content origin in drawable pixels.
                 MetalUInt offsetY;
-                MetalUInt rasterWidth;
-                MetalUInt rasterHeight;
                 MetalUInt logicalWidth;
                 MetalUInt logicalHeight;
-                float logicalPerRasterX;
-                float logicalPerRasterY;
-                float rasterPerLogicalX;
-                float rasterPerLogicalY;
-                float beamPhase;     // Scanline centre offset in logical rows, aligning beams to raster rows.
+                float logicalPerPixel; // 1 / scale.
+                float beamPhase;     // Scanline centre offset in logical rows, aligning beams to drawable rows.
                 float sharpness;   // Horizontal transition steepness; 1 is bilinear.
                 float outputGamma;     // Encoding of the linear result for the display.
             };
@@ -165,17 +152,11 @@ namespace OpenRCT2
             // Raster-pass vertex buffer bindings.
             METAL_CONSTANT MetalUInt kBufferCommands = 0;
             METAL_CONSTANT MetalUInt kBufferOrder = 1;
-            METAL_CONSTANT MetalUInt kBufferEdgesX = 2;
-            METAL_CONSTANT MetalUInt kBufferEdgesY = 3;
             METAL_CONSTANT MetalUInt kBufferUniforms = 4;
             // Fragment buffer bindings.
-            METAL_CONSTANT MetalUInt kBufferSamplesX = 0;
-            METAL_CONSTANT MetalUInt kBufferSamplesY = 1;
             METAL_CONSTANT MetalUInt kBufferPalette = 2;
             // Reference kernel buffer bindings.
             METAL_CONSTANT MetalUInt kReferenceCommands = 0;
-            METAL_CONSTANT MetalUInt kReferenceSamplesX = 1;
-            METAL_CONSTANT MetalUInt kReferenceSamplesY = 2;
             METAL_CONSTANT MetalUInt kReferenceUniforms = 3;
             METAL_CONSTANT MetalUInt kReferenceTileRanges = 4;
             METAL_CONSTANT MetalUInt kReferenceTileIndices = 5;
@@ -197,5 +178,4 @@ namespace OpenRCT2
 
 #ifndef __METAL_VERSION__
 static_assert(sizeof(OpenRCT2::Ui::Metal::DrawCommand) == 56);
-static_assert(sizeof(OpenRCT2::Ui::Metal::RasterSample) == 8);
 #endif

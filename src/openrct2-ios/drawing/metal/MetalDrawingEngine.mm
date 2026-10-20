@@ -225,18 +225,17 @@ namespace
         std::array<uint32_t, 256> _palette{};
         std::array<LinearColour, 256> _linearPalette{};
 
-        // Raster (physical pixel) canvas and its mapping to logical pixels.
-        uint32_t _rasterWidth{}, _rasterHeight{};
+        // Indexed canvas, one pixel per logical pixel, shown at _presentScale drawable pixels
+        // per logical pixel from the content origin.
+        uint32_t _canvasWidth{}, _canvasHeight{};
         uint32_t _drawableOffsetX{}, _drawableOffsetY{};
-        uint32_t _integerDensity{}; // k when raster = k × logical exactly, else 0.
+        uint32_t _presentScale{ 1 };
         id<MTLTexture> _canvas;
         id<MTLTexture> _crtSignal; // Linear colour per logical pixel.
         id<MTLTexture> _crtBeams;  // CrtBeamTable for _crtBeamExtent.
         float _crtBeamExtent{};
         id<MTLTexture> _depth;
         id<MTLTexture> _copyScratch;
-        id<MTLBuffer> _rasterMap;
-        size_t _samplesYOffset{}, _edgesXOffset{}, _edgesYOffset{};
         bool _canvasNeedsClear{};
         bool _forceFullRedraw{ true };
         bool _ignoreCopyRect{};
@@ -271,9 +270,9 @@ namespace
         InvalidationGrid _coarseGrid;
         double _cpuMilliseconds{}, _encodeMilliseconds{}, _drawableWaitMilliseconds{};
         uint64_t _commandsRecorded{}, _framesDrawn{}, _fullRedraws{};
-        // Logical pixels redrawn by dirty blocks, by CopyRect fallbacks and by full redraws, and
-        // raster pixels covered by each pass's quads (fragment work before depth rejection).
-        uint64_t _dirtyArea{}, _copyRedrawArea{}, _copyRedraws{}, _fullArea{};
+        // Pixels redrawn by dirty blocks and by full redraws, and pixels covered by each pass's
+        // quads (fragment work before depth rejection).
+        uint64_t _dirtyArea{}, _fullArea{};
         uint64_t _opaquePixels{}, _independentPixels{}, _dependentPixels{};
 
         // OPENRCT2_METAL_COMPARE_GPU resources.
@@ -405,10 +404,10 @@ namespace
             _rt.pitch = 0;
             const uint32_t block = _debug.dirtyBlockSize != 0 ? std::clamp<uint32_t>(_debug.dirtyBlockSize, 16, 256) : kDirtyBlockSize;
             _invalidationGrid.reset(width, height, block, block);
-            // Rebuild the canvas and the logical mapping for the new layout.
-            _rasterWidth = 0;
+            // Rebuild the canvas for the new layout.
+            _canvasWidth = 0;
             _canvas = nil;
-            UpdateRasterSize();
+            UpdateCanvasSize();
             _forceFullRedraw = true;
         }
 
@@ -443,13 +442,8 @@ namespace
             _frameDrawableWait = 0;
             _frameRedrawArea = 0;
             _frameRects = 0;
-            if (_crtEnabled != Config::Get().general.crtEffect)
-            {
-                // Text is drawn differently with the CRT effect (see TryDrawTTFText).
-                _crtEnabled = Config::Get().general.crtEffect;
-                _forceFullRedraw = true;
-            }
-            UpdateRasterSize();
+            _crtEnabled = Config::Get().general.crtEffect;
+            UpdateCanvasSize();
             if (_gpuStatistics->failed.exchange(false))
             {
                 // A frame never reached the canvas; its dirty regions are lost.
@@ -518,20 +512,7 @@ namespace
             height += tmargin + bmargin;
             if (width <= 0 || height <= 0)
                 return;
-            if (_integerDensity != 0)
-            {
-                // Each logical pixel is exactly k × k raster pixels: move them.
-                const auto k = static_cast<int32_t>(_integerDensity);
-                _context->AddCopy({ x * k, y * k, width * k, height * k, dx * k, dy * k });
-            }
-            else
-            {
-                // A logical shift is not a whole number of raster pixels; redraw the moved area.
-                WindowDrawAll(_rt, x, y, x + width, y + height);
-                ++_copyRedraws;
-                _copyRedrawArea += static_cast<uint64_t>(width) * height;
-                _frameRedrawArea += static_cast<uint64_t>(width) * height;
-            }
+            _context->AddCopy({ x, y, width, height, dx, dy });
         }
 
         std::string Screenshot() override
@@ -541,8 +522,8 @@ namespace
             auto screenshot = _rt;
             screenshot.x = 0;
             screenshot.y = 0;
-            screenshot.width = _rasterWidth;
-            screenshot.height = _rasterHeight;
+            screenshot.width = _canvasWidth;
+            screenshot.height = _canvasHeight;
             screenshot.pitch = 0;
             screenshot.bits = static_cast<PaletteIndex*>(_readback.contents);
             return ScreenshotDumpPNG(screenshot);
@@ -625,8 +606,7 @@ namespace
             }
         }
 
-        void UpdateRasterSize();
-        void BuildRasterMap();
+        void UpdateCanvasSize();
         void BuildOrder(const RecordedFrame& frame);
         bool BuildReferenceTiles(const RecordedFrame& frame, FrameSlot& slot, uint32_t& tilesAcross, uint32_t& tilesDown);
         void EncodeSegment(
@@ -645,30 +625,22 @@ namespace
         void LogStatistics(size_t commands);
     };
 
-    void MetalDrawingEngine::UpdateRasterSize()
+    void MetalDrawingEngine::UpdateCanvasSize()
     {
-        if (_device == nil || _context == nullptr)
+        if (_device == nil || _context == nullptr || _rt.width <= 0 || _rt.height <= 0)
             return;
-        int windowWidth = 0, windowHeight = 0, drawableWidth = 0, drawableHeight = 0;
-        SDL_GetWindowSize(_window, &windowWidth, &windowHeight);
-        SDL_Metal_GetDrawableSize(_window, &drawableWidth, &drawableHeight);
-        if (windowWidth <= 0 || windowHeight <= 0 || drawableWidth <= 0 || drawableHeight <= 0 || _rt.width <= 0)
-            return;
-        const auto content = IOS::ContentRect(_window);
-        const double scaleX = static_cast<double>(drawableWidth) / windowWidth;
-        const double scaleY = static_cast<double>(drawableHeight) / windowHeight;
-        const auto offsetX = static_cast<uint32_t>(std::clamp<long>(std::lround(content.x * scaleX), 0, drawableWidth - 1));
-        const auto offsetY = static_cast<uint32_t>(std::clamp<long>(std::lround(content.y * scaleY), 0, drawableHeight - 1));
-        const auto width = static_cast<uint32_t>(std::clamp<long>(std::lround(content.w * scaleX), 1, drawableWidth - offsetX));
-        const auto height = static_cast<uint32_t>(std::clamp<long>(std::lround(content.h * scaleY), 1, drawableHeight - offsetY));
-        _drawableOffsetX = offsetX;
-        _drawableOffsetY = offsetY;
-        if (_canvas != nil && width == _rasterWidth && height == _rasterHeight)
+        const auto presentation = IOS::PresentationRect(_window, _rt.width, _rt.height);
+        _drawableOffsetX = static_cast<uint32_t>(std::max(presentation.x, 0));
+        _drawableOffsetY = static_cast<uint32_t>(std::max(presentation.y, 0));
+        _presentScale = static_cast<uint32_t>(std::max(presentation.w / _rt.width, 1));
+        const auto width = static_cast<uint32_t>(_rt.width);
+        const auto height = static_cast<uint32_t>(_rt.height);
+        if (_canvas != nil && width == _canvasWidth && height == _canvasHeight)
             return;
 
         [_lastCommand waitUntilCompleted];
-        _rasterWidth = width;
-        _rasterHeight = height;
+        _canvasWidth = width;
+        _canvasHeight = height;
         auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Uint
                                                                              width:width
                                                                             height:height
@@ -687,11 +659,7 @@ namespace
         _copyScratch = nil;
         _canvasNeedsClear = true;
         _forceFullRedraw = true;
-        BuildRasterMap();
-
-        const uint32_t k = width / _rt.width;
-        _integerDensity = (k >= 1 && width == k * _rt.width && height == k * static_cast<uint32_t>(_rt.height)) ? k : 0;
-        _context->SetTarget(_rt, width, height);
+        _context->SetTarget(_rt);
 
         _referenceCanvas = nil;
         _referenceScratch = nil;
@@ -703,47 +671,11 @@ namespace
             if (_referenceCanvas != nil)
                 std::memset(_referenceCanvas.contents, kInitialCanvasIndex, pixels);
         }
-        if (_canvas == nil || _depth == nil || _rasterMap == nil)
+        if (_canvas == nil || _depth == nil)
             LOG_ERROR("Metal canvas allocation failed (%ux%u)", width, height);
         LOG_INFO(
-            "Metal raster=%ux%u logical=%dx%d drawable=%dx%d offset=%u,%u density=%.4f%s", width, height, _rt.width,
-            _rt.height, drawableWidth, drawableHeight, offsetX, offsetY, static_cast<double>(width) / _rt.width,
-            _integerDensity != 0 ? " (integer: viewport copies enabled)" : "");
-    }
-
-    // Per-axis tables shared by both rasterizers: each raster pixel's logical sample point and
-    // logical pixel, and for each logical edge the first raster pixel at or beyond it.
-    void MetalDrawingEngine::BuildRasterMap()
-    {
-        const uint32_t logicalWidth = _rt.width;
-        const uint32_t logicalHeight = _rt.height;
-        _samplesYOffset = _rasterWidth * sizeof(RasterSample);
-        _edgesXOffset = _samplesYOffset + _rasterHeight * sizeof(RasterSample);
-        _edgesYOffset = (_edgesXOffset + (logicalWidth + 1) * sizeof(uint16_t) + 3) & ~size_t{ 3 };
-        const size_t size = _edgesYOffset + (logicalHeight + 1) * sizeof(uint16_t);
-        _rasterMap = [_device newBufferWithLength:size options:MTLResourceStorageModeShared];
-        if (_rasterMap == nil)
-            return;
-        _rasterMap.label = @"OpenRCT2 raster-to-logical map";
-        auto* bytes = static_cast<uint8_t*>(_rasterMap.contents);
-        auto build = [](RasterSample* samples, uint16_t* edges, uint32_t raster, uint32_t logical) {
-            for (uint32_t pixel = 0; pixel < raster; ++pixel)
-            {
-                const auto point = static_cast<float>((pixel + 0.5) * logical / raster);
-                samples[pixel] = { point, std::min<int32_t>(static_cast<int32_t>(std::floor(point)), logical - 1) };
-            }
-            uint32_t pixel = 0;
-            for (uint32_t edge = 0; edge <= logical; ++edge)
-            {
-                while (pixel < raster && samples[pixel].logical < static_cast<int32_t>(edge))
-                    ++pixel;
-                edges[edge] = static_cast<uint16_t>(pixel);
-            }
-        };
-        build(reinterpret_cast<RasterSample*>(bytes), reinterpret_cast<uint16_t*>(bytes + _edgesXOffset), _rasterWidth,
-              logicalWidth);
-        build(reinterpret_cast<RasterSample*>(bytes + _samplesYOffset), reinterpret_cast<uint16_t*>(bytes + _edgesYOffset),
-              _rasterHeight, logicalHeight);
+            "Metal canvas=%ux%u scale=%u presented=%dx%d offset=%u,%u", width, height, _presentScale, presentation.w,
+            presentation.h, _drawableOffsetX, _drawableOffsetY);
     }
 
     // Per segment: destination-independent commands latest-first, then dependent commands in
@@ -752,12 +684,9 @@ namespace
     {
         _order.clear();
         _order.reserve(frame.commands.size());
-        const auto* map = static_cast<const uint8_t*>(_rasterMap.contents);
-        const auto* edgesX = reinterpret_cast<const uint16_t*>(map + _edgesXOffset);
-        const auto* edgesY = reinterpret_cast<const uint16_t*>(map + _edgesYOffset);
         for (const auto& c : frame.commands)
         {
-            const uint64_t area = static_cast<uint64_t>(edgesX[c.right] - edgesX[c.left]) * (edgesY[c.bottom] - edgesY[c.top]);
+            const uint64_t area = static_cast<uint64_t>(c.right - c.left) * (c.bottom - c.top);
             ((c.flags & kCommandReadsDestination) != 0 ? _dependentPixels
                  : (c.flags & kCommandOpaque) != 0     ? _opaquePixels
                                                        : _independentPixels)
@@ -823,11 +752,7 @@ namespace
         auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
         encoder.label = @"OpenRCT2 indexed commands";
         [encoder setVertexBuffer:slot.commands offset:0 atIndex:kBufferCommands];
-        [encoder setVertexBuffer:_rasterMap offset:_edgesXOffset atIndex:kBufferEdgesX];
-        [encoder setVertexBuffer:_rasterMap offset:_edgesYOffset atIndex:kBufferEdgesY];
         [encoder setVertexBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
-        [encoder setFragmentBuffer:_rasterMap offset:0 atIndex:kBufferSamplesX];
-        [encoder setFragmentBuffer:_rasterMap offset:_samplesYOffset atIndex:kBufferSamplesY];
         [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
         [encoder setFragmentTexture:_textureCache->GetAtlas() atIndex:kTextureAtlas];
         [encoder setFragmentTexture:_textureCache->GetPalettes() atIndex:kTexturePalettes];
@@ -862,8 +787,8 @@ namespace
         if (_copyScratch == nil)
         {
             auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Uint
-                                                                                 width:_rasterWidth
-                                                                                height:_rasterHeight
+                                                                                 width:_canvasWidth
+                                                                                height:_canvasHeight
                                                                              mipmapped:NO];
             descriptor.storageMode = MTLStorageModePrivate;
             descriptor.usage = MTLTextureUsageShaderRead;
@@ -901,23 +826,16 @@ namespace
 
     void MetalDrawingEngine::EncodePresent(id<MTLCommandBuffer> commandBuffer)
     {
-        const auto logicalWidth = static_cast<uint32_t>(_rt.width);
-        const auto logicalHeight = static_cast<uint32_t>(_rt.height);
-        // With an even number of raster rows per logical row no raster row is centred on a
+        // With an even number of drawable rows per logical row no drawable row is centred on a
         // scanline, and every row would sample the beams symmetrically: shift the beams by half a
-        // raster row so alternate rows land on the beam and on the gap.
-        const float beamPhase = _integerDensity != 0 && _integerDensity % 2 == 0 ? -0.5f / _integerDensity : 0.0f;
+        // drawable row so alternate rows land on the beam and on the gap.
+        const float beamPhase = _presentScale % 2 == 0 ? -0.5f / _presentScale : 0.0f;
         const CrtUniforms crt{
             _drawableOffsetX,
             _drawableOffsetY,
-            _rasterWidth,
-            _rasterHeight,
-            logicalWidth,
-            logicalHeight,
-            static_cast<float>(logicalWidth) / _rasterWidth,
-            static_cast<float>(logicalHeight) / _rasterHeight,
-            static_cast<float>(_rasterWidth) / logicalWidth,
-            static_cast<float>(_rasterHeight) / logicalHeight,
+            _canvasWidth,
+            _canvasHeight,
+            1.0f / _presentScale,
             beamPhase,
             kCrtSharpness,
             kCrtGamma,
@@ -937,8 +855,10 @@ namespace
         pass.colorAttachments[0].storeAction = MTLStoreActionStore;
         auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
         encoder.label = useCrt ? @"OpenRCT2 CRT presentation" : @"OpenRCT2 palette presentation";
-        const auto width = std::min<uint32_t>(_rasterWidth, drawable.texture.width - std::min<NSUInteger>(_drawableOffsetX, drawable.texture.width));
-        const auto height = std::min<uint32_t>(_rasterHeight, drawable.texture.height - std::min<NSUInteger>(_drawableOffsetY, drawable.texture.height));
+        const auto width = std::min<uint32_t>(
+            _canvasWidth * _presentScale, drawable.texture.width - std::min<NSUInteger>(_drawableOffsetX, drawable.texture.width));
+        const auto height = std::min<uint32_t>(
+            _canvasHeight * _presentScale, drawable.texture.height - std::min<NSUInteger>(_drawableOffsetY, drawable.texture.height));
         if (width != 0 && height != 0)
         {
             [encoder setViewport:MTLViewport{ static_cast<double>(_drawableOffsetX), static_cast<double>(_drawableOffsetY),
@@ -952,7 +872,7 @@ namespace
             }
             else
             {
-                const PresentUniforms uniforms{ _drawableOffsetX, _drawableOffsetY };
+                const PresentUniforms uniforms{ _drawableOffsetX, _drawableOffsetY, _presentScale };
                 [encoder setRenderPipelineState:_presentPipeline];
                 [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
                 [encoder setFragmentBytes:_palette.data() length:sizeof(_palette) atIndex:kBufferPalette];
@@ -964,10 +884,10 @@ namespace
         [commandBuffer presentDrawable:drawable];
     }
 
-    // Resamples the canvas at logical pixel centres into the linear CRT signal texture.
+    // Decodes the canvas into the linear CRT signal texture.
     bool MetalDrawingEngine::EncodeCrtSignal(id<MTLCommandBuffer> commandBuffer, const CrtUniforms& crt)
     {
-        if (crt.logicalWidth == 0 || crt.logicalHeight == 0 || crt.rasterWidth == 0 || crt.rasterHeight == 0)
+        if (crt.logicalWidth == 0 || crt.logicalHeight == 0)
             return false;
         if (_crtSignal == nil || _crtSignal.width != crt.logicalWidth || _crtSignal.height != crt.logicalHeight)
         {
@@ -982,7 +902,7 @@ namespace
                 return false;
             _crtSignal.label = @"OpenRCT2 CRT signal";
         }
-        const float extent = 0.5f * crt.logicalPerRasterY;
+        const float extent = 0.5f * crt.logicalPerPixel;
         if (_crtBeams == nil || extent != _crtBeamExtent)
         {
             auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR16Float
@@ -1011,7 +931,6 @@ namespace
         [encoder setRenderPipelineState:_crtSignalPipeline];
         [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
         [encoder setFragmentBytes:_linearPalette.data() length:sizeof(_linearPalette) atIndex:kBufferPalette];
-        [encoder setFragmentBytes:&crt length:sizeof(crt) atIndex:kBufferUniforms];
         [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
         [encoder endEncoding];
         return true;
@@ -1063,8 +982,6 @@ namespace
             const ReferenceSegment range{ segment.begin, segment.end };
             [compute setComputePipelineState:_referencePipeline];
             [compute setBuffer:slot.commands offset:0 atIndex:kReferenceCommands];
-            [compute setBuffer:_rasterMap offset:0 atIndex:kReferenceSamplesX];
-            [compute setBuffer:_rasterMap offset:_samplesYOffset atIndex:kReferenceSamplesY];
             [compute setBytes:&uniforms length:sizeof(uniforms) atIndex:kReferenceUniforms];
             [compute setBuffer:slot.tiles offset:0 atIndex:kReferenceTileRanges];
             [compute setBuffer:slot.tiles offset:rangeBytes atIndex:kReferenceTileIndices];
@@ -1073,7 +990,7 @@ namespace
             [compute setTexture:_textureCache->GetAtlas() atIndex:kTextureAtlas];
             [compute setTexture:_textureCache->GetPalettes() atIndex:kTexturePalettes];
             [compute setTexture:_textureCache->GetBlend() atIndex:kTextureBlend];
-            [compute dispatchThreadgroups:MTLSizeMake((_rasterWidth + 15) / 16, (_rasterHeight + 15) / 16, 1)
+            [compute dispatchThreadgroups:MTLSizeMake((_canvasWidth + 15) / 16, (_canvasHeight + 15) / 16, 1)
                     threadsPerThreadgroup:MTLSizeMake(16, 16, 1)];
         }
         if (segment.copy)
@@ -1082,9 +999,9 @@ namespace
             const ReferenceCopy toScratch{ static_cast<uint32_t>(copy.x - copy.dx), static_cast<uint32_t>(copy.y - copy.dy),
                                            static_cast<uint32_t>(copy.x - copy.dx), static_cast<uint32_t>(copy.y - copy.dy),
                                            static_cast<uint32_t>(copy.width),       static_cast<uint32_t>(copy.height),
-                                           _rasterWidth };
+                                           _canvasWidth };
             const ReferenceCopy fromScratch{ toScratch.sourceX, toScratch.sourceY, static_cast<uint32_t>(copy.x),
-                                             static_cast<uint32_t>(copy.y), toScratch.width, toScratch.height, _rasterWidth };
+                                             static_cast<uint32_t>(copy.y), toScratch.width, toScratch.height, _canvasWidth };
             const auto groups = MTLSizeMake((copy.width + 15) / 16, (copy.height + 15) / 16, 1);
             [compute setComputePipelineState:_referenceCopyPipeline];
             [compute setBuffer:_referenceCanvas offset:0 atIndex:0];
@@ -1102,7 +1019,7 @@ namespace
     bool MetalDrawingEngine::ReadCanvas()
     {
         [_lastCommand waitUntilCompleted];
-        const size_t bytes = static_cast<size_t>(_rasterWidth) * _rasterHeight;
+        const size_t bytes = static_cast<size_t>(_canvasWidth) * _canvasHeight;
         if (_readback == nil || _readback.length < bytes)
             _readback = [_device newBufferWithLength:bytes options:MTLResourceStorageModeShared];
         if (_readback == nil)
@@ -1113,10 +1030,10 @@ namespace
                          sourceSlice:0
                          sourceLevel:0
                         sourceOrigin:MTLOriginMake(0, 0, 0)
-                          sourceSize:MTLSizeMake(_rasterWidth, _rasterHeight, 1)
+                          sourceSize:MTLSizeMake(_canvasWidth, _canvasHeight, 1)
                             toBuffer:_readback
                    destinationOffset:0
-              destinationBytesPerRow:_rasterWidth
+              destinationBytesPerRow:_canvasWidth
             destinationBytesPerImage:bytes];
         [blit endEncoding];
         [commandBuffer commit];
@@ -1130,7 +1047,7 @@ namespace
             return;
         const auto* actual = static_cast<const uint8_t*>(_readback.contents);
         const auto* reference = static_cast<const uint8_t*>(_referenceCanvas.contents);
-        const size_t pixels = static_cast<size_t>(_rasterWidth) * _rasterHeight;
+        const size_t pixels = static_cast<size_t>(_canvasWidth) * _canvasHeight;
         size_t mismatches = 0, first = 0;
         for (size_t i = 0; i < pixels; ++i)
         {
@@ -1147,7 +1064,7 @@ namespace
             ++_mismatchedFrames;
             LOG_INFO(
                 "Metal native comparison frame=%llu pixels=%zu mismatches=%zu first=(%zu,%zu) raster=%u reference=%u",
-                static_cast<unsigned long long>(_frame), pixels, mismatches, first % _rasterWidth, first / _rasterWidth,
+                static_cast<unsigned long long>(_frame), pixels, mismatches, first % _canvasWidth, first / _canvasWidth,
                 actual[first], reference[first]);
             // Resynchronise so later frames are compared on their own merit.
             std::memcpy(_referenceCanvas.contents, actual, pixels);
@@ -1163,12 +1080,12 @@ namespace
 
     bool MetalDrawingEngine::EnsureVerificationResources()
     {
-        const size_t bytes = static_cast<size_t>(_rasterWidth) * _rasterHeight;
-        if (_verifyCanvas == nil || _verifyCanvas.width != _rasterWidth || _verifyCanvas.height != _rasterHeight)
+        const size_t bytes = static_cast<size_t>(_canvasWidth) * _canvasHeight;
+        if (_verifyCanvas == nil || _verifyCanvas.width != _canvasWidth || _verifyCanvas.height != _canvasHeight)
         {
             auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Uint
-                                                                                 width:_rasterWidth
-                                                                                height:_rasterHeight
+                                                                                 width:_canvasWidth
+                                                                                height:_canvasHeight
                                                                              mipmapped:NO];
             descriptor.storageMode = MTLStorageModePrivate;
             descriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
@@ -1186,11 +1103,11 @@ namespace
                          sourceSlice:0
                          sourceLevel:0
                         sourceOrigin:MTLOriginMake(0, 0, 0)
-                          sourceSize:MTLSizeMake(_rasterWidth, _rasterHeight, 1)
+                          sourceSize:MTLSizeMake(_canvasWidth, _canvasHeight, 1)
                             toBuffer:destination
                    destinationOffset:0
-              destinationBytesPerRow:_rasterWidth
-            destinationBytesPerImage:static_cast<NSUInteger>(_rasterWidth) * _rasterHeight];
+              destinationBytesPerRow:_canvasWidth
+            destinationBytesPerImage:static_cast<NSUInteger>(_canvasWidth) * _canvasHeight];
         [blit endEncoding];
     }
 
@@ -1202,10 +1119,10 @@ namespace
         const auto* full = static_cast<const uint8_t*>(_verifyFullPixels.contents);
         size_t mismatches = 0;
         uint32_t minX = UINT32_MAX, minY = UINT32_MAX, maxX = 0, maxY = 0;
-        for (uint32_t y = 0; y < _rasterHeight; ++y)
-            for (uint32_t x = 0; x < _rasterWidth; ++x)
+        for (uint32_t y = 0; y < _canvasHeight; ++y)
+            for (uint32_t x = 0; x < _canvasWidth; ++x)
             {
-                const size_t i = static_cast<size_t>(y) * _rasterWidth + x;
+                const size_t i = static_cast<size_t>(y) * _canvasWidth + x;
                 if (dirty[i] != full[i])
                 {
                     ++mismatches;
@@ -1235,7 +1152,7 @@ namespace
     void MetalDrawingEngine::EndDraw()
     {
         auto& frame = _context->EndFrame();
-        if (_canvas == nil || _rasterMap == nil || IOS::IsBackgrounded())
+        if (_canvas == nil || IOS::IsBackgrounded())
         {
             // Nothing can be drawn now (no canvas or no GPU access in the background); the
             // regions consumed by this frame are recovered by a full redraw.
@@ -1261,8 +1178,7 @@ namespace
             std::memcpy(slot.commands.contents, frame.commands.data(), commandCount * sizeof(DrawCommand));
             std::memcpy(slot.order.contents, _order.data(), _order.size() * sizeof(uint32_t));
 
-            FrameUniforms uniforms{ _rasterWidth, _rasterHeight, static_cast<uint32_t>(_rt.width),
-                                    static_cast<uint32_t>(_rt.height), 0, 0 };
+            FrameUniforms uniforms{ _canvasWidth, _canvasHeight, 0, 0 };
             const bool compare = _debug.compareWithReference && _referenceCanvas != nil
                 && BuildReferenceTiles(frame, slot, uniforms.tilesAcross, uniforms.tilesDown);
 
@@ -1375,18 +1291,14 @@ namespace
             _encodeMilliseconds / drawn, _drawableWaitMilliseconds / drawn, commands, static_cast<unsigned long long>(_commandsRecorded / drawn),
             static_cast<unsigned long long>(_fullRedraws), static_cast<unsigned long long>(drawn), stats.atlasLayers,
             stats.usedTexels * 2.0 / (1024 * 1024), stats.images, stats.bitmaps, stats.dynamicPalettes);
-        const double rasterPixels = static_cast<double>(_rasterWidth) * _rasterHeight;
-        const double logicalPixels = static_cast<double>(_rt.width) * _rt.height;
+        const double screen = static_cast<double>(_rt.width) * _rt.height;
         LOG_INFO(
-            "Metal redraw per frame: dirty=%.2f copy_redraw=%.2f (%.1f calls) full=%.2f screens (%.2f promoted); quad coverage "
+            "Metal redraw per frame: dirty=%.2f full=%.2f screens (%.2f promoted); quad coverage "
             "opaque=%.2f independent=%.2f dependent=%.2f screens",
-            _dirtyArea / logicalPixels / drawn, _copyRedrawArea / logicalPixels / drawn,
-            static_cast<double>(_copyRedraws) / drawn, _fullArea / logicalPixels / drawn,
-            static_cast<double>(_promotedRedraws) / drawn,
-            _opaquePixels / rasterPixels / drawn, _independentPixels / rasterPixels / drawn,
-            _dependentPixels / rasterPixels / drawn);
+            _dirtyArea / screen / drawn, _fullArea / screen / drawn, static_cast<double>(_promotedRedraws) / drawn,
+            _opaquePixels / screen / drawn, _independentPixels / screen / drawn, _dependentPixels / screen / drawn);
         LOG_INFO("Metal frame timing (GPU ms) %s", _gpuStatistics->timing.Summarise().c_str());
-        _dirtyArea = _copyRedrawArea = _copyRedraws = _fullArea = _opaquePixels = _independentPixels = _dependentPixels = 0;
+        _dirtyArea = _fullArea = _opaquePixels = _independentPixels = _dependentPixels = 0;
         _promotedRedraws = 0;
         _cpuMilliseconds = 0;
         _encodeMilliseconds = 0;

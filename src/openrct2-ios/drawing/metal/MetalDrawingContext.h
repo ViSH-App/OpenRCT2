@@ -17,7 +17,6 @@
     #include <openrct2/drawing/RenderTarget.h>
     #include <optional>
     #include <string>
-    #include <unordered_map>
     #include <vector>
 
 namespace OpenRCT2::Ui::Metal
@@ -26,7 +25,7 @@ namespace OpenRCT2::Ui::Metal
     struct AtlasRegion;
     struct PaletteRow;
 
-    // A canvas-to-canvas move in raster pixels (CopyRect at an integer raster density).
+    // A canvas-to-canvas move in logical pixels (CopyRect).
     struct CopyOperation
     {
         int32_t x, y, width, height, dx, dy;
@@ -54,9 +53,8 @@ namespace OpenRCT2::Ui::Metal
     };
 
     // Records IDrawingContext calls as GPU commands. Pixel semantics follow
-    // X8DrawingContext (X8DrawingEngine.cpp, Drawing.Sprite.*.cpp, BlitPixel); sprite and
-    // text positions keep fractional logical coordinates so they can be sampled at raster
-    // density.
+    // X8DrawingContext (X8DrawingEngine.cpp, Drawing.Sprite.*.cpp, BlitPixel): the canvas has
+    // one pixel per logical pixel, and each samples its source at its top-left corner.
     //
     // While viewport columns are drawn in parallel each thread appends to its own list. Every
     // command takes a ticket from one atomic counter, so merging by ticket reproduces the
@@ -67,7 +65,7 @@ namespace OpenRCT2::Ui::Metal
         explicit DrawingContext(TextureCache& textureCache);
         ~DrawingContext() override;
 
-        void SetTarget(const Drawing::RenderTarget& mainRT, uint32_t rasterWidth, uint32_t rasterHeight);
+        void SetTarget(const Drawing::RenderTarget& mainRT);
         void BeginFrame(bool threadSafe);
         void AddCopy(const CopyOperation& copy);
         void AddMarker(SegmentMarker marker);
@@ -96,9 +94,6 @@ namespace OpenRCT2::Ui::Metal
         void DrawTTFBitmap(
             Drawing::RenderTarget& rt, const Drawing::TextDrawInfo& info, TTFSurface* surface, int32_t x, int32_t y,
             uint8_t hintingThreshold) override;
-        bool TryDrawTTFText(
-            Drawing::RenderTarget& rt, const Drawing::TextDrawInfo& info, const TTFFontDescriptor& fontDesc,
-            std::string_view text, const TTFSurface& logical, int32_t x, int32_t y) override;
 
     private:
         struct ThreadList
@@ -119,16 +114,9 @@ namespace OpenRCT2::Ui::Metal
             uint32_t length{};
             bool zeroFree{};
         };
-        struct RetinaFace
-        {
-            TTF_Font* font{};
-            int hinting{ -1 };
-            uint64_t lastUsed{};
-        };
 
         TextureCache& _textureCache;
         Drawing::RenderTarget _mainRT{};
-        float _density{ 1.0f };
         const uint64_t _generation;
         bool _active{};
         bool _threadSafe{};
@@ -138,9 +126,6 @@ namespace OpenRCT2::Ui::Metal
         std::vector<Boundary> _boundaries;
         RecordedFrame _frame;
         uint64_t _frameNumber{};
-
-        bool _ownsTTF{};
-        std::unordered_map<std::string, RetinaFace> _retinaFaces;
 
         ThreadList& LocalList();
         ScreenCoordsXY Origin(const Drawing::RenderTarget& rt) const;
@@ -152,11 +137,10 @@ namespace OpenRCT2::Ui::Metal
         RemapInfo RemapForImage(ImageId image);
         void PushText(
             Drawing::RenderTarget& rt, const AtlasRegion& region, int32_t x, int32_t y, Drawing::PaletteIndex colour,
-            uint8_t threshold, int32_t logicalWidth, int32_t logicalHeight, int32_t multiple);
+            uint8_t threshold);
         void PushTextPasses(
             Drawing::RenderTarget& rt, const Drawing::TextDrawInfo& info, const AtlasRegion& region, int32_t x,
-            int32_t y, uint8_t threshold, int32_t logicalWidth, int32_t logicalHeight, int32_t multiple = 0);
-        TTF_Font* GetRetinaFace(const TTFFontDescriptor& fontDesc, int32_t pointSize, bool hinting);
+            int32_t y, uint8_t threshold);
         void MergeLists();
     };
 } // namespace OpenRCT2::Ui::Metal
