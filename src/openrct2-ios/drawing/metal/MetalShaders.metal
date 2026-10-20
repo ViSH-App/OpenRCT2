@@ -126,9 +126,7 @@ struct RasterVertex
     float4 height [[flat]];   // heightBase, heightStep, heightLow, heightHigh
 };
 
-// The palette index, and the world height of the pixel for lighting (see DrawCommand). The
-// destination-dependent pipeline masks the height out: glass, water and filters show the
-// height of what is behind them.
+// The palette index, and the world height of the pixel for lighting (see DrawCommand).
 struct RasterOutput
 {
     uint colour [[color(0)]];
@@ -225,8 +223,10 @@ fragment RasterOutput rasterOpaque(
 // Commands that read the destination (palette filters, glass/water, hinted text). Apple GPUs
 // execute overlapping fragments that read the attachment in primitive order, so programmable
 // blending gives exact painter's-algorithm semantics within the render pass.
+// Glass, water and filters in the world show the height of what is behind them; translucent
+// interface backgrounds mark their pixels as interface.
 fragment RasterOutput rasterDependent(
-    RasterVertex in [[stage_in]], uint destination [[color(0)]],
+    RasterVertex in [[stage_in]], uint destination [[color(0)]], float destinationHeight [[color(1)]],
     texture2d_array<ushort, access::read> atlas [[texture(kTextureAtlas)]],
     texture2d<uint, access::read> palettes [[texture(kTexturePalettes)]],
     texture2d<uint, access::read> blend [[texture(kTextureBlend)]])
@@ -236,7 +236,7 @@ fragment RasterOutput rasterDependent(
     const int colour = resolvePixel(c, float2(pixel), pixel, destination, atlas, palettes, blend);
     if (colour == kNoWrite)
         discard_fragment();
-    return { uint(colour), 0.0f };
+    return { uint(colour), in.height.w <= kHeightInterface ? kHeightInterface : destinationHeight };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -321,7 +321,7 @@ inline float3 softLight(float3 a, float3 b)
 inline float3 shadePixel(float3 colour, float height, float3 light, constant AmbientUniforms& ambient)
 {
 
-    if (height <= kHeightInterface * 0.5f || ambient.mode == 0 || ambient.night < 0.0f)
+    if (height <= (kHeightInterface + kHeightUnlit) * 0.5f || ambient.mode == 0 || ambient.night < 0.0f)
         return colour;
     // Lerp(c, SoftLight(c, (8, 8, 128)), night).
     const float3 dark = softLight(colour / 255.0f, float3(8, 8, 128) / 255.0f) * 255.0f;

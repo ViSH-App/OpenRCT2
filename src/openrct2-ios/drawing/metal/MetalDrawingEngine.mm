@@ -350,7 +350,6 @@ namespace
             Require(_opaquePipeline != nil, "Unable to create the Metal opaque pipeline");
             raster.fragmentFunction = [library newFunctionWithName:@"rasterDependent"];
             raster.label = @"Destination-dependent commands";
-            raster.colorAttachments[1].writeMask = MTLColorWriteMaskNone;
             _dependentPipeline = [_device newRenderPipelineStateWithDescriptor:raster error:&error];
             Require(_independentPipeline != nil && _dependentPipeline != nil, "Unable to create the Metal raster pipelines");
 
