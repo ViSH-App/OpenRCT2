@@ -177,7 +177,6 @@ namespace OpenRCT2::Ui::Windows
                 return;
             }
 
-            auto& gameState = getGameState();
             switch (widgetIndex)
             {
                 case WIDX_CLOSE:

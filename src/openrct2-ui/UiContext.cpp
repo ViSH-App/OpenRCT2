@@ -515,7 +515,7 @@ private:
         if (w == nullptr)
             return false;
         const auto widgetIndex = windowMgr->FindWidgetFromPoint(*w, start);
-        if (widgetIndex < 0 || w->widgets[widgetIndex].type != WidgetType::scroll)
+        if (widgetIndex == kWidgetIndexNull || w->widgets[widgetIndex].type != WidgetType::scroll)
             return false;
         int32_t scrollIndex = 0;
         for (WidgetIndex i = 0; i < widgetIndex; i++)

@@ -846,10 +846,10 @@ namespace OpenRCT2::Ui::Windows
         {
             SetPressedTab();
 
+#ifndef OPENRCT2_IOS
             auto hasFilePicker = GetContext()->GetUiContext().HasFilePicker();
             const bool advancedTabSelected = (WIDX_FIRST_TAB + page) == WIDX_TAB_ADVANCED;
             const bool disableAlwaysNative = !hasFilePicker && advancedTabSelected;
-#ifndef OPENRCT2_IOS
             setWidgetDisabled(WIDX_ALWAYS_NATIVE_LOADSAVE, disableAlwaysNative);
             widgets[WIDX_ALWAYS_NATIVE_LOADSAVE].setHidden(disableAlwaysNative);
 #endif

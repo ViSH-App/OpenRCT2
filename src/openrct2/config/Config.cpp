@@ -46,7 +46,8 @@ static constexpr bool kWindowButtonsOnTheLeftDefault = true;
 static constexpr bool kWindowButtonsOnTheLeftDefault = false;
 #endif
 #if defined(__ANDROID__) || defined(OPENRCT2_IOS)
-static constexpr bool kEnlargedUiDefault = true;
+// iOS always enables the touch interface and does not read this default.
+[[maybe_unused]] static constexpr bool kEnlargedUiDefault = true;
 // Android phones can come with rounded screen corners, making corner buttons harder to access.
 static constexpr bool kToolbarButtonsCentredDefault = true;
 // Android platform code returns a more appropiate default than SDL.
