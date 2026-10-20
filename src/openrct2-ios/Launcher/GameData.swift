@@ -11,7 +11,7 @@ enum Slot: String, Codable, CaseIterable {
 /// What the launcher found in one imported slot; stored next to the data as .openrct2-import.json.
 struct GameDataInfo: Codable, Equatable {
     struct Source: Codable, Equatable {
-        enum Kind: String, Codable { case folder, zip, migrated }
+        enum Kind: String, Codable { case folder, zip, gogInstaller, migrated }
         var kind: Kind
         var file: String?
         var gogName: String?
@@ -59,6 +59,7 @@ struct GameDataInfo: Codable, Equatable {
         switch source.kind {
         case .folder: parts.append("来自文件夹")
         case .zip: parts.append("来自 ZIP")
+        case .gogInstaller: parts.append("来自 GOG 安装包")
         case .migrated: parts.append("旧版本导入")
         }
         if let name = source.gogName { parts.append("GOG · \(name)") }

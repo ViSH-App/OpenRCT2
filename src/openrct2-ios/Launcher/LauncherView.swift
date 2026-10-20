@@ -290,8 +290,8 @@ private struct ImportSources: View {
             }
             let sources = Group {
                 source(AnyView(PixelIcon(kind: .download)), "登录 Steam", "从你的 Steam 库直接下载", soon: true) { onComingSoon("Steam 下载") }
-                source(AnyView(Sprite("copy")), "GOG 安装包", "选中 .exe 和 -1.bin 两个文件", soon: true) { onComingSoon("GOG 安装包") }
-                source(AnyView(PixelIcon(kind: .folder)), "文件或文件夹", "游戏文件夹或 ZIP 压缩包", soon: false, action: onFiles)
+                source(AnyView(Sprite("copy")), "GOG 安装包", "选择 .exe 和 .bin 所在的文件夹", soon: false, action: onFiles)
+                source(AnyView(PixelIcon(kind: .folder)), "文件或文件夹", "游戏文件夹、ZIP 或 GOG 安装包", soon: false, action: onFiles)
             }
             if layout == .phoneLandscape {
                 HStack(alignment: .top, spacing: 8) { sources }

@@ -5,10 +5,13 @@
 #ifdef OPENRCT2_IOS
     #import "LauncherBridge.h"
 
+    #include "InnoExtractor.h"
+
     #include <openrct2/platform/Platform.h>
     #include <openrct2/rct1/Csg.h>
     #include <zip.h>
 
+    #include <set>
     #include <string>
     #include <vector>
 
@@ -151,6 +154,56 @@ namespace
     }
     zip_close(zip);
     return ok;
+}
+
++ (BOOL)extractGogInstallerAtPath:(NSString*)installer
+                  sliceCandidates:(NSArray<NSString*>*)candidates
+                      toDirectory:(NSString*)directory
+                          folders:(NSArray<NSString*>*)folders
+                         progress:(void (^)(double))progress
+                        cancelled:(BOOL (^)(void))cancelled
+                            error:(NSError**)error
+{
+    namespace Inno = OpenRCT2::Inno;
+    std::set<std::string> wanted;
+    for (NSString* folder in folders)
+        wanted.insert(folder.lowercaseString.UTF8String);
+
+    Inno::ExtractOptions options;
+    options.Installer = installer.fileSystemRepresentation;
+    for (NSString* candidate in candidates)
+        options.SliceCandidates.emplace_back(candidate.fileSystemRepresentation);
+    options.Destination = directory.fileSystemRepresentation;
+    options.Wanted = [&wanted](const std::string& path) {
+        NSString* lower = @(path.c_str()).lowercaseString;
+        NSRange slash = [lower rangeOfString:@"/"];
+        if (slash.location != NSNotFound)
+            return wanted.count([lower substringToIndex:slash.location].UTF8String) > 0;
+        return [lower hasPrefix:@"goggame-"] && [lower hasSuffix:@".info"];
+    };
+    options.Progress = [progress](double fraction) { progress(fraction); };
+    options.Cancelled = [cancelled]() { return static_cast<bool>(cancelled()); };
+    try
+    {
+        Inno::Extract(options);
+        return YES;
+    }
+    catch (const Inno::Error& failure)
+    {
+        if (error)
+            *error = ImportError(@(failure.what()));
+    }
+    catch (const Inno::Cancelled&)
+    {
+        if (error)
+            *error = ImportError(@"已取消导入。");
+    }
+    catch (const std::exception&)
+    {
+        if (error)
+            *error = ImportError(@"解压安装包失败，可能是存储空间不足或文件已损坏。");
+    }
+    return NO;
 }
 
 @end

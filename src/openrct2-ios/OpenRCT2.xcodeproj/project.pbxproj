@@ -33,6 +33,7 @@
 		27029BB0348FA3D68823CC6F /* MetalTextureCache.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0E7566F31C158FC3E6640A90 /* MetalTextureCache.mm */; };
 		DF1F1FF1C4A8B66F4C9FC80C /* MetalWeatherDrawer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 787DFD859663FF57368169A0 /* MetalWeatherDrawer.mm */; };
 		607AB2AB87978B1759E77635 /* LauncherBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = C7374A82687741602BDA840C /* LauncherBridge.mm */; };
+		4020A348BBF2497783CCF3DD /* InnoExtractor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8BFDC2494113483992B0B84E /* InnoExtractor.cpp */; };
 		487D4158DCBB541D77F709E0 /* PixelUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C6338C8B4127856938AF69 /* PixelUI.swift */; };
 		50455E3FF9615B81FA48EC16 /* Scenery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E29CCF961BAB97F6FA60A3 /* Scenery.swift */; };
 		5524DDEC416E7E04C6FEEF15 /* GameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1FBCCA52F5869B9D67F2A44 /* GameData.swift */; };
@@ -90,6 +91,8 @@
 		64813D105F10473E6E6D1D28 /* MetalFrameTiming.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = MetalFrameTiming.h; sourceTree = "<group>"; };
 		43002EE965288FE4A55799A5 /* LauncherBridge.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "LauncherBridge.h"; sourceTree = "<group>"; };
 		C7374A82687741602BDA840C /* LauncherBridge.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = "LauncherBridge.mm"; sourceTree = "<group>"; };
+		795A9E5654F4411288C39706 /* InnoExtractor.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "InnoExtractor.h"; sourceTree = "<group>"; };
+		8BFDC2494113483992B0B84E /* InnoExtractor.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = "InnoExtractor.cpp"; sourceTree = "<group>"; };
 		F21FA3B3C2A8F3293C835B02 /* Launcher-Bridging-Header.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Launcher-Bridging-Header.h"; sourceTree = "<group>"; };
 		27C6338C8B4127856938AF69 /* PixelUI.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "PixelUI.swift"; sourceTree = "<group>"; };
 		31E29CCF961BAB97F6FA60A3 /* Scenery.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Scenery.swift"; sourceTree = "<group>"; };
@@ -132,6 +135,8 @@
 			children = (
 				43002EE965288FE4A55799A5 /* LauncherBridge.h */,
 				C7374A82687741602BDA840C /* LauncherBridge.mm */,
+				795A9E5654F4411288C39706 /* InnoExtractor.h */,
+				8BFDC2494113483992B0B84E /* InnoExtractor.cpp */,
 				F21FA3B3C2A8F3293C835B02 /* Launcher-Bridging-Header.h */,
 				27C6338C8B4127856938AF69 /* PixelUI.swift */,
 				31E29CCF961BAB97F6FA60A3 /* Scenery.swift */,
@@ -359,6 +364,7 @@
 			files = (
 				11509B8890BFEC30AF1688DF /* IosApplication.mm in Sources */,
 				607AB2AB87978B1759E77635 /* LauncherBridge.mm in Sources */,
+				4020A348BBF2497783CCF3DD /* InnoExtractor.cpp in Sources */,
 				487D4158DCBB541D77F709E0 /* PixelUI.swift in Sources */,
 				50455E3FF9615B81FA48EC16 /* Scenery.swift in Sources */,
 				5524DDEC416E7E04C6FEEF15 /* GameData.swift in Sources */,

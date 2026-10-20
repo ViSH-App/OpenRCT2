@@ -29,6 +29,16 @@ typedef NS_ENUM(NSInteger, ORCTRCT2Variant) {
                 progress:(void (^)(double fraction))progress
                cancelled:(BOOL (^)(void))cancelled
                    error:(NSError**)error;
+// Extracts the game folders of a GOG (Inno Setup) installer: the .exe plus its .bin slices, which are
+// looked up by name among the candidates. Only files below the named top-level folders are written,
+// plus the root goggame-*.info that describes the release.
++ (BOOL)extractGogInstallerAtPath:(NSString*)installer
+                  sliceCandidates:(NSArray<NSString*>*)candidates
+                      toDirectory:(NSString*)directory
+                          folders:(NSArray<NSString*>*)folders
+                         progress:(void (^)(double fraction))progress
+                        cancelled:(BOOL (^)(void))cancelled
+                            error:(NSError**)error;
 @end
 
 NS_ASSUME_NONNULL_END

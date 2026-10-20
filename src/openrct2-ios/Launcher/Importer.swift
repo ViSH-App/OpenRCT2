@@ -62,15 +62,25 @@ final class Importer: ObservableObject {
 
         report(.reading, 0, urls.map(\.lastPathComponent).joined(separator: "、"))
         var roots: [(URL, GameDataInfo.Source)] = []
-        for (index, url) in urls.enumerated() {
+        let picked = urls.filter { !files.isDirectory($0) }
+        // Installers found inside a picked folder are a guess; their failure only matters if nothing else is found.
+        var installers: [(exe: URL, candidates: [URL], guessed: Bool)] = []
+        var installerError: Error?
+        var slices: [URL] = []
+        for url in urls {
             try coordinatedRead(url)
             if files.isDirectory(url) {
                 roots.append((url, .init(kind: .folder, file: url.lastPathComponent)))
+                // A folder holding a GOG installer: everything it needs sits next to it.
+                let contents = (try? files.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? []
+                for exe in contents where isGogInstallerName(exe, among: contents) {
+                    installers.append((exe, contents, true))
+                }
                 continue
             }
             switch try format(of: url) {
             case .zip:
-                let target = workspace.appendingPathComponent("zip-\(index)", isDirectory: true)
+                let target = workspace.appendingPathComponent("zip-\(roots.count)", isDirectory: true)
                 try files.createDirectory(at: target, withIntermediateDirectories: true)
                 report(.unpacking, 0, url.lastPathComponent)
                 do {
@@ -82,13 +92,44 @@ final class Importer: ObservableObject {
                     throw error
                 }
                 roots.append((target, .init(kind: .zip, file: url.lastPathComponent)))
-            case .gogInstaller:
-                throw GameDataError.message("GOG 安装包（.exe 和 .bin）将在后续版本支持。现在可以先在电脑上解包，再导入解包后的文件夹或 ZIP。")
+            case .windowsExecutable:
+                // Picked files: the slices may be among them or, when readable, next to the .exe.
+                let siblings = (try? files.contentsOfDirectory(at: url.deletingLastPathComponent(), includingPropertiesForKeys: nil)) ?? []
+                installers.append((url, picked + siblings, false))
+            case .gogSlice:
+                slices.append(url)
             case .otherArchive(let name):
                 throw GameDataError.message("暂不支持 \(name) 格式，后续版本会加入。现在请改用 ZIP，或直接选择游戏文件夹。")
             case .unknown:
-                throw GameDataError.message("「\(url.lastPathComponent)」不是游戏文件夹，也不是 ZIP 压缩包。")
+                throw GameDataError.message("「\(url.lastPathComponent)」不是游戏文件夹、ZIP 压缩包或 GOG 安装包。")
             }
+        }
+        if installers.isEmpty, let slice = slices.first {
+            throw GameDataError.message("「\(slice.lastPathComponent)」只是 GOG 安装包的数据部分。请选择安装包所在的文件夹，或同时选中 .exe 和 .bin 文件。")
+        }
+        for (exe, allCandidates, guessed) in installers {
+            if cancel.isSet { throw CancellationError() }
+            // Only the installer's own slices, so a big folder's other iCloud files are not downloaded.
+            let stem = exe.deletingPathExtension().lastPathComponent.lowercased()
+            let candidates = allCandidates.filter {
+                let name = $0.lastPathComponent.lowercased()
+                return name.hasPrefix(stem + "-") && name.hasSuffix(".bin")
+            }
+            for candidate in candidates { try? coordinatedRead(candidate) }
+            let target = workspace.appendingPathComponent("gog-\(roots.count)", isDirectory: true)
+            try files.createDirectory(at: target, withIntermediateDirectories: true)
+            report(.unpacking, 0, exe.lastPathComponent)
+            do {
+                try ORCTLauncherBridge.extractGogInstaller(
+                    atPath: exe.path, sliceCandidates: candidates.map(\.path), toDirectory: target.path,
+                    folders: gogFolders, progress: { report(.unpacking, $0, "") }, cancelled: { cancel.isSet })
+            } catch {
+                if cancel.isSet { throw CancellationError() }
+                guard guessed else { throw error }
+                installerError = installerError ?? error
+                continue
+            }
+            roots.append((target, .init(kind: .gogInstaller, file: exe.lastPathComponent)))
         }
         if cancel.isSet { throw CancellationError() }
 
@@ -100,6 +141,7 @@ final class Importer: ObservableObject {
             chosen[candidate.slot] = candidate
         }
         guard !chosen.isEmpty else {
+            if let installerError { throw installerError }
             throw GameDataError.message("没有找到游戏数据。RCT2 的文件夹里应当有 Data/g1.dat；Classic 应当有 Assets/g1.dat。")
         }
 
@@ -146,7 +188,18 @@ final class Importer: ObservableObject {
 
     // MARK: Helpers
 
-    private enum Format { case zip, gogInstaller, otherArchive(String), unknown }
+    private enum Format { case zip, windowsExecutable, gogSlice, otherArchive(String), unknown }
+
+    /// Everything wantedItems() may copy from an RCT1 or RCT2 installation.
+    private nonisolated static let gogFolders = ["Data", "ObjData", "Scenarios", "Tracks", "Landscapes", "Saved Games", "RCTdeluxe_install"]
+
+    /// setup_*.exe, or any .exe with a "<name>-1.bin" slice next to it.
+    private nonisolated static func isGogInstallerName(_ url: URL, among contents: [URL]) -> Bool {
+        let name = url.lastPathComponent.lowercased()
+        guard name.hasSuffix(".exe") else { return false }
+        let slice = url.deletingPathExtension().lastPathComponent.lowercased() + "-1.bin"
+        return name.hasPrefix("setup_") || contents.contains { $0.lastPathComponent.lowercased() == slice }
+    }
 
     private nonisolated static func format(of url: URL) throws -> Format {
         let handle = try FileHandle(forReadingFrom: url)
@@ -154,7 +207,8 @@ final class Importer: ObservableObject {
         let head = [UInt8](try handle.read(upToCount: 8) ?? Data())
         func starts(_ bytes: [UInt8]) -> Bool { head.count >= bytes.count && Array(head.prefix(bytes.count)) == bytes }
         if starts([0x50, 0x4B, 0x03, 0x04]) || starts([0x50, 0x4B, 0x05, 0x06]) { return .zip }
-        if starts([0x4D, 0x5A]) || starts(Array("idska".utf8)) { return .gogInstaller }
+        if starts([0x4D, 0x5A]) { return .windowsExecutable }
+        if starts(Array("idska".utf8)) { return .gogSlice }
         if starts([0x37, 0x7A, 0xBC, 0xAF]) { return .otherArchive("7z") }
         if starts(Array("Rar!".utf8)) { return .otherArchive("RAR") }
         if starts([0x1F, 0x8B]) || starts([0x42, 0x5A, 0x68]) || starts([0xFD, 0x37, 0x7A, 0x58]) { return .otherArchive("TAR") }

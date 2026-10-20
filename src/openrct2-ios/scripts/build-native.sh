@@ -24,6 +24,10 @@ fi
 if [[ -n "$(nm -u "$ROOT/build/ios-deps/install/lib/libSDL2.a" 2>/dev/null | grep EAGLContext || true)" ]]; then
     "$ROOT/src/openrct2-ios/scripts/build-dependencies.sh" --sdl-only
 fi
+# Preparations from before GOG installer support lack the LZMA decoders; build only those.
+if [[ ! -f "$ROOT/build/ios-deps/install/lib/liblzmasdk.a" ]]; then
+    "$ROOT/src/openrct2-ios/scripts/build-dependencies.sh" --lzma-only
+fi
 # Replace only the old generator's configuration when migrating build/ipad.
 # Dependency downloads, installed libraries, assets, and their paths are preserved.
 CMAKE_ARGS=(

@@ -20,6 +20,9 @@ SOURCES = {
                  'bc5c898e4756d373e0d991bab053036c5eb2aa7c0d5c67e8662ddc6da40c4103'),
     'icu': ('https://github.com/unicode-org/icu/releases/download/release-76-1/icu4c-76_1-src.tgz',
             'dfacb46bfe4747410472ce3e1144bf28a102feeaa4e3875bac9b4c6cf30f4f3e'),
+    # Only the LZMA/LZMA2 decoders (public domain) are built, for GOG installer extraction.
+    '7zip': ('https://codeload.github.com/ip7z/7zip/tar.gz/refs/tags/25.01',
+             '8772e4ef86540c98bf4c23a6d9e13b3a25794d4bb30986ef0b1b9f20075b34c9'),
 }
 
 
