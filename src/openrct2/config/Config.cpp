@@ -194,7 +194,12 @@ namespace OpenRCT2::Config
             model->customCurrencySymbol = reader->GetString("custom_currency_symbol", "Ctm");
             model->edgeScrolling = reader->GetBoolean("edge_scrolling", true);
             model->edgeScrollingSpeed = reader->GetInt32("edge_scrolling_speed", 12);
+#ifdef OPENRCT2_IOS
+            // The iPad window always fills the screen; the display mode is fixed to windowed.
+            model->fullscreenMode = 0;
+#else
             model->fullscreenMode = reader->GetInt32("fullscreen_mode", 0);
+#endif
             model->fullscreenHeight = reader->GetInt32("fullscreen_height", -1);
             model->fullscreenWidth = reader->GetInt32("fullscreen_width", -1);
             model->rct1Path = reader->GetString("rct1_path", "");

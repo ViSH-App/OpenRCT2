@@ -1021,6 +1021,12 @@ namespace OpenRCT2::Ui::Windows
             setWidgetDisabled(WIDX_RESOLUTION_DROPDOWN, disableResolution);
             setWidgetDisabled(WIDX_RESOLUTION, disableResolution);
             setWidgetDisabled(WIDX_RESOLUTION_LABEL, disableResolution);
+#ifdef OPENRCT2_IOS
+            // The iPad window always fills the screen: display mode and resolution are fixed.
+            setWidgetDisabled(WIDX_FULLSCREEN_LABEL, true);
+            setWidgetDisabled(WIDX_FULLSCREEN, true);
+            setWidgetDisabled(WIDX_FULLSCREEN_DROPDOWN, true);
+#endif
 
             setCheckboxValue(WIDX_SHOW_FPS_CHECKBOX, Config::Get().general.showFPS);
             setCheckboxValue(WIDX_MULTITHREADING_CHECKBOX, Config::Get().general.multiThreading);
