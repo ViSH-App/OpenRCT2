@@ -43,6 +43,8 @@ namespace OpenRCT2::Ui::Metal
     //                                    canvas within the same frame and compare it with the
     //                                    dirty-region canvas (detects missed invalidations).
     //   OPENRCT2_METAL_PROFILE=n         Fragment-shader profiling variant (see MetalShaders.metal).
+    //   OPENRCT2_METAL_SHADED_SHOT=n     Every n drawn frames, save the shaded canvas (day-night and
+    //                                    lights, without CRT) to Documents/metal-shaded-<frame>.png.
     struct DebugOptions
     {
         bool compareWithReference{};
@@ -56,6 +58,7 @@ namespace OpenRCT2::Ui::Metal
         int32_t maxDirtyRects{ -1 };
         uint32_t profileMode{};
         bool verifyDirty{};
+        uint32_t shadedShotInterval{};
         int32_t dirtyPad{ -1 };
 
         static const DebugOptions& Get()
@@ -77,6 +80,8 @@ namespace OpenRCT2::Ui::Metal
                 if (const char* area = std::getenv("OPENRCT2_METAL_FULL_AREA"))
                     result.fullRedrawArea = std::strtof(area, nullptr);
                 result.verifyDirty = std::getenv("OPENRCT2_METAL_VERIFY_DIRTY") != nullptr;
+                if (const char* shot = std::getenv("OPENRCT2_METAL_SHADED_SHOT"))
+                    result.shadedShotInterval = static_cast<uint32_t>(std::strtoul(shot, nullptr, 10));
                 if (const char* pad = std::getenv("OPENRCT2_METAL_DIRTY_PAD"))
                     result.dirtyPad = static_cast<int32_t>(std::strtol(pad, nullptr, 10));
                 if (const char* profile = std::getenv("OPENRCT2_METAL_PROFILE"))

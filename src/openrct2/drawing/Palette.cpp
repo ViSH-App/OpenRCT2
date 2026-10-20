@@ -47,7 +47,11 @@ namespace OpenRCT2::Drawing
             uint8_t g = colour.green;
             uint8_t r = colour.red;
 
-            if (LightFx::IsAvailable())
+            if (LightFx::IsEngineLighting())
+            {
+                // The drawing engine darkens and lights the world itself, leaving the interface.
+            }
+            else if (LightFx::IsAvailable())
             {
                 LightFx::ApplyPaletteFilter(i, &r, &g, &b);
             }

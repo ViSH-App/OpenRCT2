@@ -21,6 +21,7 @@
 #include "../util/Util.h"
 #include "../world/tile_element/TileElement.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -36,6 +37,7 @@ namespace OpenRCT2::Drawing::LightFx
     static uint8_t _bakedLightTexture_spot_3[256 * 256];
     static RenderTarget _pixelInfo;
     static bool _lightfxAvailable = false;
+    static bool _engineLighting = false;
 
     static void* _light_rendered_buffer_back = nullptr;
     static void* _light_rendered_buffer_front = nullptr;
@@ -59,6 +61,7 @@ namespace OpenRCT2::Drawing::LightFx
         Qualifier qualifier;
         uint8_t lightID;
         uint8_t lightLinger;
+        LightColour colour;
     };
 
     static LightListEntry _LightListA[16000];
@@ -627,7 +630,8 @@ namespace OpenRCT2::Drawing::LightFx
     }
 
     static void Add3DLight(
-        const uint32_t lightHash, const Qualifier qualifier, const uint8_t id, const CoordsXYZ& loc, const LightType lightType)
+        const uint32_t lightHash, const Qualifier qualifier, const uint8_t id, const CoordsXYZ& loc, const LightType lightType,
+        const LightColour colour)
     {
         if (LightListCurrentCountBack == 15999)
         {
@@ -654,6 +658,7 @@ namespace OpenRCT2::Drawing::LightFx
             entry.qualifier = qualifier;
             entry.lightID = id;
             entry.lightLinger = 1;
+            entry.colour = colour;
 
             return;
         }
@@ -668,27 +673,29 @@ namespace OpenRCT2::Drawing::LightFx
         entry->qualifier = qualifier;
         entry->lightID = id;
         entry->lightLinger = 1;
+        entry->colour = colour;
 
         //  LOG_WARNING("new 3d light");
     }
 
-    static void Add3DLight(const CoordsXYZ& loc, const LightType lightType)
+    static void Add3DLight(const CoordsXYZ& loc, const LightType lightType, const LightColour colour)
     {
-        Add3DLight(((loc.x << 16) | loc.y), Qualifier::map, loc.z, loc, lightType);
+        Add3DLight(((loc.x << 16) | loc.y), Qualifier::map, loc.z, loc, lightType, colour);
     }
 
     void Add3DLight(const EntityBase& entity, const uint8_t id, const CoordsXYZ& loc, const LightType lightType)
     {
-        Add3DLight(entity.id.ToUnderlying(), Qualifier::entity, id, loc, lightType);
+        Add3DLight(entity.id.ToUnderlying(), Qualifier::entity, id, loc, lightType, LightColour::vehicle);
     }
 
     void Add3DLightMagicFromDrawingTile(
-        const CoordsXY& mapPosition, int16_t offsetX, int16_t offsetY, int16_t offsetZ, LightType lightType)
+        const CoordsXY& mapPosition, int16_t offsetX, int16_t offsetY, int16_t offsetZ, LightType lightType,
+        LightColour colour)
     {
         int16_t x = mapPosition.x + offsetX + 16;
         int16_t y = mapPosition.y + offsetY + 16;
 
-        Add3DLight({ x, y, offsetZ }, lightType);
+        Add3DLight({ x, y, offsetZ }, lightType, colour);
     }
 
     static uint32_t GetLightPollution()
@@ -795,16 +802,16 @@ namespace OpenRCT2::Drawing::LightFx
         uint8_t relativeRotation = (4 - GetCurrentRotation()) % 4;
         CoordsXY lanternOffset1 = CoordsXY(0, 16).rotate(relativeRotation);
         CoordsXY lanternOffset2 = CoordsXY(16, 0).rotate(relativeRotation);
-        Add3DLightMagicFromDrawingTile(mapPosition, lanternOffset1.x, lanternOffset1.y, height + zOffset, LightType::lantern3);
-        Add3DLightMagicFromDrawingTile(mapPosition, lanternOffset2.x, lanternOffset2.y, height + zOffset, LightType::lantern3);
-        Add3DLightMagicFromDrawingTile(mapPosition, 8, 32, height, LightType::spot1);
-        Add3DLightMagicFromDrawingTile(mapPosition, 32, 8, height, LightType::spot1);
-        Add3DLightMagicFromDrawingTile(mapPosition, -32, 8, height, LightType::spot1);
-        Add3DLightMagicFromDrawingTile(mapPosition, 8, -32, height, LightType::spot1);
-        Add3DLightMagicFromDrawingTile(mapPosition, -8, 32, height, LightType::spot1);
-        Add3DLightMagicFromDrawingTile(mapPosition, 32, -8, height, LightType::spot1);
-        Add3DLightMagicFromDrawingTile(mapPosition, -32, -8, height, LightType::spot1);
-        Add3DLightMagicFromDrawingTile(mapPosition, -8, -32, height, LightType::spot1);
+        Add3DLightMagicFromDrawingTile(mapPosition, lanternOffset1.x, lanternOffset1.y, height + zOffset, LightType::lantern3, LightColour::shop);
+        Add3DLightMagicFromDrawingTile(mapPosition, lanternOffset2.x, lanternOffset2.y, height + zOffset, LightType::lantern3, LightColour::shop);
+        Add3DLightMagicFromDrawingTile(mapPosition, 8, 32, height, LightType::spot1, LightColour::shop);
+        Add3DLightMagicFromDrawingTile(mapPosition, 32, 8, height, LightType::spot1, LightColour::shop);
+        Add3DLightMagicFromDrawingTile(mapPosition, -32, 8, height, LightType::spot1, LightColour::shop);
+        Add3DLightMagicFromDrawingTile(mapPosition, 8, -32, height, LightType::spot1, LightColour::shop);
+        Add3DLightMagicFromDrawingTile(mapPosition, -8, 32, height, LightType::spot1, LightColour::shop);
+        Add3DLightMagicFromDrawingTile(mapPosition, 32, -8, height, LightType::spot1, LightColour::shop);
+        Add3DLightMagicFromDrawingTile(mapPosition, -32, -8, height, LightType::spot1, LightColour::shop);
+        Add3DLightMagicFromDrawingTile(mapPosition, -8, -32, height, LightType::spot1, LightColour::shop);
     }
 
     void AddShopLights(const CoordsXY& mapPosition, const uint8_t direction, const int32_t height, const uint8_t zOffset)
@@ -813,15 +820,15 @@ namespace OpenRCT2::Drawing::LightFx
         {
             CoordsXY spotOffset1 = CoordsXY(-32, 8).rotate(direction);
             CoordsXY spotOffset2 = CoordsXY(-32, 4).rotate(direction);
-            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset1.x, spotOffset1.y, height, LightType::spot1);
-            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset2.x, spotOffset2.y, height, LightType::spot2);
+            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset1.x, spotOffset1.y, height, LightType::spot1, LightColour::shop);
+            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset2.x, spotOffset2.y, height, LightType::spot2, LightColour::shop);
         }
         else if (direction == (7 - GetCurrentRotation()) % 4) // Back left Facing Stall
         {
             CoordsXY spotOffset1 = CoordsXY(-32, -8).rotate(direction);
             CoordsXY spotOffset2 = CoordsXY(-32, -4).rotate(direction);
-            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset1.x, spotOffset1.y, height, LightType::spot1);
-            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset2.x, spotOffset2.y, height, LightType::spot2);
+            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset1.x, spotOffset1.y, height, LightType::spot1, LightColour::shop);
+            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset2.x, spotOffset2.y, height, LightType::spot2, LightColour::shop);
         }
         else // Forward Facing Stall
         {
@@ -829,9 +836,9 @@ namespace OpenRCT2::Drawing::LightFx
             CoordsXY spotOffset2 = CoordsXY(-32, -8).rotate(direction);
             CoordsXY lanternOffset = CoordsXY(-16, 0).rotate(direction);
             Add3DLightMagicFromDrawingTile(
-                mapPosition, lanternOffset.x, lanternOffset.y, height + zOffset, LightType::lantern3);
-            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset1.x, spotOffset1.y, height, LightType::spot1);
-            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset2.x, spotOffset2.y, height, LightType::spot1);
+                mapPosition, lanternOffset.x, lanternOffset.y, height + zOffset, LightType::lantern3, LightColour::shop);
+            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset1.x, spotOffset1.y, height, LightType::spot1, LightColour::shop);
+            Add3DLightMagicFromDrawingTile(mapPosition, spotOffset2.x, spotOffset2.y, height, LightType::spot1, LightColour::shop);
         }
     }
 
@@ -1009,6 +1016,93 @@ namespace OpenRCT2::Drawing::LightFx
             dstEntry->blue = static_cast<uint8_t>(
                 std::min<float>(0xFF, (static_cast<float>(*b) * reduceColourLit * boost + lightFog) * elecMultB));
         }
+    }
+
+    void SetEngineLighting(bool engineLighting)
+    {
+        _engineLighting = engineLighting;
+    }
+
+    bool IsEngineLighting()
+    {
+        return _engineLighting;
+    }
+
+    void TakeLights(std::vector<LightSource>& lights)
+    {
+        lights.clear();
+        for (uint32_t i = 0; i < LightListCurrentCountBack; i++)
+        {
+            const auto& entry = _LightListBack[i];
+            lights.push_back({ entry.position, entry.viewCoords, entry.type, entry.colour });
+        }
+        LightListCurrentCountBack = 0;
+    }
+
+    // The per-frame part of ApplyPaletteFilter: the same natural light, fog and light-pollution
+    // terms, without the per-index boosts. Its smoothing ran once per palette entry; here it runs
+    // once per frame, so the rates are scaled up accordingly.
+    AmbientLight ComputeAmbientLight(float lightPollution)
+    {
+        auto& gameState = getGameState();
+        static float fogginess = 0.0f;
+        static float smoothedPollution = 0.0f;
+
+        AmbientLight result{};
+        result.night = gDayNightCycle >= 0 ? static_cast<float>(std::pow(gDayNightCycle, 1.5)) : -1.0f;
+        result.lightning = Weather::gLightningFlash == 1;
+        const float night = std::max(result.night, 0.0f);
+
+        const float elecMult[3] = { 1.0f, 0.95f, 0.45f };
+        const float sunLight = std::max(0.0f, std::min(1.0f, 2.0f - night * 3.0f));
+        float natLight[3] = {
+            FLerp(4.0f, 0.635f, static_cast<float>(std::pow(night, 0.035f + sunLight * 10.50f))),
+            FLerp(4.0f, 0.650f, static_cast<float>(std::pow(night, 0.100f + sunLight * 5.50f))),
+            FLerp(4.0f, 0.850f, static_cast<float>(std::pow(night, 0.200f + sunLight * 1.5f))),
+        };
+        float lightAvg = (natLight[0] + natLight[1] + natLight[2]) / 3.0f;
+        if (gameState.weatherCurrent.temperature > 20)
+        {
+            const float offset = static_cast<float>(gameState.weatherCurrent.temperature - 20) * 0.04f * (1.0f - night);
+            lightAvg /= 1.0f + offset;
+        }
+        if (lightAvg > 1.0f)
+            for (auto& channel : natLight)
+                channel /= lightAvg;
+
+        float targetFogginess = static_cast<float>(gameState.weatherCurrent.level) / 8.0f + (night * night) * 0.15f;
+        if (gameState.weatherCurrent.temperature < 10)
+            targetFogginess += static_cast<float>(10 - gameState.weatherCurrent.temperature) * 0.01f;
+        fogginess -= (fogginess - targetFogginess) * 0.002f;
+
+        float reduceLit = night / static_cast<float>(std::pow(std::max(1.01f, 0.4f + lightAvg), 2.0));
+        const float targetPollution = reduceLit * std::max(0.0f, 0.000001f * lightPollution);
+        smoothedPollution -= (smoothedPollution - targetPollution) * 0.2f;
+        for (int32_t i = 0; i < 3; i++)
+        {
+            natLight[i] /= 1.0f + smoothedPollution * 20.0f;
+            natLight[i] += elecMult[i] * 0.6f * smoothedPollution;
+            natLight[i] /= 1.0f + smoothedPollution;
+        }
+
+        reduceLit += static_cast<float>(gameState.weatherCurrent.level) / 2.0f;
+        float reduceNat = 1.0f / (1.0f + fogginess);
+        reduceLit /= 1.0f + fogginess;
+        const float envFog = fogginess;
+        const float lightFog = envFog * reduceLit;
+        reduceNat *= 1.0f - envFog;
+        reduceLit *= 1.0f - lightFog;
+
+        for (int32_t i = 0; i < 3; i++)
+            result.naturalLight[i] = natLight[i];
+        result.fog[0] = 35.5f * natLight[0] * 1.3f;
+        result.fog[1] = 45.0f * natLight[1] * 1.3f;
+        result.fog[2] = 50.0f * natLight[2] * 1.3f;
+        result.reduceNatural = reduceNat;
+        result.reduceLit = reduceLit;
+        result.environmentFog = envFog;
+        result.lightFog = lightFog * 10.0f;
+        return result;
     }
 
     static uint8_t MixLight(uint32_t a, uint32_t b, uint32_t intensity)

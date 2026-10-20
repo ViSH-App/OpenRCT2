@@ -239,7 +239,12 @@ namespace OpenRCT2::Config
 
             // Default config setting is false until the games canvas can be separated from the effect
             model->dayNightCycle = reader->GetBoolean("day_night_cycle", false);
+#ifdef OPENRCT2_IOS
+            const bool supportsLightFx = model->drawingEngine == DrawingEngine::softwareWithHardwareDisplay
+                || model->drawingEngine == DrawingEngine::metal;
+#else
             const bool supportsLightFx = model->drawingEngine == DrawingEngine::softwareWithHardwareDisplay;
+#endif
             model->enableLightFx = supportsLightFx && reader->GetBoolean("enable_light_fx", false);
             model->enableLightFxForVehicles = supportsLightFx && reader->GetBoolean("enable_light_fx_for_vehicles", false);
             model->upperCaseBanners = reader->GetBoolean("upper_case_banners", false);

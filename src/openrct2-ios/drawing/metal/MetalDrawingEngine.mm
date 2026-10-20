@@ -16,6 +16,7 @@
 
     #import <Metal/Metal.h>
     #import <QuartzCore/CAMetalLayer.h>
+    #import <UIKit/UIKit.h>
     #include <SDL.h>
     #include <SDL_metal.h>
     #include <algorithm>
@@ -27,16 +28,20 @@
     #include <cstring>
     #include <memory>
     #include <openrct2/Diagnostic.h>
+    #include <openrct2/Game.h>
     #include <openrct2/config/Config.h>
     #include <openrct2/core/EnumUtils.hpp>
     #include <openrct2/drawing/Drawing.h>
     #include <openrct2/drawing/IDrawingEngine.h>
     #include <openrct2/drawing/InvalidationGrid.h>
     #include <openrct2/drawing/LightFX.h>
+    #include <openrct2/drawing/Palette.h>
     #include <openrct2/drawing/RenderTarget.h>
     #include <openrct2/drawing/WeatherDrawer.h>
     #include <openrct2/interface/Screenshot.h>
+    #include <openrct2/interface/Viewport.h>
     #include <openrct2/interface/Window.h>
+    #include <openrct2/interface/WindowBase.h>
     #include <openrct2/ui/UiContext.h>
     #include <openrct2/world/Weather.h>
     #include <stdexcept>
@@ -74,11 +79,6 @@ namespace
     constexpr float kCrtBeamWidthBright = 0.35f;
     // Horizontal transition between signal samples; 1 is plain linear interpolation.
     constexpr float kCrtSharpness = 1.5f;
-
-    struct LinearColour
-    {
-        _Float16 r, g, b, a;
-    };
 
     // Light that one scanline puts on an output pixel, by beam intensity and by distance between
     // the pixel centre and the beam centre (in logical rows). A beam is a gaussian whose width
@@ -208,6 +208,7 @@ namespace
         id<MTLRenderPipelineState> _presentPipeline;
         id<MTLRenderPipelineState> _crtSignalPipeline;
         id<MTLRenderPipelineState> _crtPipeline;
+        id<MTLRenderPipelineState> _lightPipeline;
         id<MTLDepthStencilState> _depthWrite;
         id<MTLDepthStencilState> _depthTest;
         id<MTLDepthStencilState> _depthAlways;
@@ -223,7 +224,6 @@ namespace
         std::vector<PaletteIndex> _bits;
         InvalidationGrid _invalidationGrid;
         std::array<uint32_t, 256> _palette{};
-        std::array<LinearColour, 256> _linearPalette{};
 
         // Indexed canvas, one pixel per logical pixel, shown at _presentScale drawable pixels
         // per logical pixel from the content origin.
@@ -236,11 +236,21 @@ namespace
         float _crtBeamExtent{};
         id<MTLTexture> _depth;
         id<MTLTexture> _copyScratch;
+        // World height per canvas pixel (kHeight* markers elsewhere), kept and copied with the
+        // canvas, and this frame's accumulated lamp light.
+        id<MTLTexture> _height;
+        id<MTLTexture> _heightScratch;
+        id<MTLTexture> _light;
+        std::vector<LightFx::LightSource> _lightSources;
+        std::vector<LightInstance> _lights;
+        AmbientUniforms _ambient{};
+        LightUniforms _lightView{};
         bool _canvasNeedsClear{};
         bool _forceFullRedraw{ true };
         bool _ignoreCopyRect{};
         bool _crtEnabled{}; // Config::general.crtEffect when this frame began.
         bool _parallelThisFrame{};
+        bool _lampsThisFrame{};
         bool _verifyThisFrame{};
         id<MTLTexture> _verifyCanvas;
         id<MTLBuffer> _verifyDirtyPixels;
@@ -287,7 +297,11 @@ namespace
             : _window(static_cast<SDL_Window*>(uiContext.GetWindow()))
         {
             _rt.DrawingEngine = this;
-            LightFx::SetAvailable(false);
+            // Lights are collected while painting and drawn by the GPU; the palette keeps its
+            // daylight colours so the interface is never darkened (see shadePixel).
+            LightFx::SetAvailable(true);
+            LightFx::SetEngineLighting(true);
+            updateStandardPalette();
         }
 
         ~MetalDrawingEngine() override
@@ -301,6 +315,8 @@ namespace
             _weatherDrawer.reset();
             _context.reset();
             _textureCache.reset();
+            LightFx::SetEngineLighting(false);
+            LightFx::SetAvailable(false);
             if (_view)
                 SDL_Metal_DestroyView(_view);
         }
@@ -320,6 +336,7 @@ namespace
             auto raster = [MTLRenderPipelineDescriptor new];
             raster.vertexFunction = [library newFunctionWithName:@"rasterVertex"];
             raster.colorAttachments[0].pixelFormat = MTLPixelFormatR8Uint;
+            raster.colorAttachments[1].pixelFormat = MTLPixelFormatR32Float;
             raster.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
             auto constants = [MTLFunctionConstantValues new];
             uint32_t profileMode = _debug.profileMode;
@@ -333,6 +350,7 @@ namespace
             Require(_opaquePipeline != nil, "Unable to create the Metal opaque pipeline");
             raster.fragmentFunction = [library newFunctionWithName:@"rasterDependent"];
             raster.label = @"Destination-dependent commands";
+            raster.colorAttachments[1].writeMask = MTLColorWriteMaskNone;
             _dependentPipeline = [_device newRenderPipelineStateWithDescriptor:raster error:&error];
             Require(_independentPipeline != nil && _dependentPipeline != nil, "Unable to create the Metal raster pipelines");
 
@@ -351,6 +369,21 @@ namespace
             present.label = @"CRT signal";
             _crtSignalPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
             Require(_crtPipeline != nil && _crtSignalPipeline != nil, "Unable to create the Metal CRT pipelines");
+
+            auto light = [MTLRenderPipelineDescriptor new];
+            light.vertexFunction = [library newFunctionWithName:@"lightVertex"];
+            light.fragmentFunction = [library newFunctionWithName:@"lightFragment"];
+            light.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
+            light.colorAttachments[0].blendingEnabled = YES;
+            light.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
+            light.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+            light.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
+            light.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOne;
+            light.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+            light.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
+            light.label = @"Lamp light";
+            _lightPipeline = [_device newRenderPipelineStateWithDescriptor:light error:&error];
+            Require(_lightPipeline != nil, "Unable to create the Metal light pipeline");
 
             auto depth = [MTLDepthStencilDescriptor new];
             depth.depthCompareFunction = MTLCompareFunctionLess;
@@ -413,11 +446,9 @@ namespace
 
         void SetPalette(const GamePalette& colours) override
         {
-            auto linear = [](uint8_t value) { return static_cast<_Float16>(std::pow(value / 255.0f, kCrtGamma)); };
             for (size_t i = 0; i < _palette.size(); ++i)
             {
                 _palette[i] = colours[i].red | (colours[i].green << 8) | (colours[i].blue << 16) | 0xFF000000u;
-                _linearPalette[i] = { linear(colours[i].red), linear(colours[i].green), linear(colours[i].blue), 1 };
             }
         }
 
@@ -456,11 +487,16 @@ namespace
             _textureCache->BeginFrame(_frame);
             _weatherDrawer->BeginFrame();
             _context->BeginFrame(_parallelThisFrame);
+            const auto* main = WindowGetMain();
+            _context->SetLitViewport(main != nullptr ? main->viewport : nullptr);
+            // Lamps are collected while painting, so every frame that shows them repaints the
+            // whole screen.
+            _lampsThisFrame = LightFx::IsAvailable() && gDayNightCycle > 0;
         }
 
         void PaintWindows() override
         {
-            if (_forceFullRedraw || _debug.fullRedraw || gPaintForceRedraw || Weather::hasWeatherEffect())
+            if (_forceFullRedraw || _debug.fullRedraw || gPaintForceRedraw || Weather::hasWeatherEffect() || _lampsThisFrame)
             {
                 // Rain and snow are drawn over the canvas, so frames with weather are redrawn in
                 // full (as in the OpenGL engine). Viewport copies would be overdrawn anyway.
@@ -494,7 +530,9 @@ namespace
 
         void PaintWeather() override
         {
+            _context->SetWorldOverride(true);
             DrawWeather(_rt, _weatherDrawer.get());
+            _context->SetWorldOverride(false);
         }
 
         void CopyRect(int32_t x, int32_t y, int32_t width, int32_t height, int32_t dx, int32_t dy) override
@@ -617,12 +655,15 @@ namespace
         void EncodeCopy(id<MTLCommandBuffer> commandBuffer, const CopyOperation& copy);
         void EncodeReference(
             id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms);
+        void UpdateLighting();
+        void EncodeLights(id<MTLCommandBuffer> commandBuffer);
         void EncodePresent(id<MTLCommandBuffer> commandBuffer);
         bool EncodeCrtSignal(id<MTLCommandBuffer> commandBuffer, const CrtUniforms& crt);
         void CompareWithReference();
         bool ReadCanvas();
         bool EnsureVerificationResources();
         void LogStatistics(size_t commands);
+        void SaveShadedImage();
     };
 
     void MetalDrawingEngine::UpdateCanvasSize()
@@ -656,7 +697,14 @@ namespace
         depthDescriptor.storageMode = MTLStorageModeMemoryless;
         depthDescriptor.usage = MTLTextureUsageRenderTarget;
         _depth = [_device newTextureWithDescriptor:depthDescriptor];
+        descriptor.pixelFormat = MTLPixelFormatR32Float;
+        _height = [_device newTextureWithDescriptor:descriptor];
+        _height.label = @"OpenRCT2 world height";
+        descriptor.pixelFormat = MTLPixelFormatRGBA16Float;
+        _light = [_device newTextureWithDescriptor:descriptor];
+        _light.label = @"OpenRCT2 lamp light";
         _copyScratch = nil;
+        _heightScratch = nil;
         _canvasNeedsClear = true;
         _forceFullRedraw = true;
         _context->SetTarget(_rt);
@@ -671,7 +719,7 @@ namespace
             if (_referenceCanvas != nil)
                 std::memset(_referenceCanvas.contents, kInitialCanvasIndex, pixels);
         }
-        if (_canvas == nil || _depth == nil)
+        if (_canvas == nil || _depth == nil || _height == nil || _light == nil)
             LOG_ERROR("Metal canvas allocation failed (%ux%u)", width, height);
         LOG_INFO(
             "Metal canvas=%ux%u scale=%u presented=%dx%d offset=%u,%u", width, height, _presentScale, presentation.w,
@@ -742,6 +790,11 @@ namespace
         pass.colorAttachments[0].loadAction = clear ? MTLLoadActionClear : MTLLoadActionLoad;
         pass.colorAttachments[0].clearColor = MTLClearColorMake(kInitialCanvasIndex, 0, 0, 0);
         pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+        // Heights follow the main canvas; the verification canvas redraws the same frame.
+        pass.colorAttachments[1].texture = _height;
+        pass.colorAttachments[1].loadAction = clear && target == _canvas ? MTLLoadActionClear : MTLLoadActionLoad;
+        pass.colorAttachments[1].clearColor = MTLClearColorMake(kHeightInterface, 0, 0, 0);
+        pass.colorAttachments[1].storeAction = MTLStoreActionStore;
         pass.depthAttachment.texture = _depth;
         pass.depthAttachment.loadAction = MTLLoadActionClear;
         pass.depthAttachment.clearDepth = 1.0;
@@ -784,44 +837,144 @@ namespace
 
     void MetalDrawingEngine::EncodeCopy(id<MTLCommandBuffer> commandBuffer, const CopyOperation& copy)
     {
-        if (_copyScratch == nil)
-        {
-            auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Uint
-                                                                                 width:_canvasWidth
-                                                                                height:_canvasHeight
-                                                                             mipmapped:NO];
-            descriptor.storageMode = MTLStorageModePrivate;
-            descriptor.usage = MTLTextureUsageShaderRead;
-            _copyScratch = [_device newTextureWithDescriptor:descriptor];
-            if (_copyScratch == nil)
+        auto scratch = [this](id<MTLTexture> __strong& texture, MTLPixelFormat format) {
+            if (texture == nil)
             {
-                _forceFullRedraw = true;
-                return;
+                auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format
+                                                                                     width:_canvasWidth
+                                                                                    height:_canvasHeight
+                                                                                 mipmapped:NO];
+                descriptor.storageMode = MTLStorageModePrivate;
+                descriptor.usage = MTLTextureUsageShaderRead;
+                texture = [_device newTextureWithDescriptor:descriptor];
             }
+            return texture != nil;
+        };
+        if (!scratch(_copyScratch, MTLPixelFormatR8Uint) || !scratch(_heightScratch, MTLPixelFormatR32Float))
+        {
+            _forceFullRedraw = true;
+            return;
         }
         // Source and destination overlap, so go through a scratch texture.
         const auto size = MTLSizeMake(copy.width, copy.height, 1);
         auto blit = [commandBuffer blitCommandEncoder];
         blit.label = @"OpenRCT2 viewport move";
-        [blit copyFromTexture:_canvas
-                  sourceSlice:0
-                  sourceLevel:0
-                 sourceOrigin:MTLOriginMake(copy.x - copy.dx, copy.y - copy.dy, 0)
-                   sourceSize:size
-                    toTexture:_copyScratch
-             destinationSlice:0
-             destinationLevel:0
-            destinationOrigin:MTLOriginMake(0, 0, 0)];
-        [blit copyFromTexture:_copyScratch
-                  sourceSlice:0
-                  sourceLevel:0
-                 sourceOrigin:MTLOriginMake(0, 0, 0)
-                   sourceSize:size
-                    toTexture:_canvas
-             destinationSlice:0
-             destinationLevel:0
-            destinationOrigin:MTLOriginMake(copy.x, copy.y, 0)];
+        auto move = [&](id<MTLTexture> texture, id<MTLTexture> through) {
+            [blit copyFromTexture:texture
+                      sourceSlice:0
+                      sourceLevel:0
+                     sourceOrigin:MTLOriginMake(copy.x - copy.dx, copy.y - copy.dy, 0)
+                       sourceSize:size
+                        toTexture:through
+                 destinationSlice:0
+                 destinationLevel:0
+                destinationOrigin:MTLOriginMake(0, 0, 0)];
+            [blit copyFromTexture:through
+                      sourceSlice:0
+                      sourceLevel:0
+                     sourceOrigin:MTLOriginMake(0, 0, 0)
+                       sourceSize:size
+                        toTexture:texture
+                 destinationSlice:0
+                 destinationLevel:0
+                destinationOrigin:MTLOriginMake(copy.x, copy.y, 0)];
+        };
+        move(_canvas, _copyScratch);
+        move(_height, _heightScratch);
         [blit endEncoding];
+    }
+
+    // Lights of the main viewport and the natural light for this frame (see shadePixel).
+    void MetalDrawingEngine::UpdateLighting()
+    {
+        LightFx::TakeLights(_lightSources);
+        _lights.clear();
+        const auto* main = WindowGetMain();
+        const auto* viewport = main != nullptr ? main->viewport : nullptr;
+        float pollution = 0;
+        if (_lampsThisFrame && viewport != nullptr)
+        {
+            const float step = std::ldexp(1.0f, static_cast<int8_t>(viewport->zoom));
+            _lightView = { viewport->viewPos.x - viewport->pos.x * step, viewport->viewPos.y - viewport->pos.y * step, step, 0 };
+            for (const auto& source : _lightSources)
+            {
+                const auto type = static_cast<uint8_t>(source.type);
+                if (type < static_cast<uint8_t>(LightFx::LightType::lantern0))
+                    continue;
+                const bool spot = type >= static_cast<uint8_t>(LightFx::LightType::spot0);
+                // LightFx's baked textures are 32 << size zoom-0 pixels across.
+                const float radius = static_cast<float>(16 << (type & 3));
+                // Colours by what the light belongs to; path lamps keep LightFx's sodium tint.
+                static constexpr std::array<std::array<float, 3>, 5> kColours{ {
+                    { 1.00f, 0.95f, 0.45f }, // Path lamp.
+                    { 1.00f, 0.85f, 0.60f }, // Ride entrance.
+                    { 1.00f, 0.92f, 0.75f }, // Park entrance.
+                    { 1.00f, 0.70f, 0.35f }, // Shop and kiosk.
+                    { 0.75f, 0.85f, 1.00f }, // Vehicle.
+                } };
+                const auto& colour = kColours[std::min<size_t>(static_cast<size_t>(source.colour), kColours.size() - 1)];
+                const LightInstance light{
+                    static_cast<float>(source.viewCoords.x),
+                    static_cast<float>(source.viewCoords.y + source.position.z),
+                    static_cast<float>(source.position.z),
+                    radius,
+                    colour[0],
+                    colour[1],
+                    colour[2],
+                    spot ? 1u : 0u,
+                };
+                // Cull lights whose quad misses the canvas (see lightVertex).
+                const float x = (light.viewX - _lightView.viewOriginX) / step;
+                const float y = (light.viewY - light.height - _lightView.viewOriginY) / step;
+                const float extent = 1.5f * radius / step;
+                if (x + extent < 0 || y + extent < 0 || x - extent > _rt.width || y - extent > _rt.height)
+                    continue;
+                _lights.push_back(light);
+                // LightFx's light pollution: the area of every visible light texture / 256.
+                pollution += 4.0f * radius * radius / (step * step) / 256.0f;
+            }
+        }
+
+        const auto ambient = LightFx::ComputeAmbientLight(pollution);
+        _ambient = {};
+        _ambient.mode = !Config::Get().general.dayNightCycle ? 0u : LightFx::IsAvailable() ? 2u : 1u;
+        _ambient.night = ambient.lightning ? -1.0f : ambient.night;
+        _ambient.naturalR = ambient.naturalLight[0];
+        _ambient.naturalG = ambient.naturalLight[1];
+        _ambient.naturalB = ambient.naturalLight[2];
+        _ambient.fogR = ambient.fog[0];
+        _ambient.fogG = ambient.fog[1];
+        _ambient.fogB = ambient.fog[2];
+        _ambient.environmentFog = ambient.environmentFog;
+        _ambient.reduceNatural = ambient.reduceNatural;
+        _ambient.reduceLit = ambient.reduceLit;
+        _ambient.lightFog = ambient.lightFog;
+    }
+
+    void MetalDrawingEngine::EncodeLights(id<MTLCommandBuffer> commandBuffer)
+    {
+        auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
+        pass.colorAttachments[0].texture = _light;
+        pass.colorAttachments[0].loadAction = MTLLoadActionClear;
+        pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 0);
+        pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+        auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
+        encoder.label = @"OpenRCT2 lamp light";
+        if (!_lights.empty() && _ambient.mode == 2)
+        {
+            const FrameUniforms frame{ _canvasWidth, _canvasHeight, 0, 0 };
+            [encoder setRenderPipelineState:_lightPipeline];
+            const size_t bytes = _lights.size() * sizeof(LightInstance);
+            id<MTLBuffer> buffer = [_device newBufferWithBytes:_lights.data() length:bytes options:MTLResourceStorageModeShared];
+            [encoder setVertexBuffer:buffer offset:0 atIndex:kBufferLights];
+            [encoder setVertexBytes:&_lightView length:sizeof(_lightView) atIndex:kBufferLightUniforms];
+            [encoder setVertexBytes:&frame length:sizeof(frame) atIndex:kBufferUniforms];
+            [encoder setFragmentBuffer:buffer offset:0 atIndex:kBufferLights];
+            [encoder setFragmentBytes:&_lightView length:sizeof(_lightView) atIndex:kBufferLightUniforms];
+            [encoder setFragmentTexture:_height atIndex:kTextureHeight];
+            [encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:_lights.size()];
+        }
+        [encoder endEncoding];
     }
 
     void MetalDrawingEngine::EncodePresent(id<MTLCommandBuffer> commandBuffer)
@@ -840,6 +993,7 @@ namespace
             kCrtSharpness,
             kCrtGamma,
         };
+        EncodeLights(commandBuffer);
         const bool useCrt = _crtEnabled && EncodeCrtSignal(commandBuffer, crt);
 
         const auto waitStart = std::chrono::steady_clock::now();
@@ -875,7 +1029,10 @@ namespace
                 const PresentUniforms uniforms{ _drawableOffsetX, _drawableOffsetY, _presentScale };
                 [encoder setRenderPipelineState:_presentPipeline];
                 [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
+                [encoder setFragmentTexture:_height atIndex:kTextureHeight];
+                [encoder setFragmentTexture:_light atIndex:kTextureLight];
                 [encoder setFragmentBytes:_palette.data() length:sizeof(_palette) atIndex:kBufferPalette];
+                [encoder setFragmentBytes:&_ambient length:sizeof(_ambient) atIndex:kBufferAmbient];
                 [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
             }
             [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
@@ -884,7 +1041,7 @@ namespace
         [commandBuffer presentDrawable:drawable];
     }
 
-    // Decodes the canvas into the linear CRT signal texture.
+    // Shades the canvas into the linear CRT signal texture.
     bool MetalDrawingEngine::EncodeCrtSignal(id<MTLCommandBuffer> commandBuffer, const CrtUniforms& crt)
     {
         if (crt.logicalWidth == 0 || crt.logicalHeight == 0)
@@ -930,7 +1087,11 @@ namespace
         encoder.label = @"OpenRCT2 CRT signal";
         [encoder setRenderPipelineState:_crtSignalPipeline];
         [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
-        [encoder setFragmentBytes:_linearPalette.data() length:sizeof(_linearPalette) atIndex:kBufferPalette];
+        [encoder setFragmentTexture:_height atIndex:kTextureHeight];
+        [encoder setFragmentTexture:_light atIndex:kTextureLight];
+        [encoder setFragmentBytes:_palette.data() length:sizeof(_palette) atIndex:kBufferPalette];
+        [encoder setFragmentBytes:&_ambient length:sizeof(_ambient) atIndex:kBufferAmbient];
+        [encoder setFragmentBytes:&crt length:sizeof(crt) atIndex:kBufferUniforms];
         [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
         [encoder endEncoding];
         return true;
@@ -1206,6 +1367,7 @@ namespace
                 if (segment.copy)
                     EncodeCopy(commandBuffer, *segment.copy);
             }
+            UpdateLighting();
             EncodePresent(commandBuffer);
 
             const auto statistics = _gpuStatistics;
@@ -1268,12 +1430,67 @@ namespace
                 CompareDirtyWithFull();
             }
             _verifyThisFrame = false;
+            if (_debug.shadedShotInterval != 0 && _framesDrawn % _debug.shadedShotInterval == 0)
+                SaveShadedImage();
         }
         const auto end = std::chrono::steady_clock::now();
         _encodeMilliseconds += Milliseconds(end - encodeStart);
         _cpuMilliseconds += Milliseconds(end - _beginDrawTime);
         if (_frame % kStatisticsInterval == 0)
             LogStatistics(frame.commands.size());
+    }
+
+    // OPENRCT2_METAL_SHADED_SHOT: the presentation pass at one pixel per logical pixel.
+    void MetalDrawingEngine::SaveShadedImage()
+    {
+        [_lastCommand waitUntilCompleted];
+        auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+                                                                             width:_canvasWidth
+                                                                            height:_canvasHeight
+                                                                         mipmapped:NO];
+        descriptor.storageMode = MTLStorageModeShared;
+        descriptor.usage = MTLTextureUsageRenderTarget;
+        id<MTLTexture> target = [_device newTextureWithDescriptor:descriptor];
+        if (target == nil)
+            return;
+        auto commandBuffer = [_queue commandBuffer];
+        auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
+        pass.colorAttachments[0].texture = target;
+        pass.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+        pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+        auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
+        const PresentUniforms uniforms{ 0, 0, 1 };
+        [encoder setRenderPipelineState:_presentPipeline];
+        [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
+        [encoder setFragmentTexture:_height atIndex:kTextureHeight];
+        [encoder setFragmentTexture:_light atIndex:kTextureLight];
+        [encoder setFragmentBytes:_palette.data() length:sizeof(_palette) atIndex:kBufferPalette];
+        [encoder setFragmentBytes:&_ambient length:sizeof(_ambient) atIndex:kBufferAmbient];
+        [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
+        [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+        [encoder endEncoding];
+        [commandBuffer commit];
+        [commandBuffer waitUntilCompleted];
+
+        std::vector<uint8_t> pixels(static_cast<size_t>(_canvasWidth) * _canvasHeight * 4);
+        [target getBytes:pixels.data()
+             bytesPerRow:_canvasWidth * 4
+              fromRegion:MTLRegionMake2D(0, 0, _canvasWidth, _canvasHeight)
+             mipmapLevel:0];
+        auto colourSpace = CGColorSpaceCreateDeviceRGB();
+        auto context = CGBitmapContextCreate(
+            pixels.data(), _canvasWidth, _canvasHeight, 8, _canvasWidth * 4, colourSpace,
+            kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Little);
+        auto image = CGBitmapContextCreateImage(context);
+        NSString* documents = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+        NSString* path = [documents stringByAppendingFormat:@"/metal-shaded-%llu.png", static_cast<unsigned long long>(_framesDrawn)];
+        if (image != nullptr && [UIImagePNGRepresentation([UIImage imageWithCGImage:image]) writeToFile:path atomically:YES])
+            LOG_INFO(
+                "Metal shaded image: %s lights=%zu mode=%u night=%.2f", path.UTF8String, _lights.size(), _ambient.mode,
+                _ambient.night);
+        CGImageRelease(image);
+        CGContextRelease(context);
+        CGColorSpaceRelease(colourSpace);
     }
 
     void MetalDrawingEngine::LogStatistics(size_t commands)

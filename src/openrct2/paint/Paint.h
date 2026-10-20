@@ -303,4 +303,16 @@ void PaintSessionFree(PaintSession* session);
 void PaintSessionGenerate(PaintSession& session);
 void PaintSessionArrange(PaintSessionCore& session);
 void PaintDrawStructs(PaintSession& session);
+
+// The paint struct being drawn on this thread, for drawing engines that light the world: the
+// height range of its bounding box and the zoom-0 screen y of the box's centre at height 0.
+// A pixel of its image at zoom-0 screen y is at about height groundY - y within that range.
+struct PaintDrawBounds
+{
+    bool valid{};
+    int32_t groundY{};
+    int32_t zLow{};
+    int32_t zHigh{};
+};
+extern thread_local PaintDrawBounds gPaintDrawBounds;
 void PaintDrawMoneyStructs(OpenRCT2::Drawing::RenderTarget& rt, PaintStringStruct* ps);

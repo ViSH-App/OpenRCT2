@@ -71,7 +71,7 @@ namespace OpenRCT2
             // Reference rasterizer tiles (logical pixels).
             METAL_CONSTANT MetalUInt kReferenceTileSize = 16u;
 
-            // One recorded drawing operation, in logical (UI) pixels. 56 bytes.
+            // One recorded drawing operation, in logical (UI) pixels. 72 bytes.
             struct DrawCommand
             {
                 // Source sampling: texel = floor((point - origin) * scale), where point is the
@@ -102,6 +102,53 @@ namespace OpenRCT2
                 MetalUShort mapRow;
                 MetalUChar colour;    // Fill and text colour.
                 MetalUChar threshold; // Text hinting threshold; 0 disables blending.
+                // World height of each pixel written, for lighting: clamp(heightBase - y *
+                // heightStep, heightLow, heightHigh) at logical row y. The interface and parts of
+                // the world without a height use the kHeight* markers (heightStep 0).
+                float heightBase;
+                float heightStep;
+                float heightLow;
+                float heightHigh;
+            };
+
+            // Height-texture markers below every world height.
+            METAL_CONSTANT float kHeightInterface = -1.0e9f; // Never darkened or lit.
+            METAL_CONSTANT float kHeightUnlit = -5.0e8f;     // World without a height: darkened, not lit.
+            METAL_CONSTANT float kHeightLitBelow = -1.0e8f;  // Heights above this are lit.
+
+            // One light of the main viewport, in its zoom-0 view space (x, y at height 0).
+            struct LightInstance
+            {
+                float viewX;
+                float viewY; // Ground position: screen y + height.
+                float height;
+                float radius; // World units at which the light has faded out.
+                float red;    // Colour times intensity.
+                float green;
+                float blue;
+                MetalUInt spot; // Spot profile (1) or lantern profile (0).
+            };
+
+            // Maps logical pixels of the main viewport to its zoom-0 view space.
+            struct LightUniforms
+            {
+                float viewOriginX; // View position of logical pixel (0, 0).
+                float viewOriginY;
+                float viewStep;    // View units per logical pixel (2^zoom).
+                float pad;
+            };
+
+            // Natural light and fog (LightFx::AmbientLight), in 0-255 palette units.
+            struct AmbientUniforms
+            {
+                float naturalR, naturalG, naturalB;
+                float night; // < 0: no darkening at all.
+                float fogR, fogG, fogB;
+                float environmentFog;
+                float reduceNatural;
+                float reduceLit;
+                float lightFog;
+                MetalUInt mode; // 0 daylight, 1 day-night only (SoftLight), 2 full lighting.
             };
 
             struct FrameUniforms
@@ -155,6 +202,10 @@ namespace OpenRCT2
             METAL_CONSTANT MetalUInt kBufferUniforms = 4;
             // Fragment buffer bindings.
             METAL_CONSTANT MetalUInt kBufferPalette = 2;
+            METAL_CONSTANT MetalUInt kBufferAmbient = 3;
+            // Light pass bindings.
+            METAL_CONSTANT MetalUInt kBufferLights = 0;
+            METAL_CONSTANT MetalUInt kBufferLightUniforms = 1;
             // Reference kernel buffer bindings.
             METAL_CONSTANT MetalUInt kReferenceCommands = 0;
             METAL_CONSTANT MetalUInt kReferenceUniforms = 3;
@@ -168,6 +219,8 @@ namespace OpenRCT2
             METAL_CONSTANT MetalUInt kTextureBlend = 2;
             METAL_CONSTANT MetalUInt kTextureCanvas = 3;
             METAL_CONSTANT MetalUInt kTextureCrtBeams = 4;
+            METAL_CONSTANT MetalUInt kTextureHeight = 5;
+            METAL_CONSTANT MetalUInt kTextureLight = 6;
 
             // CRT beam table: light per (sqrt of the brightest channel, distance in logical rows).
             METAL_CONSTANT MetalUInt kCrtBeamIntensities = 64;
@@ -177,5 +230,6 @@ namespace OpenRCT2
 } // namespace OpenRCT2
 
 #ifndef __METAL_VERSION__
-static_assert(sizeof(OpenRCT2::Ui::Metal::DrawCommand) == 56);
+static_assert(sizeof(OpenRCT2::Ui::Metal::DrawCommand) == 72);
+static_assert(sizeof(OpenRCT2::Ui::Metal::LightInstance) == 32);
 #endif

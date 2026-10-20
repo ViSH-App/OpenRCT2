@@ -73,22 +73,22 @@ static void PaintRideEntranceExitLightEffects(PaintSession& session, int32_t hei
     {
         if (entranceEl.getEntranceType() == EntranceType::rideEntrance)
         {
-            LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 0, 0, height + 45, LightType::lantern3);
+            LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 0, 0, height + 45, LightType::lantern3, LightFx::LightColour::rideEntrance);
         }
 
         switch (entranceEl.getDirection())
         {
             case 0:
-                LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 16, 0, height + 16, LightType::lantern2);
+                LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 16, 0, height + 16, LightType::lantern2, LightFx::LightColour::rideEntrance);
                 break;
             case 1:
-                LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 0, -16, height + 16, LightType::lantern2);
+                LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 0, -16, height + 16, LightType::lantern2, LightFx::LightColour::rideEntrance);
                 break;
             case 2:
-                LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, -16, 0, height + 16, LightType::lantern2);
+                LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, -16, 0, height + 16, LightType::lantern2, LightFx::LightColour::rideEntrance);
                 break;
             case 3:
-                LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 0, 16, height + 16, LightType::lantern2);
+                LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 0, 16, height + 16, LightType::lantern2, LightFx::LightColour::rideEntrance);
                 break;
         }
     }
@@ -240,7 +240,7 @@ static void PaintParkEntranceLightEffects(PaintSession& session)
 
     if (LightFx::IsAvailable())
     {
-        LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 0, 0, 155, LightType::lantern3);
+        LightFx::Add3DLightMagicFromDrawingTile(session.MapPosition, 0, 0, 155, LightType::lantern3, LightFx::LightColour::parkEntrance);
     }
 }
 

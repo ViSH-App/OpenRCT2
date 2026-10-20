@@ -903,6 +903,7 @@ namespace OpenRCT2
         worldRT.height = height;
         worldRT.pitch = rt.LineStride() - worldRT.width;
         worldRT.zoom_level = viewport->zoom;
+        worldRT.viewport = viewport;
 
         _paintColumns.clear();
 

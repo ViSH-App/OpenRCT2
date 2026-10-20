@@ -93,7 +93,7 @@ The importer uses security-scoped access and file coordination. It copies the re
 
 ## Playing and saving
 
-The existing OpenRCT2 interface and construction tools are retained. The default interface scale is 1.5 with enlarged controls enabled; use Options → Display to adjust it. Interface scales step by 0.5 (1.0, 1.5, 2.0, …) so that every logical pixel is a whole number of physical pixels (2, 3, 4, … on the iPad's 2× display); other values in an older configuration are rounded to the nearest such scale. The logical size is the content viewport divided by that number, and physical pixels left over below one logical pixel stay black at the right and bottom edges. Options → Display → Drawing Engine offers **Software** and **Metal**. Software uses the original CPU rasterizer with SDL Metal presentation. Metal uses a native indexed-colour GPU renderer for sprites, palette remapping/filtering, text and weather (see **Metal renderer** below). Both engines draw the game at its logical resolution, one canvas pixel per logical pixel as in the original software renderer, and show it scaled by that whole number with nearest-neighbour sampling. UI layout, park view scale, hit testing and touch coordinates use the same logical space. New installations start with Metal; existing installations keep their selected engine. If Metal cannot start, the game falls back to Software and saves that choice. Like the desktop OpenGL engine, Metal does not provide LightFX. Game coordinates and input coordinates exclude the native top strip and safe-area insets. Retina pixels are not confused with UIKit points.
+The existing OpenRCT2 interface and construction tools are retained. The default interface scale is 1.5 with enlarged controls enabled; use Options → Display to adjust it. Interface scales step by 0.5 (1.0, 1.5, 2.0, …) so that every logical pixel is a whole number of physical pixels (2, 3, 4, … on the iPad's 2× display); other values in an older configuration are rounded to the nearest such scale. The logical size is the content viewport divided by that number, and physical pixels left over below one logical pixel stay black at the right and bottom edges. Options → Display → Drawing Engine offers **Software** and **Metal**. Software uses the original CPU rasterizer with SDL Metal presentation. Metal uses a native indexed-colour GPU renderer for sprites, palette remapping/filtering, text and weather (see **Metal renderer** below). Both engines draw the game at its logical resolution, one canvas pixel per logical pixel as in the original software renderer, and show it scaled by that whole number with nearest-neighbour sampling. UI layout, park view scale, hit testing and touch coordinates use the same logical space. New installations start with Metal; existing installations keep their selected engine. If Metal cannot start, the game falls back to Software and saves that choice. With the day-night cycle and lighting effects enabled, Metal darkens and lights the park on the GPU (see **Lighting** below); the interface keeps its daylight colours. Game coordinates and input coordinates exclude the native top strip and safe-area insets. Retina pixels are not confused with UIKit points.
 
 - Tap menus and buttons once.
 - With a placement tool active, move one finger to position the existing construction preview. Release to inspect it,
@@ -197,6 +197,31 @@ Sources are in `drawing/metal/`:
    effect, the canvas is first decoded into a linear-light texture of the same
    size, the scanline signal.
 
+### Lighting
+
+The day-night cycle and LightFX lights are applied at presentation, to the world only:
+
+- Every command records the world height of the pixels it writes, from the paint struct being
+  drawn (`gPaintDrawBounds`: its bounding box's height range and the screen y of its centre at
+  height 0). The raster pass writes it to an R32Float texture next to the canvas, kept and moved
+  with it. The interface writes a marker instead, and so do other viewports and world pixels
+  without a paint struct (darkened, not lit). Glass, water and filters leave the height behind
+  them. `RenderTarget::viewport` tells world drawing from the interface.
+- The game palette keeps its daylight colours (`LightFx::SetEngineLighting`). The natural light
+  of `LightFx::ApplyPaletteFilter` (night colour, fog, light pollution) is computed once per frame
+  (`LightFx::ComputeAmbientLight`) and applied per pixel in `shadePixel`; without lighting effects,
+  the day-night cycle alone uses the same SoftLight darkening as the palette did.
+- Lights are collected while painting (`LightFx::TakeLights`), with a colour by what they belong
+  to: path lamps, ride and park entrances, shops and kiosks, vehicles. Each is a quad in a light
+  pass that adds LightFx's lantern or spot profile into an RGBA16Float texture, by the distance in
+  the world between the light and the pixel (from its height), so light does not spill onto things
+  far above or below. Frames with lights repaint the whole screen, since lights are only collected
+  where the game paints.
+- Lamp light is mixed in as `MixLight` does. With the CRT effect, the shaded colours are the signal.
+
+`OPENRCT2_METAL_SHADED_SHOT=n` saves the shaded canvas every `n` frames (game screenshots are
+indexed colour, before shading).
+
 Per-frame command data uses ring buffers, one per frame in flight (three).
 Uploads to the atlas and palette textures are staged and encoded as blits at
 the start of the frame, so they run after earlier frames have read the
@@ -263,6 +288,7 @@ switch to turn it off; do not set its value to `0`.
 | `OPENRCT2_METAL_INTERIOR=n` | Opaque interior bands per sprite (default 12; 0 disables). |
 | `OPENRCT2_METAL_FULL_AREA=f`, `OPENRCT2_METAL_MAX_RECTS=n` | Redraw the whole screen when dirty regions cover at least fraction `f`, or need more than `n` rectangles (off by default; this made pacing worse). |
 | `OPENRCT2_METAL_COARSEN=n` | Re-merge dirty regions on a 64-pixel grid above `n` rectangles (off by default; this made pacing worse). |
+| `OPENRCT2_METAL_SHADED_SHOT=n` | Every `n` drawn frames, save the shaded canvas (day-night and lights, without CRT) to `Documents/metal-shaded-<frame>.png`. |
 | `OPENRCT2_METAL_PROFILE=n` | Fragment-shader profiling variants: 1 skips palette remaps, 3 never discards (deliberately draws a broken image). |
 
 With `OPENRCT2_METAL_COMPARE_GPU=1`, every frame is also drawn by a simple

@@ -1174,7 +1174,11 @@ namespace OpenRCT2::Ui::Windows
 
             setCheckboxValue(WIDX_ENABLE_LIGHT_FX_CHECKBOX, Config::Get().general.enableLightFx);
             const bool lightFxEnabled = Config::Get().general.dayNightCycle
-                && Config::Get().general.drawingEngine == DrawingEngine::softwareWithHardwareDisplay;
+                && (Config::Get().general.drawingEngine == DrawingEngine::softwareWithHardwareDisplay
+#ifdef OPENRCT2_IOS
+                    || Config::Get().general.drawingEngine == DrawingEngine::metal
+#endif
+                );
             setWidgetDisabled(WIDX_ENABLE_LIGHT_FX_CHECKBOX, !lightFxEnabled);
             if (!lightFxEnabled)
                 Config::Get().general.enableLightFx = false;

@@ -66,6 +66,16 @@ namespace OpenRCT2::Ui::Metal
         ~DrawingContext() override;
 
         void SetTarget(const Drawing::RenderTarget& mainRT);
+        // The viewport whose world is lit; other viewports are only darkened at night.
+        void SetLitViewport(const Viewport* viewport)
+        {
+            _litViewport = viewport;
+        }
+        // Commands drawn into the interface's target that belong to the world (weather).
+        void SetWorldOverride(bool world)
+        {
+            _worldOverride = world;
+        }
         void BeginFrame(bool threadSafe);
         void AddCopy(const CopyOperation& copy);
         void AddMarker(SegmentMarker marker);
@@ -117,6 +127,8 @@ namespace OpenRCT2::Ui::Metal
 
         TextureCache& _textureCache;
         Drawing::RenderTarget _mainRT{};
+        const Viewport* _litViewport{};
+        bool _worldOverride{};
         const uint64_t _generation;
         bool _active{};
         bool _threadSafe{};

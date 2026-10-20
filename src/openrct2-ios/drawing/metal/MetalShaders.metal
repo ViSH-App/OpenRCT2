@@ -123,12 +123,22 @@ struct RasterVertex
     float4 sampling [[flat]]; // origin.xy, scale.xy
     uint4 source [[flat]];    // flags, mapLength, layer | mapRow << 16, atlasX | atlasY << 16
     uint4 extra [[flat]];     // size, maskLayer | colour << 16 | threshold << 24, mask, maskSize
+    float4 height [[flat]];   // heightBase, heightStep, heightLow, heightHigh
 };
 
+// The palette index, and the world height of the pixel for lighting (see DrawCommand). The
+// destination-dependent pipeline masks the height out: glass, water and filters show the
+// height of what is behind them.
 struct RasterOutput
 {
     uint colour [[color(0)]];
+    float height [[color(1)]];
 };
+
+inline float pixelHeight(RasterVertex in)
+{
+    return clamp(in.height.x - floor(in.position.y) * in.height.y, in.height.z, in.height.w);
+}
 
 vertex RasterVertex rasterVertex(
     uint vertexId [[vertex_id]], uint instanceId [[instance_id]],
@@ -149,6 +159,7 @@ vertex RasterVertex rasterVertex(
     out.extra = uint4(
         uint(c.width) | (uint(c.height) << 16), uint(c.maskLayer) | (uint(c.colour) << 16) | (uint(c.threshold) << 24),
         uint(c.maskX) | (uint(c.maskY) << 16), uint(c.maskWidth) | (uint(c.maskHeight) << 16));
+    out.height = float4(c.heightBase, c.heightStep, c.heightLow, c.heightHigh);
     return out;
 }
 
@@ -191,10 +202,10 @@ fragment RasterOutput rasterIndependent(
     if (colour == kNoWrite)
     {
         if (kProfileMode == 3)
-            return { 0u };
+            return { 0u, pixelHeight(in) };
         discard_fragment();
     }
-    return { uint(colour) };
+    return { uint(colour), pixelHeight(in) };
 }
 
 // Commands that write every pixel they cover (kCommandOpaque: plain fills and the opaque
@@ -208,7 +219,7 @@ fragment RasterOutput rasterOpaque(
     const int2 pixel = int2(in.position.xy);
     const CommandState c = stateFromVertex(in);
     const int colour = resolvePixel(c, float2(pixel), pixel, 0u, atlas, palettes, blend);
-    return { uint(max(colour, 0)) };
+    return { uint(max(colour, 0)), pixelHeight(in) };
 }
 
 // Commands that read the destination (palette filters, glass/water, hinted text). Apple GPUs
@@ -225,11 +236,117 @@ fragment RasterOutput rasterDependent(
     const int colour = resolvePixel(c, float2(pixel), pixel, destination, atlas, palettes, blend);
     if (colour == kNoWrite)
         discard_fragment();
-    return { uint(colour) };
+    return { uint(colour), 0.0f };
 }
 
 // ---------------------------------------------------------------------------------------
-// Presentation: palette lookup of the indexed canvas, each logical pixel a scale × scale square.
+// Lights of the main viewport, accumulated per logical pixel. Each light is a quad covering
+// every pixel it can reach; the fragment finds the pixel's world position from its height and
+// its view position, so a light reaches surfaces by their distance in the world rather than on
+// screen and does not spill onto things far above or below it. The falloff follows LightFx's
+// lantern and spot profiles, measured in world units instead of zoom-0 screen pixels.
+
+struct LightVertex
+{
+    float4 position [[position]];
+    uint light [[flat]];
+};
+
+vertex LightVertex lightVertex(
+    uint vertexId [[vertex_id]], uint instanceId [[instance_id]], device const LightInstance* lights [[buffer(kBufferLights)]],
+    constant LightUniforms& view [[buffer(kBufferLightUniforms)]], constant FrameUniforms& frame [[buffer(kBufferUniforms)]])
+{
+    const LightInstance light = lights[instanceId];
+    // A surface within the radius is at most 1.5 radii to the side on screen, and up to half a
+    // radius (ground) plus a radius (height) above or below.
+    const float2 centre = (float2(light.viewX, light.viewY - light.height) - float2(view.viewOriginX, view.viewOriginY))
+        / view.viewStep;
+    const float2 extent = float2(1.5f, 1.5f) * light.radius / view.viewStep;
+    const float2 corner = centre + extent * float2((vertexId & 1) != 0 ? 1 : -1, (vertexId & 2) != 0 ? 1 : -1);
+    LightVertex out;
+    out.position = float4(corner.x / float(frame.width) * 2.0f - 1.0f, 1.0f - corner.y / float(frame.height) * 2.0f, 0, 1);
+    out.light = instanceId;
+    return out;
+}
+
+// LightFx's baked profiles at distance d (zoom-0 pixels across a 256-pixel texture), in light
+// buffer units (0-255).
+inline float lanternProfile(float d)
+{
+    const float light = 0.03f + pow(10.0f / (1.0f + d * d / 100.0f), 0.55f);
+    return light * saturate(2.0f - d / 64.0f) * 0.1f * 255.0f;
+}
+
+inline float spotProfile(float d)
+{
+    const float light = 0.3f + pow(10.0f / (1.0f + d * d / 100.0f), 0.75f);
+    return min(255.0f, light * saturate(2.0f - d / 64.0f) * 0.5f * 255.0f) / 16.0f;
+}
+
+fragment half4 lightFragment(
+    LightVertex in [[stage_in]], texture2d<float, access::read> heights [[texture(kTextureHeight)]],
+    device const LightInstance* lights [[buffer(kBufferLights)]], constant LightUniforms& view [[buffer(kBufferLightUniforms)]])
+{
+    const uint2 pixel = uint2(in.position.xy);
+    const float height = heights.read(pixel).r;
+    if (height <= kHeightLitBelow)
+        discard_fragment();
+    const LightInstance light = lights[in.light];
+    // View position of the pixel centre, and of the ground below it.
+    const float2 viewPosition = float2(view.viewOriginX, view.viewOriginY) + (float2(pixel) + 0.5f) * view.viewStep;
+    const float dx = viewPosition.x - light.viewX;
+    const float dy = viewPosition.y + height - light.viewY;
+    const float dz = height - light.height;
+    // View x is y - x and ground view y is (x + y) / 2 in rotated world units.
+    const float distance = sqrt((dx * dx + 4.0f * dy * dy) * 0.5f + dz * dz);
+    const float d = distance * 128.0f / light.radius;
+    if (d >= 128.0f)
+        discard_fragment();
+    const float intensity = light.spot != 0 ? spotProfile(d) : lanternProfile(d);
+    return half4(half3(float3(light.red, light.green, light.blue) * intensity), 1);
+}
+
+// ---------------------------------------------------------------------------------------
+// World shading at presentation, following LightFx::ApplyPaletteFilter and MixLight in
+// 0-255 palette units: the night's SoftLight darkening, natural light and fog, and lamp light
+// on top. Interface pixels keep the palette's own colours.
+
+inline float3 softLight(float3 a, float3 b)
+{
+    const float3 low = 2.0f * a * b + a * a * (1.0f - 2.0f * b);
+    const float3 high = 2.0f * a * (1.0f - b) + sqrt(a) * (2.0f * b - 1.0f);
+    return saturate(select(high, low, b < 0.5f));
+}
+
+inline float3 shadePixel(float3 colour, float height, float3 light, constant AmbientUniforms& ambient)
+{
+
+    if (height <= kHeightInterface * 0.5f || ambient.mode == 0 || ambient.night < 0.0f)
+        return colour;
+    // Lerp(c, SoftLight(c, (8, 8, 128)), night).
+    const float3 dark = softLight(colour / 255.0f, float3(8, 8, 128) / 255.0f) * 255.0f;
+    const float3 night = mix(colour, dark, ambient.night);
+    if (ambient.mode == 1)
+        return night;
+    const float3 natural = float3(ambient.naturalR, ambient.naturalG, ambient.naturalB);
+    const float3 fog = float3(ambient.fogR, ambient.fogG, ambient.fogB);
+    const float3 base = clamp(night * ambient.reduceNatural * natural + ambient.environmentFog * fog, 0.0f, 255.0f);
+    const float3 lit = min(255.0f, night * ambient.reduceLit + ambient.lightFog);
+    // MixLight: base + lit * intensity * 6 / 256, the light buffer saturating at 255.
+    return min(255.0f, base + lit * min(light, 255.0f) * (6.0f / 256.0f));
+}
+
+inline float3 shadeCanvas(
+    uint2 pixel, texture2d<uint, access::read> canvas, texture2d<float, access::read> heights,
+    texture2d<half, access::read> lights, constant uchar4* palette, constant AmbientUniforms& ambient)
+{
+    const float3 colour = float3(palette[canvas.read(pixel).r].rgb);
+    const float3 light = ambient.mode == 2 ? float3(lights.read(pixel).rgb) : float3(0);
+    return shadePixel(colour, heights.read(pixel).r, light, ambient);
+}
+
+// ---------------------------------------------------------------------------------------
+// Presentation: the shaded canvas, each logical pixel a scale × scale square.
 
 struct PresentVertex
 {
@@ -244,16 +361,18 @@ vertex PresentVertex presentVertex(uint vertexId [[vertex_id]])
 
 fragment float4 presentFragment(
     PresentVertex in [[stage_in]], texture2d<uint, access::read> canvas [[texture(kTextureCanvas)]],
-    constant uchar4* palette [[buffer(kBufferPalette)]], constant PresentUniforms& present [[buffer(kBufferUniforms)]])
+    texture2d<float, access::read> heights [[texture(kTextureHeight)]],
+    texture2d<half, access::read> lights [[texture(kTextureLight)]], constant uchar4* palette [[buffer(kBufferPalette)]],
+    constant AmbientUniforms& ambient [[buffer(kBufferAmbient)]], constant PresentUniforms& present [[buffer(kBufferUniforms)]])
 {
     const uint2 pixel = (uint2(in.position.xy) - uint2(present.offsetX, present.offsetY)) / present.scale;
-    return float4(palette[canvas.read(pixel).r]) * (1.0f / 255.0f);
+    return float4(shadeCanvas(pixel, canvas, heights, lights, palette, ambient) / 255.0f, 1);
 }
 
 // ---------------------------------------------------------------------------------------
-// CRT presentation, in two passes. crtSignal decodes the canvas (the game's own resolution, the
-// "video signal") into a linear-light texture of the same size, using a palette already decoded
-// with the CRT gamma. crtFragment then draws every output pixel from the two nearest scanlines
+// CRT presentation, in two passes. crtSignal shades the canvas (the game's own resolution, the
+// "video signal") and decodes it with the CRT gamma into a linear-light texture of the same
+// size. crtFragment then draws every output pixel from the two nearest scanlines
 // with two bilinear fetches.
 //
 // The beam profile is precomputed per scale into a small table (see CrtBeamTable in
@@ -261,9 +380,12 @@ fragment float4 presentFragment(
 
 fragment half4 crtSignal(
     PresentVertex in [[stage_in]], texture2d<uint, access::read> canvas [[texture(kTextureCanvas)]],
-    constant half4* palette [[buffer(kBufferPalette)]])
+    texture2d<float, access::read> heights [[texture(kTextureHeight)]],
+    texture2d<half, access::read> lights [[texture(kTextureLight)]], constant uchar4* palette [[buffer(kBufferPalette)]],
+    constant AmbientUniforms& ambient [[buffer(kBufferAmbient)]], constant CrtUniforms& u [[buffer(kBufferUniforms)]])
 {
-    return palette[canvas.read(uint2(in.position.xy)).r];
+    const float3 colour = shadeCanvas(uint2(in.position.xy), canvas, heights, lights, palette, ambient) / 255.0f;
+    return half4(half3(pow(colour, u.outputGamma)), 1);
 }
 
 fragment float4 crtFragment(

@@ -24,6 +24,7 @@
     #include <openrct2/drawing/PaletteMap.h>
     #include <openrct2/drawing/TTF.h>
     #include <openrct2/interface/ScreenCoords.hpp>
+    #include <openrct2/paint/Paint.h>
     #include <openrct2/platform/Platform.h>
 
 using namespace OpenRCT2;
@@ -192,6 +193,26 @@ bool DrawingContext::Push(const RenderTarget& rt, DrawCommand command)
     command.top = static_cast<int16_t>(top);
     command.right = static_cast<int16_t>(right);
     command.bottom = static_cast<int16_t>(bottom);
+
+    // World height for lighting (see DrawCommand::heightBase).
+    if (rt.viewport == _litViewport && rt.viewport != nullptr && gPaintDrawBounds.valid)
+    {
+        // A pixel at logical row y is at zoom-0 view y (rt.y + y - origin.y) * step; its height is
+        // the paint struct's ground y minus that, within the bounding box (sampled at the centre).
+        const float step = std::ldexp(1.0f, static_cast<int8_t>(rt.zoom_level));
+        command.heightBase = static_cast<float>(gPaintDrawBounds.groundY) - (rt.y - origin.y + 0.5f) * step;
+        command.heightStep = step;
+        command.heightLow = static_cast<float>(gPaintDrawBounds.zLow);
+        command.heightHigh = static_cast<float>(std::max(gPaintDrawBounds.zLow, gPaintDrawBounds.zHigh));
+    }
+    else
+    {
+        const float marker = rt.viewport != nullptr || _worldOverride ? kHeightUnlit : kHeightInterface;
+        command.heightBase = marker;
+        command.heightStep = 0;
+        command.heightLow = marker;
+        command.heightHigh = marker;
+    }
 
     const auto kind = command.flags & kCommandKindMask;
     if (kind == kCommandFilter || (kind == kCommandSprite && (command.flags & kCommandRemapDestination) != 0)

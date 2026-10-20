@@ -12,6 +12,11 @@
 #include "../interface/ScreenCoords.hpp"
 #include "../interface/ZoomLevel.h"
 
+namespace OpenRCT2
+{
+    struct Viewport;
+}
+
 namespace OpenRCT2::Drawing
 {
     struct IDrawingEngine;
@@ -35,6 +40,10 @@ namespace OpenRCT2::Drawing
         ScreenCoordsXY lastStringPos{};
 
         IDrawingEngine* DrawingEngine{};
+
+        // The viewport whose world this target draws, or nullptr for the interface. Lets a
+        // drawing engine light the world without touching windows drawn over it.
+        const Viewport* viewport{};
 
         PaletteIndex* GetBitsOffset(const ScreenCoordsXY& pos) const;
         RenderTarget Crop(const ScreenCoordsXY& pos, const ScreenSize& size) const;

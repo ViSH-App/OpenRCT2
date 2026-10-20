@@ -695,8 +695,13 @@ static inline void PaintAttachedPS(RenderTarget& rt, PaintStruct* ps, ViewportFl
     }
 }
 
+thread_local PaintDrawBounds gPaintDrawBounds;
+
 static inline void PaintDrawStruct(PaintSession& session, PaintStruct* ps)
 {
+    const CoordsXYZ centre{ (ps->Bounds.x + ps->Bounds.x_end) / 2, (ps->Bounds.y + ps->Bounds.y_end) / 2, 0 };
+    gPaintDrawBounds = { true, Translate3DTo2DWithZ(session.CurrentRotation, centre).y, ps->Bounds.z, ps->Bounds.z_end };
+
     auto screenPos = ps->ScreenPos;
     if (ps->InteractionItem == ViewportInteractionItem::entity)
     {
@@ -743,6 +748,7 @@ void PaintDrawStructs(PaintSession& session)
     {
         PaintDrawStruct(session, ps);
     }
+    gPaintDrawBounds = {};
 }
 
 static void PaintPSImageWithBoundingBoxes(PaintSession& session, PaintStruct* ps, ImageId imageId, int32_t x, int32_t y)
