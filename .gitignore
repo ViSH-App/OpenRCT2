@@ -321,3 +321,6 @@ discord-rpc
 
 # CMake
 cmake-build-*/
+
+# Claude Code local files
+.claude/
