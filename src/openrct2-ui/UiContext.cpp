@@ -31,6 +31,7 @@
 #include <openrct2-ios/UiContext.iOS.h>
 #include <openrct2-ui/input/InputManager.h>
 #include <openrct2-ui/input/MouseInput.h>
+#include <openrct2-ui/interface/Widget.h>
 #include <openrct2-ui/interface/Window.h>
 #include <openrct2/Context.h>
 #include <openrct2/Diagnostic.h>
@@ -102,6 +103,7 @@ private:
         none,
         singlePending,
         singleDrag,
+        singleScroll, // Dragging the contents of a vertical scroll area.
         longPressFired,
         multiPending,
         multiPan,
@@ -169,6 +171,11 @@ private:
     float _touchLastAngle = 0;
     float _touchRotationAccumulator = 0;
     ScreenCoordsXY _touchLastRemovePosition{};
+    WindowClass _touchScrollWindowClass{};
+    WindowNumber _touchScrollWindowNumber{};
+    WidgetIndex _touchScrollWidget{};
+    int32_t _touchScrollIndex{};
+    int32_t _touchScrollLastY{};
 #endif
 
     InGameConsole _inGameConsole;
@@ -499,6 +506,53 @@ private:
         _cursorState.position = _touchGestureStart;
     }
 
+    // A finger dragged across a list scrolls it, as on any touch screen, instead of pressing (and
+    // with many lists, choosing) the item it started on.
+    bool BeginTouchScroll(const ScreenCoordsXY& start)
+    {
+        auto* windowMgr = GetWindowManager();
+        auto* w = windowMgr->FindFromPoint(start);
+        if (w == nullptr)
+            return false;
+        const auto widgetIndex = windowMgr->FindWidgetFromPoint(*w, start);
+        if (widgetIndex < 0 || w->widgets[widgetIndex].type != WidgetType::scroll)
+            return false;
+        int32_t scrollIndex = 0;
+        for (WidgetIndex i = 0; i < widgetIndex; i++)
+            if (w->widgets[i].type == WidgetType::scroll)
+                scrollIndex++;
+        const auto& scroll = w->scrolls[scrollIndex];
+        if (!scroll.flags.has(ScrollFlag::vScrollbarVisible) || scroll.contentHeight <= TouchScrollViewHeight(*w, widgetIndex, scrollIndex))
+            return false;
+        _touchScrollWindowClass = w->classification;
+        _touchScrollWindowNumber = w->number;
+        _touchScrollWidget = widgetIndex;
+        _touchScrollIndex = scrollIndex;
+        return true;
+    }
+
+    static int32_t TouchScrollViewHeight(const WindowBase& w, WidgetIndex widgetIndex, int32_t scrollIndex)
+    {
+        int32_t height = w.widgets[widgetIndex].height() - 2;
+        if (w.scrolls[scrollIndex].flags.has(ScrollFlag::hScrollbarVisible))
+            height -= 11;
+        return height;
+    }
+
+    void UpdateTouchScroll(int32_t y)
+    {
+        const int32_t delta = _touchScrollLastY - y;
+        _touchScrollLastY = y;
+        auto* w = GetWindowManager()->FindByNumber(_touchScrollWindowClass, _touchScrollWindowNumber);
+        if (w == nullptr || delta == 0 || _touchScrollWidget >= static_cast<WidgetIndex>(w->widgets.size()))
+            return;
+        auto& scroll = w->scrolls[_touchScrollIndex];
+        const int32_t maxOffset = std::max(0, scroll.contentHeight - TouchScrollViewHeight(*w, _touchScrollWidget, _touchScrollIndex));
+        scroll.contentOffsetY = std::clamp(scroll.contentOffsetY + delta, 0, maxOffset);
+        widgetScrollUpdateThumbs(*w, _touchScrollWidget);
+        w->invalidate();
+    }
+
     void HandleTouchMotion(const SDL_TouchFingerEvent& event)
     {
         const auto position = GetTouchPosition(event);
@@ -628,6 +682,12 @@ private:
             return;
         }
 
+        if (_touchGestureMode == TouchGestureMode::singleScroll)
+        {
+            UpdateTouchScroll(position.y);
+            return;
+        }
+
         if (_touchGestureMode == TouchGestureMode::singlePending
             && GetTouchDistanceSquared(position, _touchGestureStart) >= dragThresholdSquared)
         {
@@ -635,6 +695,12 @@ private:
             {
                 _lastTouchToolTapTimestamp = 0;
                 _touchGestureMode = TouchGestureMode::suppressed;
+            }
+            else if (BeginTouchScroll(_touchGestureStart))
+            {
+                _touchGestureMode = TouchGestureMode::singleScroll;
+                _touchScrollLastY = _touchGestureStart.y;
+                UpdateTouchScroll(position.y);
             }
             else
             {
@@ -714,6 +780,7 @@ private:
             case TouchGestureMode::singleDrag:
                 StoreTouchRelease(MouseState::leftRelease, position);
                 break;
+            case TouchGestureMode::singleScroll:
             case TouchGestureMode::suppressed:
             case TouchGestureMode::longPressFired:
             case TouchGestureMode::none:
