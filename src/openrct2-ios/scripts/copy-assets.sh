@@ -9,3 +9,8 @@ fi
 # ditto merges; drop previously bundled fonts so replaced ones do not linger in the app.
 rm -rf "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/fonts"
 /usr/bin/ditto "$ASSETS" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data"
+# The prepared copies of repository data go stale when the repository changes (new strings,
+# for example); bundle the current ones.
+for folder in language scenario_patches shaders; do
+    /usr/bin/ditto "$ROOT/data/$folder" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/data/$folder"
+done
