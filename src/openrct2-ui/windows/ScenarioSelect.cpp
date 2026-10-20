@@ -101,7 +101,8 @@ namespace OpenRCT2::Ui::Windows
         WIDX_TAB8,
         WIDX_TAB9,
         WIDX_TAB10,
-        WIDX_SCENARIOLIST
+        WIDX_SCENARIOLIST,
+        WIDX_START, // Enlarged UI only (see StartsWithButton).
     };
 
     static constexpr StringId kScenarioOriginStringIds[] = {
@@ -125,9 +126,20 @@ namespace OpenRCT2::Ui::Windows
         makeRemapWidget({ 3, kTabsStart + (kTabHeight * 7) }, { kTabWidth, kTabHeight }, WidgetType::tab,    WindowColour::secondary, SPR_G2_SIDEWAYS_TAB), // tab 08
         makeRemapWidget({ 3, kTabsStart + (kTabHeight * 8) }, { kTabWidth, kTabHeight }, WidgetType::tab,    WindowColour::secondary, SPR_G2_SIDEWAYS_TAB), // tab 09
         makeRemapWidget({ 3, kTabsStart + (kTabHeight * 8) }, { kTabWidth, kTabHeight }, WidgetType::tab,    WindowColour::secondary, SPR_G2_SIDEWAYS_TAB), // tab 10
-        makeWidget({ kTabWidth + 3, kWidgetsStart + 1 }, { kWindowSize.width - kPreviewPaneWidthRegular, 362 }, WidgetType::scroll, WindowColour::secondary, SCROLL_VERTICAL    ) // level list
+        makeWidget({ kTabWidth + 3, kWidgetsStart + 1 }, { kWindowSize.width - kPreviewPaneWidthRegular, 362 }, WidgetType::scroll, WindowColour::secondary, SCROLL_VERTICAL    ), // level list
+        makeWidget({ 0, 0 }, { 1, 1 }, WidgetType::button, WindowColour::secondary, STR_START_NEW_GAME_TIP) // start (placed in onPrepareDraw)
     );
     // clang-format on
+
+    // Enlarged UI: tapping a scenario selects it (and shows its details); tapping it again or the
+    // start button starts it. A touch has no hover, and a list that starts on the first tap is easy
+    // to misuse.
+    static bool StartsWithButton()
+    {
+        return Config::Get().interface.enlargedUi;
+    }
+
+    static constexpr int32_t kStartButtonHeight = 20;
 
     class ScenarioSelectWindow final : public Window
     {
@@ -172,6 +184,18 @@ namespace OpenRCT2::Ui::Windows
             {
                 close();
             }
+            else if (widgetIndex == WIDX_START && _highlightedScenario != nullptr)
+            {
+                StartScenario(*_highlightedScenario);
+            }
+        }
+
+        // The callback will likely close this window, so callers must return after it.
+        void StartScenario(const ScenarioIndexEntry& scenario)
+        {
+            OpenRCT2::Audio::Play(Audio::SoundId::click1, 0, windowPos.x + (width / 2));
+            gFirstTimeSaving = true;
+            _callback(scenario.Path);
         }
 
         void onMouseDown(WidgetIndex widgetIndex) override
@@ -439,6 +463,15 @@ namespace OpenRCT2::Ui::Windows
             const int32_t bottomMargin = Config::Get().general.debuggingTools ? 17 : 5;
             widgets[WIDX_SCENARIOLIST].right = width - GetPreviewPaneWidth() - 2 * kPadding;
             widgets[WIDX_SCENARIOLIST].bottom = height - bottomMargin;
+
+            // The start button sits at the bottom of the details pane.
+            auto& start = widgets[WIDX_START];
+            start.setVisible(StartsWithButton());
+            start.left = widgets[WIDX_SCENARIOLIST].right + kPadding;
+            start.right = width - kPadding - 1;
+            start.bottom = height - bottomMargin;
+            start.top = start.bottom - kStartButtonHeight;
+            setWidgetDisabled(WIDX_START, _highlightedScenario == nullptr);
         }
 
         ScreenSize onScrollGetSize(int32_t scrollIndex) override
@@ -463,6 +496,13 @@ namespace OpenRCT2::Ui::Windows
         }
 
         void onScrollMouseOver(int32_t scrollIndex, const ScreenCoordsXY& screenCoords) override
+        {
+            if (StartsWithButton())
+                return;
+            HighlightScenarioAt(screenCoords);
+        }
+
+        void HighlightScenarioAt(const ScreenCoordsXY& screenCoords)
         {
             const int32_t scenarioItemHeight = GetScenarioListItemSize();
 
@@ -526,10 +566,19 @@ namespace OpenRCT2::Ui::Windows
                         mutableScreenCoords.y -= scenarioItemHeight;
                         if (mutableScreenCoords.y < 0 && !listItem.scenario.is_locked)
                         {
-                            OpenRCT2::Audio::Play(Audio::SoundId::click1, 0, windowPos.x + (width / 2));
-                            gFirstTimeSaving = true;
+                            if (StartsWithButton() && _highlightedScenario != listItem.scenario.scenario)
+                            {
+                                HighlightScenarioAt(screenCoords);
+                                return;
+                            }
                             // Callback will likely close this window! So should always return after it.
-                            _callback(listItem.scenario.scenario->Path);
+                            StartScenario(*listItem.scenario.scenario);
+                            return;
+                        }
+                        if (mutableScreenCoords.y < 0 && StartsWithButton())
+                        {
+                            // A locked scenario: show why it is locked.
+                            HighlightScenarioAt(screenCoords);
                             return;
                         }
                         break;
