@@ -538,10 +538,13 @@ namespace OpenRCT2::Ui::Windows
                     return;
 
                 case WIDX_BUTTON_REMOVE:
-                {
-                    RemoveElement(windowTileInspectorSelectedIndex);
+                    RunConfirmed(STR_CONFIRM_REMOVE_TILE_ELEMENT, [elementIndex = windowTileInspectorSelectedIndex] {
+                        // Only the element that was asked about, if it is still selected.
+                        auto* w = dynamic_cast<TileInspector*>(GetWindowManager()->FindByClass(WindowClass::tileInspector));
+                        if (w != nullptr && windowTileInspectorSelectedIndex == elementIndex)
+                            w->RemoveElement(elementIndex);
+                    });
                     break;
-                }
 
                 case WIDX_BUTTON_ROTATE:
                     RotateElement(windowTileInspectorSelectedIndex);

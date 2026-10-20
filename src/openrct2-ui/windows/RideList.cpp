@@ -16,6 +16,7 @@
 #include <openrct2/Context.h>
 #include <openrct2/GameState.h>
 #include <openrct2/SpriteIds.h>
+#include <openrct2/config/Config.h>
 #include <openrct2/actions/GameActionRunner.h>
 #include <openrct2/actions/ride/RideDemolishAction.h>
 #include <openrct2/actions/ride/RideSetStatusAction.h>
@@ -175,6 +176,8 @@ namespace OpenRCT2::Ui::Windows
     {
     private:
         bool _quickDemolishMode = false;
+        // Enlarged UI: the ride a first tap chose in quick demolish mode; a second tap demolishes it.
+        RideId _quickDemolishArmed = RideId::GetNull();
         InformationType _windowRideListInformationType = INFORMATION_TYPE_STATUS;
         bool _windowListSortDescending = false;
         u8string _searchFilter;
@@ -281,15 +284,20 @@ namespace OpenRCT2::Ui::Windows
                     invalidateWidget(WIDX_SEARCH_TEXT_BOX);
                     break;
                 case WIDX_CLOSE_LIGHT:
-                    CloseAllRides();
+                    RunConfirmed(STR_CONFIRM_CLOSE_ALL_RIDES, [classification = static_cast<RideClassification>(page)] {
+                        SetAllRidesStatus(classification, RideStatus::closed);
+                    });
                     break;
                 case WIDX_OPEN_LIGHT:
-                    OpenAllRides();
+                    RunConfirmed(STR_CONFIRM_OPEN_ALL_RIDES, [classification = static_cast<RideClassification>(page)] {
+                        SetAllRidesStatus(classification, RideStatus::open);
+                    });
                     break;
                 case WIDX_QUICK_DEMOLISH:
                     if (Network::GetMode() != Network::Mode::client)
                     {
                         _quickDemolishMode = !_quickDemolishMode;
+                        _quickDemolishArmed = RideId::GetNull();
                     }
                     else
                     {
@@ -361,13 +369,18 @@ namespace OpenRCT2::Ui::Windows
         {
             if (widgetIndex == WIDX_OPEN_CLOSE_ALL)
             {
+                const auto classification = static_cast<RideClassification>(page);
                 if (dropdownIndex == 0)
                 {
-                    CloseAllRides();
+                    RunConfirmed(STR_CONFIRM_CLOSE_ALL_RIDES, [classification] {
+                        SetAllRidesStatus(classification, RideStatus::closed);
+                    });
                 }
                 else if (dropdownIndex == 1)
                 {
-                    OpenAllRides();
+                    RunConfirmed(STR_CONFIRM_OPEN_ALL_RIDES, [classification] {
+                        SetAllRidesStatus(classification, RideStatus::open);
+                    });
                 }
 
                 invalidate();
@@ -470,6 +483,14 @@ namespace OpenRCT2::Ui::Windows
             const auto selectedRideId = _rideList[index].Id;
             if (_quickDemolishMode && Network::GetMode() != Network::Mode::client)
             {
+                if (Config::Get().interface.enlargedUi && _quickDemolishArmed != selectedRideId)
+                {
+                    _quickDemolishArmed = selectedRideId;
+                    selectedListItem = index;
+                    invalidate();
+                    return;
+                }
+                _quickDemolishArmed = RideId::GetNull();
                 auto gameAction = GameActions::RideDemolishAction(selectedRideId, GameActions::RideModifyType::demolish);
                 GameActions::Execute(&gameAction, getGameState());
                 RefreshList();
@@ -1120,30 +1141,15 @@ namespace OpenRCT2::Ui::Windows
             invalidate();
         }
 
-        // window_ride_list_close_all
-        void CloseAllRides()
+        // window_ride_list_close_all, window_ride_list_open_all
+        static void SetAllRidesStatus(RideClassification classification, RideStatus status)
         {
             const auto& gameState = getGameState();
             for (auto& rideRef : RideManager(gameState))
             {
-                if (rideRef.status != RideStatus::closed
-                    && rideRef.getClassification() == static_cast<RideClassification>(page))
+                if (rideRef.status != status && rideRef.getClassification() == classification)
                 {
-                    auto gameAction = GameActions::RideSetStatusAction(rideRef.id, RideStatus::closed);
-                    GameActions::Execute(&gameAction, getGameState());
-                }
-            }
-        }
-
-        // window_ride_list_open_all
-        void OpenAllRides()
-        {
-            const auto& gameState = getGameState();
-            for (auto& rideRef : RideManager(gameState))
-            {
-                if (rideRef.status != RideStatus::open && rideRef.getClassification() == static_cast<RideClassification>(page))
-                {
-                    auto gameAction = GameActions::RideSetStatusAction(rideRef.id, RideStatus::open);
+                    auto gameAction = GameActions::RideSetStatusAction(rideRef.id, status);
                     GameActions::Execute(&gameAction, getGameState());
                 }
             }

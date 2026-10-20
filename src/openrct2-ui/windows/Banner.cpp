@@ -117,6 +117,17 @@ namespace OpenRCT2::Ui::Windows
         }
 
     public:
+        void Demolish()
+        {
+            auto* banner = GetBanner(GetBannerIndex());
+            auto* bannerElement = GetBannerElement();
+            if (banner == nullptr || bannerElement == nullptr)
+                return;
+            auto bannerRemoveAction = GameActions::BannerRemoveAction(
+                { banner->position.toCoordsXY(), bannerElement->getBaseZ(), bannerElement->getPosition() });
+            GameActions::Execute(&bannerRemoveAction, getGameState());
+        }
+
         void onOpen() override
         {
             setWidgets(window_banner_widgets);
@@ -187,16 +198,15 @@ namespace OpenRCT2::Ui::Windows
                     close();
                     break;
                 case WIDX_BANNER_DEMOLISH:
-                {
-                    auto* bannerElement = GetBannerElement();
-                    if (bannerElement == nullptr)
-                        break;
-
-                    auto bannerRemoveAction = GameActions::BannerRemoveAction(
-                        { banner->position.toCoordsXY(), bannerElement->getBaseZ(), bannerElement->getPosition() });
-                    GameActions::Execute(&bannerRemoveAction, gameState);
+                    RunConfirmed(STR_CONFIRM_DEMOLISH_BANNER, [windowNumber = number] {
+                        auto* w = GetWindowManager()->FindByNumber(WindowClass::banner, windowNumber);
+                        if (w != nullptr)
+                        {
+                            if (auto* bannerWindow = dynamic_cast<BannerWindow*>(w))
+                                bannerWindow->Demolish();
+                        }
+                    });
                     break;
-                }
                 case WIDX_BANNER_TEXT:
                     WindowTextInputRawOpen(
                         this, WIDX_BANNER_TEXT, STR_BANNER_TEXT, STR_ENTER_BANNER_TEXT, {}, banner->getText().c_str(), 32);

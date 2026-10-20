@@ -87,6 +87,14 @@ namespace OpenRCT2::Ui::Windows
     // DebugPaint
     WindowBase* DebugPaintOpen();
 
+    // ConfirmPrompt: Yes/Cancel before onConfirm runs (see the STR_CONFIRM_* strings).
+    WindowBase* ConfirmPromptOpen(StringId message, const Formatter& arguments, std::function<void()> onConfirm);
+    WindowBase* ConfirmPromptOpen(StringId message, std::function<void()> onConfirm);
+    // With enlarged UI (touch), asks first; otherwise runs action at once. The action may run
+    // later, after the calling window has closed, so it must look up anything it needs.
+    void RunConfirmed(StringId message, const Formatter& arguments, std::function<void()> action);
+    void RunConfirmed(StringId message, std::function<void()> action);
+
     // DemolishRidePrompt
     WindowBase* RideDemolishPromptOpen(const Ride& ride);
 

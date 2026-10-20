@@ -3785,3 +3785,16 @@ STR_6794    :剧情和主题
 STR_7082    :Metal
 STR_7083    :CRT 显像管效果
 STR_7084    :模拟 CRT 显示器的画面，显示扫描线（仅限 Metal 绘图引擎）
+STR_7085    :确认
+STR_7086    :{WINDOW_COLOUR_1}关闭所有游乐设施？正在排队的游客将会离开。
+STR_7087    :{WINDOW_COLOUR_1}开放所有游乐设施？
+STR_7088    :{WINDOW_COLOUR_1}关闭公园？游客将开始离开。
+STR_7089    :{WINDOW_COLOUR_1}拆除这个横幅？
+STR_7090    :{WINDOW_COLOUR_1}拆除这个标牌？
+STR_7091    :{WINDOW_COLOUR_1}删除配色主题“{STRING}”？此操作无法撤销。
+STR_7092    :{WINDOW_COLOUR_1}删除选中的地块元素？
+STR_7093    :{WINDOW_COLOUR_1}生成新地图？当前的地形将会丢失。
+STR_7094    :{WINDOW_COLOUR_1}移除公园中的所有游客？
+STR_7095    :{WINDOW_COLOUR_1}立即赢得场景？
+STR_7096    :{WINDOW_COLOUR_1}拥有公园中的所有土地？
+STR_7097    :{WINDOW_COLOUR_1}将日期重置到场景开始时？

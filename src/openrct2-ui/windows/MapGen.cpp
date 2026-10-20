@@ -320,7 +320,10 @@ namespace OpenRCT2::Ui::Windows
                     setPage(widgetIndex - WIDX_TAB_1);
                     break;
                 case WIDX_MAP_GENERATE:
-                    GenerateMap();
+                    RunConfirmed(STR_CONFIRM_GENERATE_MAP, [] {
+                        if (auto* w = dynamic_cast<MapGenWindow*>(GetWindowManager()->FindByClass(WindowClass::mapgen)))
+                            w->GenerateMap();
+                    });
                     break;
             }
         }

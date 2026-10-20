@@ -893,15 +893,14 @@ static StringId window_cheats_page_titles[] = {
                     break;
                 }
                 case WIDX_DATE_RESET:
-                {
-                    auto setDateAction = GameActions::ParkSetDateAction(0, 0, 0);
-                    GameActions::Execute(&setDateAction, gameState);
-                    windowMgr->InvalidateByClass(WindowClass::dateInfoPanel);
-                    invalidateWidget(WIDX_YEAR_BOX);
-                    invalidateWidget(WIDX_MONTH_BOX);
-                    invalidateWidget(WIDX_DAY_BOX);
+                    RunConfirmed(STR_CONFIRM_DATE_RESET, [] {
+                        auto setDateAction = GameActions::ParkSetDateAction(0, 0, 0);
+                        GameActions::Execute(&setDateAction, getGameState());
+                        auto* dateWindowMgr = GetWindowManager();
+                        dateWindowMgr->InvalidateByClass(WindowClass::dateInfoPanel);
+                        dateWindowMgr->InvalidateByClass(WindowClass::cheats);
+                    });
                     break;
-                }
             }
         }
 
@@ -1024,7 +1023,7 @@ static StringId window_cheats_page_titles[] = {
             switch (widgetIndex)
             {
                 case WIDX_OWN_ALL_LAND:
-                    CheatsSet(CheatType::ownAllLand);
+                    RunConfirmed(STR_CONFIRM_OWN_ALL_LAND, [] { CheatsSet(CheatType::ownAllLand); });
                     break;
                 case WIDX_REMOVE_PARK_FENCES:
                     CheatsSet(CheatType::removeParkFences);
@@ -1033,7 +1032,7 @@ static StringId window_cheats_page_titles[] = {
                     CheatsSet(CheatType::openClosePark);
                     break;
                 case WIDX_WIN_SCENARIO:
-                    CheatsSet(CheatType::winScenario);
+                    RunConfirmed(STR_CONFIRM_WIN_SCENARIO, [] { CheatsSet(CheatType::winScenario); });
                     break;
                 case WIDX_HAVE_FUN:
                     CheatsSet(CheatType::haveFun);
@@ -1212,7 +1211,7 @@ static StringId window_cheats_page_titles[] = {
                     CheatsSet(CheatType::generateGuests, kCheatsTramIncrement);
                     break;
                 case WIDX_REMOVE_ALL_GUESTS:
-                    CheatsSet(CheatType::removeAllGuests);
+                    RunConfirmed(STR_CONFIRM_REMOVE_ALL_GUESTS, [] { CheatsSet(CheatType::removeAllGuests); });
                     break;
                 case WIDX_GIVE_GUESTS_MONEY:
                     CheatsSet(CheatType::giveAllGuests, OBJECT_MONEY);

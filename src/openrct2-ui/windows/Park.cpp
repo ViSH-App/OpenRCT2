@@ -420,7 +420,7 @@ namespace OpenRCT2::Ui::Windows
                     break;
                 }
                 case WIDX_CLOSE_LIGHT:
-                    Park::SetOpen(_parkData, false);
+                    RunConfirmed(STR_CONFIRM_CLOSE_PARK, [] { Park::SetOpen(getGameState().park, false); });
                     break;
                 case WIDX_OPEN_LIGHT:
                     Park::SetOpen(_parkData, true);

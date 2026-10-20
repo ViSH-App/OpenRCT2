@@ -3876,3 +3876,16 @@ STR_7081    :Silver
 STR_7082    :Metal
 STR_7083    :CRT effect
 STR_7084    :Draw the screen like a CRT monitor, with visible scanlines (Metal drawing engine only)
+STR_7085    :Confirm
+STR_7086    :{WINDOW_COLOUR_1}Close all rides? Guests queuing for them will leave.
+STR_7087    :{WINDOW_COLOUR_1}Open all rides?
+STR_7088    :{WINDOW_COLOUR_1}Close the park? Guests will start to leave.
+STR_7089    :{WINDOW_COLOUR_1}Demolish this banner?
+STR_7090    :{WINDOW_COLOUR_1}Demolish this sign?
+STR_7091    :{WINDOW_COLOUR_1}Delete the theme {STRING}? This cannot be undone.
+STR_7092    :{WINDOW_COLOUR_1}Remove the selected tile element?
+STR_7093    :{WINDOW_COLOUR_1}Generate a new map? The current landscape will be lost.
+STR_7094    :{WINDOW_COLOUR_1}Remove all guests from the park?
+STR_7095    :{WINDOW_COLOUR_1}Win the scenario now?
+STR_7096    :{WINDOW_COLOUR_1}Own all land in the park?
+STR_7097    :{WINDOW_COLOUR_1}Reset the date to the start of the scenario?

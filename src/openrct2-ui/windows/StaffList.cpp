@@ -115,6 +115,8 @@ namespace OpenRCT2::Ui::Windows
 
         std::vector<StaffEntry> _staffList;
         bool _quickFireMode{};
+        // Enlarged UI: the staff member a first tap chose in quick fire mode; a second tap fires them.
+        EntityId _quickFireArmed = EntityId::GetNull();
         std::optional<size_t> _highlightedIndex{};
         int32_t _selectedTab{};
         uint32_t _tabAnimationIndex{};
@@ -162,6 +164,7 @@ namespace OpenRCT2::Ui::Windows
                     break;
                 case WIDX_STAFF_LIST_QUICK_FIRE:
                     _quickFireMode = !_quickFireMode;
+                    _quickFireArmed = EntityId::GetNull();
                     invalidate();
                     break;
             }
@@ -346,6 +349,14 @@ namespace OpenRCT2::Ui::Windows
                 {
                     if (_quickFireMode)
                     {
+                        if (Config::Get().interface.enlargedUi && _quickFireArmed != entry.Id)
+                        {
+                            _quickFireArmed = entry.Id;
+                            _highlightedIndex = static_cast<size_t>(screenCoords.y / kScrollableRowHeight);
+                            invalidate();
+                            return;
+                        }
+                        _quickFireArmed = EntityId::GetNull();
                         auto staffFireAction = GameActions::StaffFireAction(entry.Id);
                         GameActions::Execute(&staffFireAction, gameState);
                     }

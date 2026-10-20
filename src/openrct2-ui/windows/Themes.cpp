@@ -512,7 +512,14 @@ namespace OpenRCT2::Ui::Windows
                     }
                     else
                     {
-                        ThemeDelete();
+                        const auto themeIndex = ThemeManagerGetAvailableThemeIndex();
+                        Formatter ft;
+                        ft.Add<const utf8*>(ThemeManagerGetAvailableThemeName(themeIndex));
+                        RunConfirmed(STR_CONFIRM_DELETE_THEME, ft, [themeIndex] {
+                            // Only the theme that was asked about, if it is still the active one.
+                            if (ThemeManagerGetAvailableThemeIndex() == themeIndex && !(ThemeGetFlags() & UITHEME_FLAG_PREDEFINED))
+                                ThemeDelete();
+                        });
                     }
                     break;
                 case WIDX_THEMES_RENAME_BUTTON:

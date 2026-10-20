@@ -84,6 +84,32 @@ namespace OpenRCT2::Ui::Windows
         }
 
     public:
+        void Demolish()
+        {
+            auto* banner = GetBanner(GetBannerIndex());
+            auto* tileElement = BannerGetTileElement(GetBannerIndex());
+            if (banner == nullptr || tileElement == nullptr)
+            {
+                close();
+                return;
+            }
+            auto& gameState = getGameState();
+            auto bannerCoords = banner->position.toCoordsXY();
+            if (_isSmall)
+            {
+                CoordsXYZD wallLocation = { bannerCoords, tileElement->getBaseZ(), tileElement->getDirection() };
+                auto wallRemoveAction = GameActions::WallRemoveAction(wallLocation);
+                GameActions::Execute(&wallRemoveAction, gameState);
+            }
+            else
+            {
+                auto sceneryRemoveAction = GameActions::LargeSceneryRemoveAction(
+                    { bannerCoords, tileElement->getBaseZ(), tileElement->getDirection() },
+                    tileElement->asLargeScenery()->getSequenceIndex());
+                GameActions::Execute(&sceneryRemoveAction, gameState);
+            }
+        }
+
         void onOpen() override
         {
             setWidgets(_signWidgets);
@@ -158,30 +184,12 @@ namespace OpenRCT2::Ui::Windows
                     close();
                     break;
                 case WIDX_SIGN_DEMOLISH:
-                {
-                    auto* tileElement = BannerGetTileElement(GetBannerIndex());
-                    if (tileElement == nullptr)
-                    {
-                        close();
-                        return;
-                    }
-                    auto bannerCoords = banner->position.toCoordsXY();
-
-                    if (_isSmall)
-                    {
-                        CoordsXYZD wallLocation = { bannerCoords, tileElement->getBaseZ(), tileElement->getDirection() };
-                        auto wallRemoveAction = GameActions::WallRemoveAction(wallLocation);
-                        GameActions::Execute(&wallRemoveAction, gameState);
-                    }
-                    else
-                    {
-                        auto sceneryRemoveAction = GameActions::LargeSceneryRemoveAction(
-                            { bannerCoords, tileElement->getBaseZ(), tileElement->getDirection() },
-                            tileElement->asLargeScenery()->getSequenceIndex());
-                        GameActions::Execute(&sceneryRemoveAction, gameState);
-                    }
+                    RunConfirmed(STR_CONFIRM_DEMOLISH_SIGN, [windowNumber = number] {
+                        auto* w = GetWindowManager()->FindByNumber(WindowClass::banner, windowNumber);
+                        if (auto* signWindow = dynamic_cast<SignWindow*>(w))
+                            signWindow->Demolish();
+                    });
                     break;
-                }
                 case WIDX_SIGN_TEXT:
                     ShowTextInput();
                     break;
