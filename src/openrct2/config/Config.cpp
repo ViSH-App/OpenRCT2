@@ -213,8 +213,14 @@ namespace OpenRCT2::Config
             model->windowSnapProximity = reader->GetInt32("window_snap_proximity", 5);
             model->windowWidth = reader->GetInt32("window_width", -1);
             model->defaultDisplay = reader->GetInt32("default_display", 0);
-            model->drawingEngine = reader->GetEnum<DrawingEngine>(
-                "drawing_engine", DrawingEngine::softwareWithHardwareDisplay, Enum_DrawingEngine);
+#ifdef OPENRCT2_IOS
+            // The iPad build always includes the native Metal renderer; existing configurations
+            // keep their choice, and the software engine remains the fallback.
+            constexpr auto kDefaultDrawingEngine = DrawingEngine::metal;
+#else
+            constexpr auto kDefaultDrawingEngine = DrawingEngine::softwareWithHardwareDisplay;
+#endif
+            model->drawingEngine = reader->GetEnum<DrawingEngine>("drawing_engine", kDefaultDrawingEngine, Enum_DrawingEngine);
             model->uncapFPS = reader->GetBoolean("uncap_fps", false);
             model->useVSync = reader->GetBoolean("use_vsync", true);
             model->virtualFloorStyle = reader->GetEnum<VirtualFloorStyles>(
