@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "OpenRCT2 voor iOS",
+    "description": "De iOS-port van OpenRCT2, de opensource-herimplementatie van RollerCoaster Tycoon 2."
+  },
+  "nav": {
+    "home": "Startpagina",
+    "privacy": "Privacybeleid",
+    "language": "Taal"
+  },
+  "appStore": {
+    "line1": "Download in de",
+    "line2": "App Store"
+  },
+  "hero": {
+    "title": "OpenRCT2 voor iOS",
+    "tagline": "De iOS-port van OpenRCT2, de opensource-herimplementatie van RollerCoaster Tycoon 2.",
+    "requirement": "Spelbestanden van een exemplaar van RollerCoaster Tycoon 2 zijn vereist."
+  },
+  "steps": {
+    "title": "Aan de slag",
+    "buy": {
+      "title": "RollerCoaster Tycoon 2 aanschaffen",
+      "body": "De app bevat geen originele spelmaterialen. RollerCoaster Tycoon 2: Triple Thrill Pack is verkrijgbaar op Steam en GOG en bevat Wacky Worlds en Time Twister."
+    },
+    "transfer": {
+      "title": "De bestanden naar het apparaat overzetten",
+      "body": "Kopieer de spelmap, een ZIP-archief of het GOG-installatieprogramma naar de Bestanden-app via AirDrop, iCloud Drive of een computer."
+    },
+    "import": {
+      "title": "Importeren en spelen",
+      "body": "Selecteer de bestanden in de app. Het importeren vindt volledig op het apparaat plaats en GOG-installatieprogramma's worden automatisch uitgepakt."
+    }
+  },
+  "features": {
+    "title": "Functies",
+    "rct1": {
+      "title": "Inhoud van RollerCoaster Tycoon 1",
+      "body": "Het importeren van RollerCoaster Tycoon Deluxe is optioneel en voegt de RCT1-scenario's, -graphics en -titelmuziek toe."
+    },
+    "metal": {
+      "title": "Native weergave met Metal",
+      "body": "Parken worden met Metal weergegeven voor vloeiend scrollen, zelfs in de grootste parken, in zowel liggende als staande stand."
+    },
+    "saves": {
+      "title": "Opgeslagen spellen in de Bestanden-app",
+      "body": "Opgeslagen spellen worden bewaard in de Bestanden-app, waar er een reservekopie van kan worden gemaakt of waar ze naar een ander apparaat kunnen worden verplaatst."
+    },
+    "languages": {
+      "title": "25 talen",
+      "body": "De interface is beschikbaar in 25 talen, met pixellettertypen voor Chinees, Japans en Koreaans."
+    },
+    "mac": {
+      "title": "Werkt op de Mac",
+      "body": "De app werkt ook op Mac-computers met Apple Silicon."
+    },
+    "offline": {
+      "title": "Geen account of tracking",
+      "body": "De app vereist geen account en bevat geen advertenties, analysefuncties of tracking."
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2 is opensourcesoftware, uitgebracht onder de GNU General Public License v3.",
+    "trademark": "RollerCoaster Tycoon is een handelsmerk van de respectieve eigenaars. Deze app bevat geen originele spelmaterialen."
+  },
+  "privacy": {
+    "title": "Privacybeleid",
+    "updated": "Laatst bijgewerkt: {{date}}",
+    "intro": "Dit privacybeleid beschrijft hoe OpenRCT2 voor iOS (de ‘App’) met informatie omgaat. Het is van toepassing op de App op alle ondersteunde apparaten, waaronder Mac-computers met Apple Silicon.",
+    "collection": {
+      "title": "Informatie die wij verzamelen",
+      "body": "Wij verzamelen geen persoonsgegevens of gebruiksgegevens. Voor de App is geen account vereist en de App bevat geen advertenties, analysefuncties of tracking."
+    },
+    "device": {
+      "title": "Informatie die op uw apparaat wordt opgeslagen",
+      "body": "De App slaat de door u geïmporteerde spelbestanden, opgeslagen spellen, schermafbeeldingen en instellingen lokaal op uw apparaat op. Deze gegevens worden uitsluitend gebruikt om de functionaliteit van de App te leveren en worden niet naar ons of naar derden verzonden."
+    },
+    "imports": {
+      "title": "Geïmporteerde spelbestanden",
+      "body": "Spelmappen, ZIP-archieven en GOG-installatieprogramma's die u in de Bestanden-app selecteert, worden op uw apparaat gelezen en uitgepakt. De geïmporteerde gegevens worden in de opslag van de App bewaard."
+    },
+    "thirdParties": {
+      "title": "Derden",
+      "body": "Wij verkopen, delen of verstrekken geen informatie aan derden. Links naar de winkels van Steam en GOG en naar de importhandleiding worden in uw webbrowser geopend; op die websites is hun eigen privacybeleid van toepassing. Opgeslagen spellen die u in iCloud Drive bewaart of via AirDrop deelt, worden door Apple verwerkt in overeenstemming met het privacybeleid van Apple."
+    },
+    "retention": {
+      "title": "Bewaring en verwijdering van gegevens",
+      "body": "Gegevens die door de App worden opgeslagen, blijven op uw apparaat totdat u ze verwijdert. Geïmporteerde spelgegevens kunnen op elk moment in de App worden verwijderd, en door de App te verwijderen worden alle bijbehorende gegevens van uw apparaat verwijderd."
+    },
+    "permissions": {
+      "title": "Toestemmingen",
+      "body": "De App vraagt geen toegang tot uw locatie, camera, microfoon, contacten of foto's."
+    },
+    "children": {
+      "title": "Privacy van kinderen",
+      "body": "De App verzamelt niet bewust persoonsgegevens van kinderen, ongeacht hun leeftijd."
+    },
+    "changes": {
+      "title": "Wijzigingen in dit beleid",
+      "body": "Wij kunnen dit privacybeleid van tijd tot tijd bijwerken. Eventuele wijzigingen worden op deze pagina gepubliceerd, met een herziene datum bij ‘Laatst bijgewerkt’."
+    },
+    "contact": {
+      "title": "Contact",
+      "body": "Als u vragen hebt over dit privacybeleid, kunt u contact met ons opnemen via {{email}}."
+    }
+  },
+  "notFound": {
+    "title": "Pagina niet gevonden",
+    "back": "Terug naar de startpagina"
+  }
+}

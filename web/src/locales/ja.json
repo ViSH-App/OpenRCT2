@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "iOS 版 OpenRCT2",
+    "description": "RollerCoaster Tycoon 2 のオープンソース再実装である OpenRCT2 の iOS 移植版です。"
+  },
+  "nav": {
+    "home": "ホーム",
+    "privacy": "プライバシーポリシー",
+    "language": "言語"
+  },
+  "appStore": {
+    "line1": "App Store から",
+    "line2": "ダウンロード"
+  },
+  "hero": {
+    "title": "iOS 版 OpenRCT2",
+    "tagline": "RollerCoaster Tycoon 2 のオープンソース再実装である OpenRCT2 の iOS 移植版です。",
+    "requirement": "RollerCoaster Tycoon 2 のゲームファイルが必要です。"
+  },
+  "steps": {
+    "title": "はじめに",
+    "buy": {
+      "title": "RollerCoaster Tycoon 2 を入手する",
+      "body": "この App にはオリジナルのゲーム素材は含まれていません。RollerCoaster Tycoon 2: Triple Thrill Pack は Steam と GOG で販売されており、Wacky Worlds と Time Twister が含まれています。"
+    },
+    "transfer": {
+      "title": "ファイルをデバイスに転送する",
+      "body": "ゲームフォルダ、ZIP アーカイブ、または GOG インストーラを、AirDrop、iCloud Drive、またはコンピュータを使用して「ファイル」App にコピーします。"
+    },
+    "import": {
+      "title": "読み込んでプレイする",
+      "body": "App でファイルを選択します。読み込みはすべてデバイス上で行われ、GOG インストーラは自動的に展開されます。"
+    }
+  },
+  "features": {
+    "title": "機能",
+    "rct1": {
+      "title": "RollerCoaster Tycoon 1 のコンテンツ",
+      "body": "RollerCoaster Tycoon Deluxe の読み込みは任意です。読み込むと RCT1 のシナリオ、グラフィック、タイトル音楽が追加されます。"
+    },
+    "metal": {
+      "title": "ネイティブの Metal レンダリング",
+      "body": "パークは Metal で描画されるため、最大規模のパークでも、横向き・縦向きのどちらでもスムーズにスクロールできます。"
+    },
+    "saves": {
+      "title": "セーブデータは「ファイル」App に保存",
+      "body": "セーブデータは「ファイル」App に保存され、バックアップや別のデバイスへの移動が可能です。"
+    },
+    "languages": {
+      "title": "25 言語に対応",
+      "body": "インターフェイスは 25 言語に対応しており、中国語、日本語、韓国語にはピクセルフォントを使用しています。"
+    },
+    "mac": {
+      "title": "Mac でも動作",
+      "body": "この App は Apple シリコン搭載の Mac でも動作します。"
+    },
+    "offline": {
+      "title": "アカウント不要、トラッキングなし",
+      "body": "この App はアカウントを必要とせず、広告、分析、トラッキングを一切含みません。"
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2 は GNU General Public License v3 のもとで公開されているオープンソースソフトウェアです。",
+    "trademark": "RollerCoaster Tycoon は各権利者の商標です。この App にはオリジナルのゲーム素材は含まれていません。"
+  },
+  "privacy": {
+    "title": "プライバシーポリシー",
+    "updated": "最終更新日：{{date}}",
+    "intro": "本プライバシーポリシーは、iOS 版 OpenRCT2（以下「本 App」といいます）における情報の取り扱いについて定めるものです。本ポリシーは、Apple シリコン搭載の Mac を含む、すべての対応デバイスで使用される本 App に適用されます。",
+    "collection": {
+      "title": "当方が収集する情報",
+      "body": "当方は、個人情報および利用データを一切収集しません。本 App はアカウントを必要とせず、広告、分析およびトラッキングの機能を含みません。"
+    },
+    "device": {
+      "title": "お客様のデバイスに保存される情報",
+      "body": "本 App は、お客様が読み込んだゲームファイル、セーブデータ、スクリーンショットおよび設定を、お客様のデバイス上にローカルで保存します。これらのデータは本 App の機能を提供する目的にのみ使用され、当方または第三者に送信されることはありません。"
+    },
+    "imports": {
+      "title": "読み込まれたゲームファイル",
+      "body": "お客様が「ファイル」App で選択したゲームフォルダ、ZIP アーカイブおよび GOG インストーラは、お客様のデバイス上で読み取られ、展開されます。読み込まれたデータは本 App のストレージ内に保管されます。"
+    },
+    "thirdParties": {
+      "title": "第三者",
+      "body": "当方は、いかなる情報も第三者に販売、共有または開示しません。Steam ストアおよび GOG ストア、ならびに読み込みガイドへのリンクはお客様の Web ブラウザで開かれ、これらの Web サイトにはそれぞれのプライバシーポリシーが適用されます。お客様が iCloud Drive に保存し、または AirDrop で共有したセーブデータは、Apple のプライバシーポリシーに従い Apple によって取り扱われます。"
+    },
+    "retention": {
+      "title": "データの保持および削除",
+      "body": "本 App が保存するデータは、お客様が削除するまでお客様のデバイス上に保持されます。読み込まれたゲームデータは本 App 内からいつでも削除でき、本 App を削除すると、そのすべてのデータがお客様のデバイスから削除されます。"
+    },
+    "permissions": {
+      "title": "アクセス許可",
+      "body": "本 App は、お客様の位置情報、カメラ、マイク、連絡先または写真へのアクセスを要求しません。"
+    },
+    "children": {
+      "title": "お子様のプライバシー",
+      "body": "本 App は、年齢を問わず、お子様の個人情報を故意に収集することはありません。"
+    },
+    "changes": {
+      "title": "本ポリシーの変更",
+      "body": "当方は、本プライバシーポリシーを随時改定することがあります。変更内容は本ページに掲載し、「最終更新日」を改めます。"
+    },
+    "contact": {
+      "title": "お問い合わせ",
+      "body": "本プライバシーポリシーに関するご質問は、{{email}} までお問い合わせください。"
+    }
+  },
+  "notFound": {
+    "title": "ページが見つかりません",
+    "back": "トップページに戻る"
+  }
+}

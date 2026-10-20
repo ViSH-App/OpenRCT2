@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "OpenRCT2 pro iOS",
+    "description": "Port projektu OpenRCT2, nové implementace hry RollerCoaster Tycoon 2 s otevřeným zdrojovým kódem, pro iOS."
+  },
+  "nav": {
+    "home": "Domů",
+    "privacy": "Zásady ochrany soukromí",
+    "language": "Jazyk"
+  },
+  "appStore": {
+    "line1": "Stáhnout v",
+    "line2": "App Store"
+  },
+  "hero": {
+    "title": "OpenRCT2 pro iOS",
+    "tagline": "Port projektu OpenRCT2, nové implementace hry RollerCoaster Tycoon 2 s otevřeným zdrojovým kódem, pro iOS.",
+    "requirement": "Jsou vyžadovány soubory hry z kopie RollerCoaster Tycoon 2."
+  },
+  "steps": {
+    "title": "Začínáme",
+    "buy": {
+      "title": "Pořiďte si RollerCoaster Tycoon 2",
+      "body": "Aplikace neobsahuje žádné původní materiály hry. RollerCoaster Tycoon 2: Triple Thrill Pack je k dispozici ve službách Steam a GOG a obsahuje rozšíření Wacky Worlds a Time Twister."
+    },
+    "transfer": {
+      "title": "Přeneste soubory do zařízení",
+      "body": "Zkopírujte složku hry, archiv ZIP nebo instalátor GOG do aplikace Soubory přes AirDrop, iCloud Drive nebo z počítače."
+    },
+    "import": {
+      "title": "Importujte a hrajte",
+      "body": "Vyberte soubory v aplikaci. Import probíhá výhradně v zařízení a instalátory GOG se rozbalují automaticky."
+    }
+  },
+  "features": {
+    "title": "Funkce",
+    "rct1": {
+      "title": "Obsah RollerCoaster Tycoon 1",
+      "body": "Import RollerCoaster Tycoon Deluxe je volitelný a přidává scénáře, grafiku a úvodní hudbu RCT1."
+    },
+    "metal": {
+      "title": "Nativní vykreslování přes Metal",
+      "body": "Parky se vykreslují pomocí Metal, což zajišťuje plynulé posouvání i v největších parcích, a to v orientaci na šířku i na výšku."
+    },
+    "saves": {
+      "title": "Uložené hry v aplikaci Soubory",
+      "body": "Uložené hry se ukládají do aplikace Soubory, kde je lze zálohovat nebo přenést do jiného zařízení."
+    },
+    "languages": {
+      "title": "25 jazyků",
+      "body": "Rozhraní je k dispozici v 25 jazycích, pro čínštinu, japonštinu a korejštinu s pixelovými písmy."
+    },
+    "mac": {
+      "title": "Funguje na Macu",
+      "body": "Aplikace funguje také na počítačích Mac s čipem Apple."
+    },
+    "offline": {
+      "title": "Bez účtu a sledování",
+      "body": "Aplikace nevyžaduje žádný účet a neobsahuje reklamu, analytiku ani sledování."
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2 je open source software vydaný pod licencí GNU General Public License v3.",
+    "trademark": "RollerCoaster Tycoon je ochranná známka příslušných vlastníků. Tato aplikace neobsahuje žádné původní materiály hry."
+  },
+  "privacy": {
+    "title": "Zásady ochrany soukromí",
+    "updated": "Poslední aktualizace: {{date}}",
+    "intro": "Tyto zásady ochrany soukromí popisují, jak aplikace OpenRCT2 pro iOS (dále jen „Aplikace“) nakládá s informacemi. Vztahují se na Aplikaci ve všech podporovaných zařízeních, včetně počítačů Mac s čipem Apple.",
+    "collection": {
+      "title": "Shromažďované informace",
+      "body": "Neshromažďujeme žádné osobní údaje ani údaje o používání. Aplikace nevyžaduje účet a neobsahuje reklamu, analytiku ani sledování."
+    },
+    "device": {
+      "title": "Informace uložené ve vašem zařízení",
+      "body": "Aplikace ukládá vámi importované soubory hry, uložené hry, snímky obrazovky a nastavení místně ve vašem zařízení. Tato data slouží výhradně k zajištění funkcí Aplikace a nejsou předávána nám ani žádným třetím stranám."
+    },
+    "imports": {
+      "title": "Importované soubory hry",
+      "body": "Složky hry, archivy ZIP a instalátory GOG, které vyberete v aplikaci Soubory, se čtou a rozbalují ve vašem zařízení. Importovaná data jsou uložena v úložišti Aplikace."
+    },
+    "thirdParties": {
+      "title": "Třetí strany",
+      "body": "Žádné informace neprodáváme, nesdílíme ani nezpřístupňujeme třetím stranám. Odkazy na obchody Steam a GOG a na průvodce importem se otevírají ve vašem webovém prohlížeči a příslušné webové stránky se řídí vlastními zásadami ochrany soukromí. Uložené hry, které ukládáte na iCloud Drive nebo sdílíte přes AirDrop, zpracovává společnost Apple v souladu se Zásadami ochrany osobních údajů společnosti Apple."
+    },
+    "retention": {
+      "title": "Uchovávání a mazání dat",
+      "body": "Data uložená Aplikací zůstávají ve vašem zařízení, dokud je nesmažete. Importovaná data hry lze kdykoli smazat přímo v Aplikaci a smazáním Aplikace se z vašeho zařízení odstraní veškerá její data."
+    },
+    "permissions": {
+      "title": "Oprávnění",
+      "body": "Aplikace nežádá o přístup k vaší poloze, fotoaparátu, mikrofonu, kontaktům ani fotkám."
+    },
+    "children": {
+      "title": "Ochrana soukromí dětí",
+      "body": "Aplikace vědomě neshromažďuje osobní údaje dětí jakéhokoli věku."
+    },
+    "changes": {
+      "title": "Změny těchto zásad",
+      "body": "Tyto zásady ochrany soukromí můžeme čas od času aktualizovat. Veškeré změny budou zveřejněny na této stránce spolu s aktualizovaným datem „Poslední aktualizace“."
+    },
+    "contact": {
+      "title": "Kontakt",
+      "body": "S případnými dotazy k těmto zásadám ochrany soukromí se na nás obraťte na adrese {{email}}."
+    }
+  },
+  "notFound": {
+    "title": "Stránka nebyla nalezena",
+    "back": "Zpět na domovskou stránku"
+  }
+}

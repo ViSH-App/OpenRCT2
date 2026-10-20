@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "OpenRCT2 til iOS",
+    "description": "iOS-porteringen af OpenRCT2, genimplementeringen af RollerCoaster Tycoon 2 med åben kildekode."
+  },
+  "nav": {
+    "home": "Forside",
+    "privacy": "Privatlivspolitik",
+    "language": "Sprog"
+  },
+  "appStore": {
+    "line1": "Hent i",
+    "line2": "App Store"
+  },
+  "hero": {
+    "title": "OpenRCT2 til iOS",
+    "tagline": "iOS-porteringen af OpenRCT2, genimplementeringen af RollerCoaster Tycoon 2 med åben kildekode.",
+    "requirement": "Der kræves spilfiler fra et eksemplar af RollerCoaster Tycoon 2."
+  },
+  "steps": {
+    "title": "Kom godt i gang",
+    "buy": {
+      "title": "Anskaf RollerCoaster Tycoon 2",
+      "body": "Appen indeholder intet originalt materiale fra spillet. RollerCoaster Tycoon 2: Triple Thrill Pack fås på Steam og GOG og indeholder Wacky Worlds og Time Twister."
+    },
+    "transfer": {
+      "title": "Overfør filerne til enheden",
+      "body": "Kopier spilmappen, et ZIP-arkiv eller GOG-installationsprogrammet til appen Arkiver via AirDrop, iCloud Drive eller en computer."
+    },
+    "import": {
+      "title": "Importer og spil",
+      "body": "Vælg filerne i appen. Importen foregår udelukkende på enheden, og GOG-installationsprogrammer udpakkes automatisk."
+    }
+  },
+  "features": {
+    "title": "Funktioner",
+    "rct1": {
+      "title": "Indhold fra RollerCoaster Tycoon 1",
+      "body": "Import af RollerCoaster Tycoon Deluxe er valgfri og tilføjer scenarier, grafik og titelmusik fra RCT1."
+    },
+    "metal": {
+      "title": "Indbygget Metal-gengivelse",
+      "body": "Parker tegnes med Metal, så rulningen er jævn, også i de største parker, i både liggende og stående retning."
+    },
+    "saves": {
+      "title": "Gemte spil i appen Arkiver",
+      "body": "Gemte spil opbevares i appen Arkiver, hvor de kan sikkerhedskopieres eller flyttes til en anden enhed."
+    },
+    "languages": {
+      "title": "25 sprog",
+      "body": "Brugerfladen findes på 25 sprog med pixelskrifter til kinesisk, japansk og koreansk."
+    },
+    "mac": {
+      "title": "Kører på Mac",
+      "body": "Appen kører også på Mac-computere med Apple Silicon."
+    },
+    "offline": {
+      "title": "Ingen konto eller sporing",
+      "body": "Appen kræver ingen konto og indeholder ingen reklamer, analyse eller sporing."
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2 er software med åben kildekode, der udgives under GNU General Public License v3.",
+    "trademark": "RollerCoaster Tycoon er et varemærke tilhørende de respektive ejere. Denne app indeholder intet originalt materiale fra spillet."
+  },
+  "privacy": {
+    "title": "Privatlivspolitik",
+    "updated": "Senest opdateret: {{date}}",
+    "intro": "Denne privatlivspolitik beskriver, hvordan OpenRCT2 til iOS (»Appen«) håndterer oplysninger. Den gælder for Appen på alle understøttede enheder, herunder Mac-computere med Apple Silicon.",
+    "collection": {
+      "title": "Oplysninger, vi indsamler",
+      "body": "Vi indsamler ingen personoplysninger eller brugsdata. Appen kræver ingen konto og indeholder ingen reklamer, analyse eller sporing."
+    },
+    "device": {
+      "title": "Oplysninger, der opbevares på din enhed",
+      "body": "Appen opbevarer de spilfiler, du importerer, gemte spil, skærmbilleder og indstillinger lokalt på din enhed. Disse data anvendes udelukkende til at levere Appens funktioner og overføres hverken til os eller til tredjeparter."
+    },
+    "imports": {
+      "title": "Importerede spilfiler",
+      "body": "Spilmapper, ZIP-arkiver og GOG-installationsprogrammer, som du vælger i appen Arkiver, læses og udpakkes på din enhed. De importerede data opbevares i Appens lager."
+    },
+    "thirdParties": {
+      "title": "Tredjeparter",
+      "body": "Vi sælger, deler eller videregiver ikke oplysninger til tredjeparter. Links til Steams og GOG's butikker og til importvejledningen åbnes i din webbrowser, og disse websteder er underlagt deres egne privatlivspolitikker. Gemte spil, som du opbevarer på iCloud Drive eller deler via AirDrop, behandles af Apple i overensstemmelse med Apples privatlivspolitik."
+    },
+    "retention": {
+      "title": "Opbevaring og sletning af data",
+      "body": "Data, som Appen opbevarer, forbliver på din enhed, indtil du sletter dem. Importerede spildata kan til enhver tid slettes i Appen, og hvis Appen slettes, fjernes alle dens data fra din enhed."
+    },
+    "permissions": {
+      "title": "Tilladelser",
+      "body": "Appen anmoder ikke om adgang til din lokalitet, dit kamera, din mikrofon, dine kontakter eller dine fotos."
+    },
+    "children": {
+      "title": "Børns privatliv",
+      "body": "Appen indsamler ikke bevidst personoplysninger fra børn, uanset alder."
+    },
+    "changes": {
+      "title": "Ændringer af denne politik",
+      "body": "Vi kan opdatere denne privatlivspolitik fra tid til anden. Eventuelle ændringer offentliggøres på denne side med en revideret dato under »Senest opdateret«."
+    },
+    "contact": {
+      "title": "Kontakt",
+      "body": "Hvis du har spørgsmål til denne privatlivspolitik, kan du kontakte os på {{email}}."
+    }
+  },
+  "notFound": {
+    "title": "Siden blev ikke fundet",
+    "back": "Tilbage til forsiden"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "iOS용 OpenRCT2",
+    "description": "RollerCoaster Tycoon 2의 오픈 소스 재구현인 OpenRCT2의 iOS 이식판입니다."
+  },
+  "nav": {
+    "home": "홈",
+    "privacy": "개인정보 처리방침",
+    "language": "언어"
+  },
+  "appStore": {
+    "line1": "App Store에서",
+    "line2": "다운로드"
+  },
+  "hero": {
+    "title": "iOS용 OpenRCT2",
+    "tagline": "RollerCoaster Tycoon 2의 오픈 소스 재구현인 OpenRCT2의 iOS 이식판입니다.",
+    "requirement": "RollerCoaster Tycoon 2의 게임 파일이 필요합니다."
+  },
+  "steps": {
+    "title": "시작하기",
+    "buy": {
+      "title": "RollerCoaster Tycoon 2 구입",
+      "body": "이 앱에는 원본 게임 에셋이 포함되어 있지 않습니다. RollerCoaster Tycoon 2: Triple Thrill Pack은 Steam과 GOG에서 구입할 수 있으며 Wacky Worlds와 Time Twister가 포함되어 있습니다."
+    },
+    "transfer": {
+      "title": "기기로 파일 전송",
+      "body": "AirDrop, iCloud Drive 또는 컴퓨터를 사용하여 게임 폴더, ZIP 압축 파일 또는 GOG 설치 프로그램을 파일 앱으로 복사합니다."
+    },
+    "import": {
+      "title": "가져오기 및 플레이",
+      "body": "앱에서 파일을 선택합니다. 가져오기는 전적으로 기기에서 이루어지며 GOG 설치 프로그램은 자동으로 압축 해제됩니다."
+    }
+  },
+  "features": {
+    "title": "기능",
+    "rct1": {
+      "title": "RollerCoaster Tycoon 1 콘텐츠",
+      "body": "RollerCoaster Tycoon Deluxe를 선택적으로 가져와 RCT1 시나리오, 그래픽 및 타이틀 음악을 추가할 수 있습니다."
+    },
+    "metal": {
+      "title": "네이티브 Metal 렌더링",
+      "body": "공원은 Metal로 렌더링되므로 가장 큰 공원에서도 가로 및 세로 방향 모두에서 부드럽게 스크롤됩니다."
+    },
+    "saves": {
+      "title": "파일 앱의 저장 파일",
+      "body": "저장 파일은 파일 앱에 보관되므로 백업하거나 다른 기기로 옮길 수 있습니다."
+    },
+    "languages": {
+      "title": "25개 언어",
+      "body": "인터페이스는 25개 언어를 지원하며 중국어, 일본어 및 한국어에는 픽셀 서체를 사용합니다."
+    },
+    "mac": {
+      "title": "Mac에서도 실행",
+      "body": "이 앱은 Apple 실리콘이 탑재된 Mac 컴퓨터에서도 실행됩니다."
+    },
+    "offline": {
+      "title": "계정 및 추적 없음",
+      "body": "이 앱은 계정이 필요하지 않으며 광고, 분석 또는 추적 기능을 포함하지 않습니다."
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2는 GNU General Public License v3에 따라 배포되는 오픈 소스 소프트웨어입니다.",
+    "trademark": "RollerCoaster Tycoon은 해당 소유자의 상표입니다. 이 앱에는 원본 게임 에셋이 포함되어 있지 않습니다."
+  },
+  "privacy": {
+    "title": "개인정보 처리방침",
+    "updated": "최종 수정일: {{date}}",
+    "intro": "본 개인정보 처리방침은 iOS용 OpenRCT2(이하 '본 앱')가 정보를 처리하는 방식을 설명합니다. 본 방침은 Apple 실리콘이 탑재된 Mac 컴퓨터를 포함하여 지원되는 모든 기기에서 사용되는 본 앱에 적용됩니다.",
+    "collection": {
+      "title": "수집하는 정보",
+      "body": "개발자는 어떠한 개인정보나 사용 데이터도 수집하지 않습니다. 본 앱은 계정을 요구하지 않으며 광고, 분석 또는 추적 기능을 포함하지 않습니다."
+    },
+    "device": {
+      "title": "기기에 저장되는 정보",
+      "body": "본 앱은 사용자가 가져온 게임 파일, 저장 파일, 스크린샷 및 설정을 사용자의 기기에 로컬로 저장합니다. 이 데이터는 본 앱의 기능을 제공하는 목적으로만 사용되며 개발자나 제3자에게 전송되지 않습니다."
+    },
+    "imports": {
+      "title": "가져온 게임 파일",
+      "body": "사용자가 파일 앱에서 선택한 게임 폴더, ZIP 압축 파일 및 GOG 설치 프로그램은 사용자의 기기에서 읽히고 압축 해제됩니다. 가져온 데이터는 본 앱의 저장 공간에 보관됩니다."
+    },
+    "thirdParties": {
+      "title": "제3자",
+      "body": "개발자는 어떠한 정보도 제3자에게 판매, 공유 또는 공개하지 않습니다. Steam 및 GOG 스토어와 가져오기 안내로 연결되는 링크는 사용자의 웹 브라우저에서 열리며, 해당 웹 사이트에는 각 웹 사이트의 개인정보 처리방침이 적용됩니다. 사용자가 iCloud Drive에 저장하거나 AirDrop으로 공유한 저장 파일은 Apple 개인정보 처리방침에 따라 Apple이 처리합니다."
+    },
+    "retention": {
+      "title": "데이터 보존 및 삭제",
+      "body": "본 앱이 저장한 데이터는 사용자가 삭제할 때까지 사용자의 기기에 보존됩니다. 가져온 게임 데이터는 언제든지 본 앱 내에서 삭제할 수 있으며, 본 앱을 삭제하면 해당 데이터가 모두 기기에서 제거됩니다."
+    },
+    "permissions": {
+      "title": "권한",
+      "body": "본 앱은 사용자의 위치, 카메라, 마이크, 연락처 또는 사진에 대한 접근을 요청하지 않습니다."
+    },
+    "children": {
+      "title": "아동의 개인정보 보호",
+      "body": "본 앱은 연령에 관계없이 아동의 개인정보를 고의로 수집하지 않습니다."
+    },
+    "changes": {
+      "title": "본 방침의 변경",
+      "body": "개발자는 본 개인정보 처리방침을 수시로 변경할 수 있습니다. 변경 사항은 본 페이지에 게시되며 '최종 수정일'이 함께 갱신됩니다."
+    },
+    "contact": {
+      "title": "문의",
+      "body": "본 개인정보 처리방침에 관한 문의 사항이 있으시면 이메일({{email}})로 연락해 주시기 바랍니다."
+    }
+  },
+  "notFound": {
+    "title": "페이지를 찾을 수 없습니다",
+    "back": "홈 페이지로 돌아가기"
+  }
+}

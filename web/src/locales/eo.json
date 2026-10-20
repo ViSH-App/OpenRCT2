@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "OpenRCT2 por iOS",
+    "description": "La iOS-adapto de OpenRCT2, la malfermitkoda reimplemento de RollerCoaster Tycoon 2."
+  },
+  "nav": {
+    "home": "Ĉefpaĝo",
+    "privacy": "Privateca politiko",
+    "language": "Lingvo"
+  },
+  "appStore": {
+    "line1": "Elŝutu en la",
+    "line2": "App Store"
+  },
+  "hero": {
+    "title": "OpenRCT2 por iOS",
+    "tagline": "La iOS-adapto de OpenRCT2, la malfermitkoda reimplemento de RollerCoaster Tycoon 2.",
+    "requirement": "Necesas luddosieroj el ekzemplero de RollerCoaster Tycoon 2."
+  },
+  "steps": {
+    "title": "Unuaj paŝoj",
+    "buy": {
+      "title": "Akiri RollerCoaster Tycoon 2",
+      "body": "La aplikaĵo enhavas neniun originalan ludmaterialon. RollerCoaster Tycoon 2: Triple Thrill Pack estas aĉetebla ĉe Steam kaj GOG kaj enhavas Wacky Worlds kaj Time Twister."
+    },
+    "transfer": {
+      "title": "Transigi la dosierojn al la aparato",
+      "body": "Kopiu la luddosierujon, ZIP-arkivon aŭ la GOG-instalilon al la aplikaĵo Dosieroj per AirDrop, iCloud Drive aŭ komputilo."
+    },
+    "import": {
+      "title": "Importi kaj ludi",
+      "body": "Elektu la dosierojn en la aplikaĵo. La importado okazas tute en la aparato, kaj GOG-instaliloj estas malpakataj aŭtomate."
+    }
+  },
+  "features": {
+    "title": "Trajtoj",
+    "rct1": {
+      "title": "Enhavo de RollerCoaster Tycoon 1",
+      "body": "Importi RollerCoaster Tycoon Deluxe estas laŭvole kaj aldonas la scenarojn, grafikon kaj titolmuzikon de RCT1."
+    },
+    "metal": {
+      "title": "Denaska bildigo per Metal",
+      "body": "Parkoj estas desegnataj per Metal por glata rulumado, eĉ en la plej grandaj parkoj, kaj en horizontala kaj en vertikala orientiĝo."
+    },
+    "saves": {
+      "title": "Konservitaĵoj en la aplikaĵo Dosieroj",
+      "body": "Konservitaj ludoj troviĝas en la aplikaĵo Dosieroj, kie eblas sekurkopii ilin aŭ movi ilin al alia aparato."
+    },
+    "languages": {
+      "title": "25 lingvoj",
+      "body": "La fasado estas disponebla en 25 lingvoj, kun bilderaj tiparoj por la ĉina, la japana kaj la korea."
+    },
+    "mac": {
+      "title": "Funkcias en Mac",
+      "body": "La aplikaĵo funkcias ankaŭ en Mac-komputiloj kun Apple silicon."
+    },
+    "offline": {
+      "title": "Sen konto kaj spurado",
+      "body": "La aplikaĵo bezonas neniun konton kaj enhavas neniajn reklamojn, analizilojn aŭ spuradon."
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2 estas malfermitkoda programaro eldonita laŭ la GNU Ĝenerala Publika Permesilo v3.",
+    "trademark": "RollerCoaster Tycoon estas varmarko de ĝiaj respektivaj posedantoj. Ĉi tiu aplikaĵo enhavas neniun originalan ludmaterialon."
+  },
+  "privacy": {
+    "title": "Privateca politiko",
+    "updated": "Laste ĝisdatigita: {{date}}",
+    "intro": "Ĉi tiu privateca politiko priskribas, kiel OpenRCT2 por iOS (la “Aplikaĵo”) traktas informojn. Ĝi validas por la Aplikaĵo en ĉiuj subtenataj aparatoj, inkluzive de Mac-komputiloj kun Apple silicon.",
+    "collection": {
+      "title": "Informoj, kiujn ni kolektas",
+      "body": "Ni kolektas neniujn personajn informojn aŭ uzdatumojn. La Aplikaĵo ne postulas konton kaj ne enhavas reklamojn, analizilojn aŭ spuradon."
+    },
+    "device": {
+      "title": "Informoj konservataj en via aparato",
+      "body": "La Aplikaĵo konservas loke en via aparato la luddosierojn, kiujn vi importas, konservitajn ludojn, ekrankopiojn kaj agordojn. Ĉi tiuj datumoj estas uzataj sole por provizi la funkciojn de la Aplikaĵo kaj ne estas transsendataj al ni aŭ al iu ajn tria partio."
+    },
+    "imports": {
+      "title": "Importitaj luddosieroj",
+      "body": "Luddosierujoj, ZIP-arkivoj kaj GOG-instaliloj, kiujn vi elektas en la aplikaĵo Dosieroj, estas legataj kaj malpakataj en via aparato. La importitaj datumoj estas tenataj en la memorejo de la Aplikaĵo."
+    },
+    "thirdParties": {
+      "title": "Triaj partioj",
+      "body": "Ni ne vendas, kunhavigas aŭ malkaŝas iujn ajn informojn al triaj partioj. Ligiloj al la vendejoj de Steam kaj GOG kaj al la importgvidilo malfermiĝas en via retumilo, kaj tiuj retejoj estas regataj de siaj propraj privatecaj politikoj. Konservitajn ludojn, kiujn vi konservas en iCloud Drive aŭ kunhavigas per AirDrop, traktas Apple laŭ la Privateca Politiko de Apple."
+    },
+    "retention": {
+      "title": "Konservado kaj forigo de datumoj",
+      "body": "Datumoj konservitaj de la Aplikaĵo restas en via aparato, ĝis vi forigos ilin. Importitajn luddatumojn eblas forigi en la Aplikaĵo iam ajn, kaj forigo de la Aplikaĵo forigas ĉiujn ĝiajn datumojn el via aparato."
+    },
+    "permissions": {
+      "title": "Permesoj",
+      "body": "La Aplikaĵo ne petas aliron al via loko, fotilo, mikrofono, kontaktoj aŭ fotoj."
+    },
+    "children": {
+      "title": "Privateco de infanoj",
+      "body": "La Aplikaĵo ne konscie kolektas personajn informojn de infanoj de ajna aĝo."
+    },
+    "changes": {
+      "title": "Ŝanĝoj al ĉi tiu politiko",
+      "body": "Ni povas de tempo al tempo ĝisdatigi ĉi tiun privatecan politikon. Ĉiuj ŝanĝoj estos publikigitaj sur ĉi tiu paĝo kun reviziita dato “Laste ĝisdatigita”."
+    },
+    "contact": {
+      "title": "Kontakto",
+      "body": "Se vi havas demandojn pri ĉi tiu privateca politiko, bonvolu kontakti nin ĉe {{email}}."
+    }
+  },
+  "notFound": {
+    "title": "Paĝo ne trovita",
+    "back": "Reiri al la ĉefpaĝo"
+  }
+}

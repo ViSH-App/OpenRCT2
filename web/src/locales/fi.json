@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "OpenRCT2 iOS:lle",
+    "description": "OpenRCT2:n iOS-sovitus. OpenRCT2 on RollerCoaster Tycoon 2:n avoimen lähdekoodin uudelleentoteutus."
+  },
+  "nav": {
+    "home": "Etusivu",
+    "privacy": "Tietosuojakäytäntö",
+    "language": "Kieli"
+  },
+  "appStore": {
+    "line1": "Lataa",
+    "line2": "App Storesta"
+  },
+  "hero": {
+    "title": "OpenRCT2 iOS:lle",
+    "tagline": "OpenRCT2:n iOS-sovitus. OpenRCT2 on RollerCoaster Tycoon 2:n avoimen lähdekoodin uudelleentoteutus.",
+    "requirement": "Käyttö edellyttää RollerCoaster Tycoon 2 -pelin kappaleen pelitiedostoja."
+  },
+  "steps": {
+    "title": "Aloittaminen",
+    "buy": {
+      "title": "Hanki RollerCoaster Tycoon 2",
+      "body": "Appi ei sisällä alkuperäisen pelin materiaalia. RollerCoaster Tycoon 2: Triple Thrill Pack on saatavilla Steamista ja GOG:sta, ja se sisältää Wacky Worlds- ja Time Twister -laajennukset."
+    },
+    "transfer": {
+      "title": "Siirrä tiedostot laitteeseen",
+      "body": "Kopioi pelikansio, ZIP-arkisto tai GOG-asennusohjelma Tiedostot-appiin AirDropilla, iCloud Drivella tai tietokoneelta."
+    },
+    "import": {
+      "title": "Tuo ja pelaa",
+      "body": "Valitse tiedostot apissa. Tuonti tapahtuu kokonaan laitteella, ja GOG-asennusohjelmat puretaan automaattisesti."
+    }
+  },
+  "features": {
+    "title": "Ominaisuudet",
+    "rct1": {
+      "title": "RollerCoaster Tycoon 1 -sisältö",
+      "body": "RollerCoaster Tycoon Deluxen tuonti on valinnaista, ja se lisää RCT1:n skenaariot, grafiikan ja alkumusiikin."
+    },
+    "metal": {
+      "title": "Natiivi Metal-renderöinti",
+      "body": "Puistot piirretään Metalilla, jotta vieritys on sujuvaa suurimmissakin puistoissa sekä vaaka- että pystysuunnassa."
+    },
+    "saves": {
+      "title": "Tallennetut pelit Tiedostot-apissa",
+      "body": "Tallennetut pelit säilytetään Tiedostot-apissa, jossa ne voidaan varmuuskopioida tai siirtää toiselle laitteelle."
+    },
+    "languages": {
+      "title": "25 kieltä",
+      "body": "Käyttöliittymä on saatavilla 25 kielellä, ja kiinalle, japanille ja korealle on pikselifontit."
+    },
+    "mac": {
+      "title": "Toimii Macissa",
+      "body": "Appi toimii myös Apple Silicon -sirulla varustetuissa Mac-tietokoneissa."
+    },
+    "offline": {
+      "title": "Ei tiliä eikä seurantaa",
+      "body": "Appi ei vaadi tiliä eikä sisällä mainontaa, analytiikkaa tai seurantaa."
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2 on avoimen lähdekoodin ohjelmisto, joka on julkaistu GNU General Public License v3 -lisenssillä.",
+    "trademark": "RollerCoaster Tycoon on omistajiensa tavaramerkki. Tämä appi ei sisällä alkuperäisen pelin materiaalia."
+  },
+  "privacy": {
+    "title": "Tietosuojakäytäntö",
+    "updated": "Päivitetty viimeksi: {{date}}",
+    "intro": "Tässä tietosuojakäytännössä kuvataan, miten OpenRCT2 iOS:lle (”Appi”) käsittelee tietoja. Käytäntöä sovelletaan Appiin kaikissa tuetuissa laitteissa, mukaan lukien Apple Silicon -sirulla varustetut Mac-tietokoneet.",
+    "collection": {
+      "title": "Keräämämme tiedot",
+      "body": "Emme kerää henkilötietoja tai käyttötietoja. Appi ei vaadi tiliä eikä sisällä mainontaa, analytiikkaa tai seurantaa."
+    },
+    "device": {
+      "title": "Laitteellesi tallennettavat tiedot",
+      "body": "Appi tallentaa tuomasi pelitiedostot, tallennetut pelit, kuvakaappaukset ja asetukset paikallisesti laitteellesi. Näitä tietoja käytetään ainoastaan Apin toimintojen tarjoamiseen, eikä niitä siirretä meille tai kolmansille osapuolille."
+    },
+    "imports": {
+      "title": "Tuodut pelitiedostot",
+      "body": "Tiedostot-apissa valitsemasi pelikansiot, ZIP-arkistot ja GOG-asennusohjelmat luetaan ja puretaan laitteellasi. Tuodut tiedot säilytetään Apin tallennustilassa."
+    },
+    "thirdParties": {
+      "title": "Kolmannet osapuolet",
+      "body": "Emme myy, jaa tai luovuta tietoja kolmansille osapuolille. Linkit Steamin ja GOG:n kauppoihin sekä tuontiohjeeseen avautuvat verkkoselaimessasi, ja kyseisiin verkkosivustoihin sovelletaan niiden omia tietosuojakäytäntöjä. Tallennettuja pelejä, jotka tallennat iCloud Driveen tai jaat AirDropilla, käsittelee Apple Applen tietosuojakäytännön mukaisesti."
+    },
+    "retention": {
+      "title": "Tietojen säilyttäminen ja poistaminen",
+      "body": "Apin tallentamat tiedot säilyvät laitteellasi, kunnes poistat ne. Tuodut pelitiedot voidaan poistaa Apissa milloin tahansa, ja Apin poistaminen poistaa kaikki sen tiedot laitteeltasi."
+    },
+    "permissions": {
+      "title": "Käyttöoikeudet",
+      "body": "Appi ei pyydä pääsyä sijaintiisi, kameraan, mikrofoniin, yhteystietoihin tai kuviin."
+    },
+    "children": {
+      "title": "Lasten yksityisyys",
+      "body": "Appi ei tietoisesti kerää henkilötietoja minkään ikäisiltä lapsilta."
+    },
+    "changes": {
+      "title": "Muutokset tähän käytäntöön",
+      "body": "Voimme päivittää tätä tietosuojakäytäntöä ajoittain. Mahdolliset muutokset julkaistaan tällä sivulla, ja ”Päivitetty viimeksi” -päivämäärä päivitetään vastaavasti."
+    },
+    "contact": {
+      "title": "Yhteystiedot",
+      "body": "Jos sinulla on kysyttävää tästä tietosuojakäytännöstä, ota meihin yhteyttä osoitteeseen {{email}}."
+    }
+  },
+  "notFound": {
+    "title": "Sivua ei löytynyt",
+    "back": "Palaa etusivulle"
+  }
+}

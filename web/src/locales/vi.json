@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "OpenRCT2 cho iOS",
+    "description": "Bản chuyển thể cho iOS của OpenRCT2, bản triển khai lại mã nguồn mở của RollerCoaster Tycoon 2."
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "privacy": "Chính sách quyền riêng tư",
+    "language": "Ngôn ngữ"
+  },
+  "appStore": {
+    "line1": "Tải về trên",
+    "line2": "App Store"
+  },
+  "hero": {
+    "title": "OpenRCT2 cho iOS",
+    "tagline": "Bản chuyển thể cho iOS của OpenRCT2, bản triển khai lại mã nguồn mở của RollerCoaster Tycoon 2.",
+    "requirement": "Cần có các tệp trò chơi từ một bản RollerCoaster Tycoon 2."
+  },
+  "steps": {
+    "title": "Bắt đầu",
+    "buy": {
+      "title": "Sở hữu RollerCoaster Tycoon 2",
+      "body": "Ứng dụng không chứa bất kỳ tài nguyên gốc nào của trò chơi. RollerCoaster Tycoon 2: Triple Thrill Pack hiện có trên Steam và GOG, bao gồm Wacky Worlds và Time Twister."
+    },
+    "transfer": {
+      "title": "Chuyển tệp sang thiết bị",
+      "body": "Sao chép thư mục trò chơi, tệp nén ZIP hoặc bộ cài đặt GOG vào ứng dụng Tệp bằng AirDrop, iCloud Drive hoặc máy tính."
+    },
+    "import": {
+      "title": "Nhập và chơi",
+      "body": "Chọn các tệp trong ứng dụng. Quá trình nhập diễn ra hoàn toàn trên thiết bị và bộ cài đặt GOG được giải nén tự động."
+    }
+  },
+  "features": {
+    "title": "Tính năng",
+    "rct1": {
+      "title": "Nội dung RollerCoaster Tycoon 1",
+      "body": "Việc nhập RollerCoaster Tycoon Deluxe là tùy chọn và sẽ bổ sung các kịch bản, đồ họa và nhạc chủ đề của RCT1."
+    },
+    "metal": {
+      "title": "Kết xuất Metal gốc",
+      "body": "Công viên được vẽ bằng Metal để cuộn mượt mà, kể cả ở những công viên lớn nhất, theo cả hướng ngang và hướng dọc."
+    },
+    "saves": {
+      "title": "Tệp lưu trong ứng dụng Tệp",
+      "body": "Các tệp lưu trò chơi được lưu trữ trong ứng dụng Tệp, nơi có thể sao lưu hoặc chuyển sang thiết bị khác."
+    },
+    "languages": {
+      "title": "25 ngôn ngữ",
+      "body": "Giao diện hỗ trợ 25 ngôn ngữ, với phông chữ pixel cho tiếng Trung, tiếng Nhật và tiếng Hàn."
+    },
+    "mac": {
+      "title": "Chạy trên Mac",
+      "body": "Ứng dụng cũng chạy được trên máy Mac dùng chip Apple silicon."
+    },
+    "offline": {
+      "title": "Không cần tài khoản, không theo dõi",
+      "body": "Ứng dụng không yêu cầu tài khoản và không chứa quảng cáo, phân tích hay theo dõi."
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2 là phần mềm nguồn mở được phát hành theo Giấy phép Công cộng GNU phiên bản 3 (GPL v3).",
+    "trademark": "RollerCoaster Tycoon là nhãn hiệu của các chủ sở hữu tương ứng. Ứng dụng này không chứa bất kỳ tài nguyên gốc nào của trò chơi."
+  },
+  "privacy": {
+    "title": "Chính sách quyền riêng tư",
+    "updated": "Cập nhật lần cuối: {{date}}",
+    "intro": "Chính sách quyền riêng tư này mô tả cách OpenRCT2 cho iOS (sau đây gọi là “Ứng dụng”) xử lý thông tin. Chính sách này áp dụng cho Ứng dụng trên mọi thiết bị được hỗ trợ, bao gồm cả máy Mac dùng chip Apple silicon.",
+    "collection": {
+      "title": "Thông tin chúng tôi thu thập",
+      "body": "Chúng tôi không thu thập bất kỳ thông tin cá nhân hay dữ liệu sử dụng nào. Ứng dụng không yêu cầu tài khoản và không bao gồm quảng cáo, phân tích hay theo dõi."
+    },
+    "device": {
+      "title": "Thông tin được lưu trữ trên thiết bị của bạn",
+      "body": "Ứng dụng lưu trữ cục bộ trên thiết bị của bạn các tệp trò chơi mà bạn nhập, tệp lưu trò chơi, ảnh chụp màn hình và cài đặt. Dữ liệu này chỉ được sử dụng để cung cấp các chức năng của Ứng dụng và không được truyền đến chúng tôi hay bất kỳ bên thứ ba nào."
+    },
+    "imports": {
+      "title": "Tệp trò chơi được nhập",
+      "body": "Các thư mục trò chơi, tệp nén ZIP và bộ cài đặt GOG mà bạn chọn trong ứng dụng Tệp được đọc và giải nén trên thiết bị của bạn. Dữ liệu đã nhập được lưu giữ trong bộ nhớ của Ứng dụng."
+    },
+    "thirdParties": {
+      "title": "Bên thứ ba",
+      "body": "Chúng tôi không bán, chia sẻ hay tiết lộ bất kỳ thông tin nào cho bên thứ ba. Các liên kết đến cửa hàng Steam, cửa hàng GOG và hướng dẫn nhập được mở trong trình duyệt web của bạn, và các trang web đó chịu sự điều chỉnh của chính sách quyền riêng tư riêng của họ. Các tệp lưu trò chơi mà bạn lưu trữ trong iCloud Drive hoặc chia sẻ qua AirDrop do Apple xử lý theo Chính sách quyền riêng tư của Apple."
+    },
+    "retention": {
+      "title": "Lưu giữ và xóa dữ liệu",
+      "body": "Dữ liệu do Ứng dụng lưu trữ được giữ trên thiết bị của bạn cho đến khi bạn xóa. Bạn có thể xóa dữ liệu trò chơi đã nhập trong Ứng dụng vào bất kỳ lúc nào, và việc xóa Ứng dụng sẽ loại bỏ toàn bộ dữ liệu của Ứng dụng khỏi thiết bị của bạn."
+    },
+    "permissions": {
+      "title": "Quyền truy cập",
+      "body": "Ứng dụng không yêu cầu quyền truy cập vào vị trí, camera, micrô, danh bạ hoặc ảnh của bạn."
+    },
+    "children": {
+      "title": "Quyền riêng tư của trẻ em",
+      "body": "Ứng dụng không cố ý thu thập thông tin cá nhân của trẻ em ở bất kỳ độ tuổi nào."
+    },
+    "changes": {
+      "title": "Thay đổi đối với chính sách này",
+      "body": "Chúng tôi có thể cập nhật Chính sách quyền riêng tư này theo thời gian. Mọi thay đổi sẽ được đăng trên trang này kèm theo ngày “Cập nhật lần cuối” được điều chỉnh."
+    },
+    "contact": {
+      "title": "Liên hệ",
+      "body": "Nếu bạn có bất kỳ câu hỏi nào về Chính sách quyền riêng tư này, vui lòng liên hệ với chúng tôi qua {{email}}."
+    }
+  },
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "back": "Quay về trang chủ"
+  }
+}

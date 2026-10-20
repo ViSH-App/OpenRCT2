@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "OpenRCT2 for iOS",
+    "description": "The iOS port of OpenRCT2, the open-source re-implementation of RollerCoaster Tycoon 2."
+  },
+  "nav": {
+    "home": "Home",
+    "privacy": "Privacy Policy",
+    "language": "Language"
+  },
+  "appStore": {
+    "line1": "Download on the",
+    "line2": "App Store"
+  },
+  "hero": {
+    "title": "OpenRCT2 for iOS",
+    "tagline": "The iOS port of OpenRCT2, the open-source re-implementation of RollerCoaster Tycoon 2.",
+    "requirement": "Game files from a copy of RollerCoaster Tycoon 2 are required."
+  },
+  "steps": {
+    "title": "Getting started",
+    "buy": {
+      "title": "Obtain RollerCoaster Tycoon 2",
+      "body": "The app contains no original game assets. RollerCoaster Tycoon 2: Triple Thrill Pack is available on Steam and GOG and includes Wacky Worlds and Time Twister."
+    },
+    "transfer": {
+      "title": "Transfer the files to your device",
+      "body": "Copy the game folder, a ZIP archive or the GOG installer to the Files app using AirDrop, iCloud Drive or a computer."
+    },
+    "import": {
+      "title": "Import and play",
+      "body": "Select the files in the app. Importing takes place entirely on the device, and GOG installers are extracted automatically."
+    }
+  },
+  "features": {
+    "title": "Features",
+    "rct1": {
+      "title": "RollerCoaster Tycoon 1 content",
+      "body": "Importing RollerCoaster Tycoon Deluxe is optional and adds the RCT1 scenarios, graphics and title music."
+    },
+    "metal": {
+      "title": "Native Metal rendering",
+      "body": "Parks are drawn with Metal for smooth scrolling, even in the largest parks, in both landscape and portrait orientation."
+    },
+    "saves": {
+      "title": "Saves in the Files app",
+      "body": "Saved games are stored in the Files app, where they can be backed up or moved to another device."
+    },
+    "languages": {
+      "title": "25 languages",
+      "body": "The interface is available in 25 languages, with pixel fonts for Chinese, Japanese and Korean."
+    },
+    "mac": {
+      "title": "Runs on Mac",
+      "body": "The app also runs on Mac computers with Apple silicon."
+    },
+    "offline": {
+      "title": "No account or tracking",
+      "body": "The app requires no account and contains no advertising, analytics or tracking."
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2 is open-source software released under the GNU General Public License v3.",
+    "trademark": "RollerCoaster Tycoon is a trademark of its respective owners. This app contains no original game assets."
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "updated": "Last updated: {{date}}",
+    "intro": "This Privacy Policy describes how OpenRCT2 for iOS (the \"App\") handles information. It applies to the App on all supported devices, including Mac computers with Apple silicon.",
+    "collection": {
+      "title": "Information we collect",
+      "body": "We do not collect any personal information or usage data. The App does not require an account and does not include advertising, analytics or tracking."
+    },
+    "device": {
+      "title": "Information stored on your device",
+      "body": "The App stores the game files you import, saved games, screenshots and settings locally on your device. This data is used solely to provide the App’s functionality and is not transmitted to us or to any third party."
+    },
+    "imports": {
+      "title": "Imported game files",
+      "body": "Game folders, ZIP archives and GOG installers that you select in the Files app are read and extracted on your device. The imported data is kept in the App’s storage."
+    },
+    "thirdParties": {
+      "title": "Third parties",
+      "body": "We do not sell, share or disclose any information to third parties. Links to the Steam and GOG stores and to the import guide open in your web browser, and those websites are governed by their own privacy policies. Saved games that you store in iCloud Drive or share via AirDrop are handled by Apple in accordance with Apple’s Privacy Policy."
+    },
+    "retention": {
+      "title": "Data retention and deletion",
+      "body": "Data stored by the App remains on your device until you delete it. Imported game data can be deleted within the App at any time, and deleting the App removes all of its data from your device."
+    },
+    "permissions": {
+      "title": "Permissions",
+      "body": "The App does not request access to your location, camera, microphone, contacts or photos."
+    },
+    "children": {
+      "title": "Children’s privacy",
+      "body": "The App does not knowingly collect personal information from children of any age."
+    },
+    "changes": {
+      "title": "Changes to this policy",
+      "body": "We may update this Privacy Policy from time to time. Any changes will be posted on this page with a revised \"Last updated\" date."
+    },
+    "contact": {
+      "title": "Contact",
+      "body": "If you have any questions about this Privacy Policy, please contact us at {{email}}."
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "back": "Return to the home page"
+  }
+}

@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+/* Colours come from the launcher's RCT2 palette ramps (PixelUI.swift). */
+@theme {
+  --font-sans: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "PingFang SC", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --color-ink: #101414;
+  --color-sky-1: #8fd3f3;
+  --color-sky-2: #77bbef;
+  --color-sky-3: #5ba3e7;
+  --color-grass: #638f3b;
+  --color-panel: #b7c3c3;
+  --color-panel-hi: #eff3f3;
+  --color-panel-lo: #5b7373;
+  --color-title: #3b734b;
+  --color-shadow: #172323;
+  --color-yellow: #fff35f;
+}
+
+:lang(zh-Hans) { --font-sans: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "M PLUS Rounded 1c", sans-serif; }
+:lang(zh-Hant) { --font-sans: "PingFang TC", "Noto Sans TC", "M PLUS Rounded 1c", sans-serif; }
+:lang(ko) { --font-sans: "Apple SD Gothic Neo", "Noto Sans KR", "M PLUS Rounded 1c", sans-serif; }
+
+html { background: var(--color-shadow); }
+body { background: var(--color-grass); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+:focus-visible { outline: 3px solid var(--color-yellow); outline-offset: 2px; }
+
+.pixelated { image-rendering: pixelated; }
+
+.topbar { background: #233333; border-bottom: 2px solid var(--color-shadow); }
+.footer { background: #233333; color: #9fafaf; }
+
+/* Sky with hard-stepped bands toward the horizon, like the game's palette-limited skies. */
+.sky {
+  background: linear-gradient(
+    to bottom,
+    var(--color-sky-1) 0 calc(100% - 96px),
+    var(--color-sky-2) calc(100% - 96px) calc(100% - 48px),
+    var(--color-sky-3) calc(100% - 48px) 100%
+  );
+}
+
+/* Sprite offsets match Coaster in Scenery.swift, drawn at 2× pixels. */
+.coaster { position: relative; height: 120px; overflow: hidden; }
+.coaster > div { position: absolute; left: 0; right: 0; image-rendering: pixelated; background-repeat: repeat-x; }
+.coaster-supports { top: 54px; height: 66px; background: url(/sprites/steel_supports.png) 0 0 / 512px 66px; }
+.coaster-track { top: 32px; height: 22px; background: url(/sprites/steel_track.png) 0 0 / 512px 22px; }
+.coaster-train {
+  top: 0;
+  width: 260px;
+  height: 56px;
+  right: auto !important;
+  background: url(/sprites/steel_vehicle.png) 0 0 / 260px 56px no-repeat;
+  animation: ride 14s steps(700) infinite;
+}
+@keyframes ride {
+  from { transform: translateX(-260px); }
+  to { transform: translateX(100vw); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coaster-train { animation: none; transform: translateX(15vw); }
+}
+
+/* RCT2 window: 1px black outline, 2px raised bevel, coloured title bar. */
+.window {
+  background: var(--color-panel);
+  border: 2px solid var(--color-shadow);
+  box-shadow: inset 2px 2px 0 var(--color-panel-hi), inset -2px -2px 0 var(--color-panel-lo), 4px 4px 0 rgb(23 35 35 / 0.35);
+}
+.window-title {
+  margin: 2px 2px 0;
+  padding: 6px 12px;
+  background: var(--color-title);
+  color: var(--color-panel-hi);
+  font-weight: 800;
+  font-size: 1rem;
+  text-align: center;
+  text-shadow: 1px 1px 0 var(--color-shadow);
+  box-shadow: inset 2px 2px 0 #4f875f, inset -2px -2px 0 #23532b;
+}
+
+/* Sunken surfaces. */
+.paper { background: #e3eaea; box-shadow: inset 2px 2px 0 var(--color-panel-lo), inset -2px -2px 0 var(--color-panel-hi); }
+.groove { border-top: 2px solid var(--color-panel-lo); box-shadow: inset 0 2px 0 var(--color-panel-hi); }
+.step-number {
+  display: grid; place-items: center; flex: none;
+  width: 2.25rem; height: 2.25rem;
+  background: var(--color-shadow); color: var(--color-yellow);
+  font-weight: 800;
+  box-shadow: inset 2px 2px 0 #000, inset -2px -2px 0 #3f5353;
+}
+
+.appstore {
+  display: inline-flex; align-items: center; gap: 0.75rem;
+  padding: 0.6rem 1.4rem 0.6rem 1.1rem;
+  background: #000; color: #fff; border-radius: 12px;
+  box-shadow: 0 0 0 1px #a6a6a6, 4px 4px 0 rgb(23 35 35 / 0.35);
+}
+.appstore:hover { background: #1c1c1c; }
+
+.lang-select {
+  appearance: none;
+  background: var(--color-panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23101414'/%3E%3C/svg%3E") no-repeat right 8px center;
+  color: var(--color-ink);
+  padding: 4px 26px 4px 10px;
+  border: 2px solid var(--color-shadow);
+  box-shadow: inset 2px 2px 0 var(--color-panel-hi), inset -2px -2px 0 var(--color-panel-lo);
+  font: inherit;
+  font-weight: 700;
+}

@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "OpenRCT2 iOS 版",
+    "description": "OpenRCT2 的 iOS 移植版本。OpenRCT2 是 RollerCoaster Tycoon 2 的開放原始碼重新實作版本。"
+  },
+  "nav": {
+    "home": "首頁",
+    "privacy": "隱私權政策",
+    "language": "語言"
+  },
+  "appStore": {
+    "line1": "",
+    "line2": "在 App Store 下載"
+  },
+  "hero": {
+    "title": "OpenRCT2 iOS 版",
+    "tagline": "OpenRCT2 的 iOS 移植版本。OpenRCT2 是 RollerCoaster Tycoon 2 的開放原始碼重新實作版本。",
+    "requirement": "需要一份 RollerCoaster Tycoon 2 的遊戲檔案。"
+  },
+  "steps": {
+    "title": "開始使用",
+    "buy": {
+      "title": "取得 RollerCoaster Tycoon 2",
+      "body": "本 App 不含任何原版遊戲素材。RollerCoaster Tycoon 2: Triple Thrill Pack 可於 Steam 和 GOG 購買，並包含 Wacky Worlds 與 Time Twister。"
+    },
+    "transfer": {
+      "title": "將檔案傳輸至裝置",
+      "body": "透過隔空投送、iCloud 雲碟或電腦，將遊戲資料夾、ZIP 壓縮檔或 GOG 安裝程式拷貝至「檔案」App。"
+    },
+    "import": {
+      "title": "匯入並開始遊戲",
+      "body": "在 App 中選取這些檔案即可。匯入過程完全在裝置上進行，GOG 安裝程式會自動解壓縮。"
+    }
+  },
+  "features": {
+    "title": "功能特色",
+    "rct1": {
+      "title": "RollerCoaster Tycoon 1 內容",
+      "body": "可選擇匯入 RollerCoaster Tycoon Deluxe，以加入 RCT1 的劇情、圖形與標題音樂。"
+    },
+    "metal": {
+      "title": "原生 Metal 渲染",
+      "body": "樂園以 Metal 繪製，即使在最大型的樂園中也能流暢捲動，並支援橫向與直向兩種方向。"
+    },
+    "saves": {
+      "title": "存檔位於「檔案」App",
+      "body": "遊戲存檔儲存在「檔案」App 中，可進行備份或移至其他裝置。"
+    },
+    "languages": {
+      "title": "25 種語言",
+      "body": "介面提供 25 種語言，並為中文、日文與韓文配備像素字體。"
+    },
+    "mac": {
+      "title": "可在 Mac 上執行",
+      "body": "本 App 亦可在配備 Apple 晶片的 Mac 電腦上執行。"
+    },
+    "offline": {
+      "title": "無需帳號，不含追蹤",
+      "body": "本 App 無需帳號，且不含廣告、分析或追蹤功能。"
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2 是依據 GNU 通用公共授權條款第 3 版（GPL v3）發佈的開放原始碼軟體。",
+    "trademark": "RollerCoaster Tycoon 為其各自所有者之商標。本 App 不含任何原版遊戲素材。"
+  },
+  "privacy": {
+    "title": "隱私權政策",
+    "updated": "最後更新日期：{{date}}",
+    "intro": "本隱私權政策說明 OpenRCT2 iOS 版（以下稱「本 App」）處理資訊的方式，適用於在所有支援裝置（包括配備 Apple 晶片之 Mac 電腦）上執行的本 App。",
+    "collection": {
+      "title": "我們蒐集的資訊",
+      "body": "我們不會蒐集任何個人資料或使用資料。本 App 無需註冊帳號，亦不含廣告、分析或追蹤功能。"
+    },
+    "device": {
+      "title": "儲存於您裝置上的資訊",
+      "body": "本 App 會將您匯入的遊戲檔案、遊戲存檔、截圖及設定儲存於您的裝置本機。上述資料僅用於提供本 App 之功能，不會傳輸予我們或任何第三方。"
+    },
+    "imports": {
+      "title": "匯入的遊戲檔案",
+      "body": "您在「檔案」App 中選取的遊戲資料夾、ZIP 壓縮檔及 GOG 安裝程式，均於您的裝置上讀取並解壓縮。匯入的資料保存於本 App 的儲存空間內。"
+    },
+    "thirdParties": {
+      "title": "第三方",
+      "body": "我們不會向任何第三方出售、分享或揭露任何資訊。Steam 商店、GOG 商店及匯入指南的連結將於您的網頁瀏覽器中開啟，該等網站受其各自之隱私權政策規範。您儲存於 iCloud 雲碟或透過隔空投送分享的遊戲存檔，將由 Apple 依據《Apple 隱私權政策》處理。"
+    },
+    "retention": {
+      "title": "資料保存與刪除",
+      "body": "本 App 儲存的資料將保留於您的裝置上，直至您將其刪除。您可隨時於本 App 內刪除匯入的遊戲資料；刪除本 App 將自您的裝置移除其所有資料。"
+    },
+    "permissions": {
+      "title": "權限",
+      "body": "本 App 不會要求取用您的位置、相機、麥克風、聯絡人或照片。"
+    },
+    "children": {
+      "title": "兒童隱私",
+      "body": "本 App 不會在知情的情況下蒐集任何年齡兒童的個人資料。"
+    },
+    "changes": {
+      "title": "本政策之變更",
+      "body": "我們可能不定期更新本隱私權政策。任何變更均將公布於本頁面，並同步修訂「最後更新日期」。"
+    },
+    "contact": {
+      "title": "聯絡我們",
+      "body": "若您對本隱私權政策有任何疑問，請透過 {{email}} 與我們聯絡。"
+    }
+  },
+  "notFound": {
+    "title": "找不到頁面",
+    "back": "返回首頁"
+  }
+}

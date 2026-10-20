@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "OpenRCT2 iOS-re",
+    "description": "Az OpenRCT2 iOS-portja. Az OpenRCT2 a RollerCoaster Tycoon 2 nyílt forráskódú újraimplementációja."
+  },
+  "nav": {
+    "home": "Kezdőlap",
+    "privacy": "Adatvédelmi irányelvek",
+    "language": "Nyelv"
+  },
+  "appStore": {
+    "line1": "Letöltés az",
+    "line2": "App Store-ból"
+  },
+  "hero": {
+    "title": "OpenRCT2 iOS-re",
+    "tagline": "Az OpenRCT2 iOS-portja. Az OpenRCT2 a RollerCoaster Tycoon 2 nyílt forráskódú újraimplementációja.",
+    "requirement": "A használathoz a RollerCoaster Tycoon 2 egy példányának játékfájljai szükségesek."
+  },
+  "steps": {
+    "title": "Első lépések",
+    "buy": {
+      "title": "A RollerCoaster Tycoon 2 beszerzése",
+      "body": "Az app nem tartalmaz eredeti játékanyagokat. A RollerCoaster Tycoon 2: Triple Thrill Pack a Steamen és a GOG-on érhető el, és tartalmazza a Wacky Worlds és a Time Twister kiegészítőt."
+    },
+    "transfer": {
+      "title": "A fájlok átvitele az eszközre",
+      "body": "Másolja a játékmappát, a ZIP-archívumot vagy a GOG telepítőt a Fájlok appba AirDroppal, iCloud Drive-on keresztül vagy számítógépről."
+    },
+    "import": {
+      "title": "Importálás és játék",
+      "body": "Válassza ki a fájlokat az appban. Az importálás teljes egészében az eszközön történik, a GOG telepítők kicsomagolása pedig automatikus."
+    }
+  },
+  "features": {
+    "title": "Funkciók",
+    "rct1": {
+      "title": "RollerCoaster Tycoon 1 tartalmak",
+      "body": "A RollerCoaster Tycoon Deluxe importálása opcionális, és hozzáadja az RCT1 pályáit, grafikáját és főcímzenéjét."
+    },
+    "metal": {
+      "title": "Natív Metal-renderelés",
+      "body": "A parkok megjelenítése Metallal történik, így a görgetés a legnagyobb parkokban is egyenletes, fekvő és álló tájolásban egyaránt."
+    },
+    "saves": {
+      "title": "Mentések a Fájlok appban",
+      "body": "A mentett játékok a Fájlok appban tárolódnak, ahol biztonsági másolat készíthető róluk, vagy áthelyezhetők egy másik eszközre."
+    },
+    "languages": {
+      "title": "25 nyelv",
+      "body": "A felület 25 nyelven érhető el, a kínai, a japán és a koreai nyelvhez pixeles betűtípusokkal."
+    },
+    "mac": {
+      "title": "Mac gépeken is fut",
+      "body": "Az app az Apple chippel rendelkező Mac számítógépeken is fut."
+    },
+    "offline": {
+      "title": "Fiók és követés nélkül",
+      "body": "Az app nem igényel fiókot, és nem tartalmaz hirdetést, analitikát vagy követést."
+    }
+  },
+  "footer": {
+    "license": "Az OpenRCT2 a GNU General Public License v3 alatt kiadott nyílt forráskódú szoftver.",
+    "trademark": "A RollerCoaster Tycoon a megfelelő tulajdonosok védjegye. Ez az app nem tartalmaz eredeti játékanyagokat."
+  },
+  "privacy": {
+    "title": "Adatvédelmi irányelvek",
+    "updated": "Utolsó frissítés: {{date}}",
+    "intro": "Jelen Adatvédelmi irányelvek ismertetik, hogyan kezeli az információkat az OpenRCT2 iOS-re (a továbbiakban: „App”). Az irányelvek az App összes támogatott eszközön futó példányára vonatkoznak, beleértve az Apple chippel rendelkező Mac számítógépeket is.",
+    "collection": {
+      "title": "Az általunk gyűjtött információk",
+      "body": "Nem gyűjtünk semmilyen személyes adatot vagy használati adatot. Az App nem igényel fiókot, és nem tartalmaz hirdetést, analitikát vagy követést."
+    },
+    "device": {
+      "title": "Az Ön eszközén tárolt információk",
+      "body": "Az App az Ön által importált játékfájlokat, a mentett játékokat, a képernyőképeket és a beállításokat helyileg, az Ön eszközén tárolja. Ezeket az adatokat kizárólag az App működésének biztosítására használja, és nem továbbítja sem nekünk, sem harmadik félnek."
+    },
+    "imports": {
+      "title": "Importált játékfájlok",
+      "body": "Az Ön által a Fájlok appban kiválasztott játékmappák, ZIP-archívumok és GOG telepítők beolvasása és kicsomagolása az Ön eszközén történik. Az importált adatok az App tárhelyén maradnak."
+    },
+    "thirdParties": {
+      "title": "Harmadik felek",
+      "body": "Semmilyen információt nem értékesítünk, nem osztunk meg és nem hozunk nyilvánosságra harmadik felek számára. A Steam és a GOG áruházra, valamint az importálási útmutatóra mutató hivatkozások az Ön webböngészőjében nyílnak meg, és ezekre a webhelyekre azok saját adatvédelmi irányelvei vonatkoznak. Az Ön által az iCloud Drive-on tárolt vagy AirDroppal megosztott mentett játékokat az Apple az Apple Adatvédelmi szabályzatával összhangban kezeli."
+    },
+    "retention": {
+      "title": "Adatmegőrzés és -törlés",
+      "body": "Az App által tárolt adatok mindaddig az Ön eszközén maradnak, amíg Ön azokat nem törli. Az importált játékadatok az Appon belül bármikor törölhetők, az App törlésével pedig annak összes adata törlődik az eszközről."
+    },
+    "permissions": {
+      "title": "Engedélyek",
+      "body": "Az App nem kér hozzáférést az Ön helyadataihoz, kamerájához, mikrofonjához, kontaktjaihoz vagy fotóihoz."
+    },
+    "children": {
+      "title": "Gyermekek adatainak védelme",
+      "body": "Az App tudatosan semmilyen életkorú gyermektől nem gyűjt személyes adatokat."
+    },
+    "changes": {
+      "title": "Az irányelvek módosítása",
+      "body": "Jelen Adatvédelmi irányelveket időről időre frissíthetjük. A módosításokat ezen az oldalon tesszük közzé, az „Utolsó frissítés” dátumának egyidejű aktualizálásával."
+    },
+    "contact": {
+      "title": "Kapcsolat",
+      "body": "Az Adatvédelmi irányelvekkel kapcsolatos kérdéseivel forduljon hozzánk a következő címen: {{email}}."
+    }
+  },
+  "notFound": {
+    "title": "Az oldal nem található",
+    "back": "Vissza a kezdőlapra"
+  }
+}

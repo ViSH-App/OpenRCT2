@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "title": "iOS için OpenRCT2",
+    "description": "RollerCoaster Tycoon 2’nin açık kaynak yeniden uygulaması OpenRCT2’nin iOS sürümü."
+  },
+  "nav": {
+    "home": "Ana Sayfa",
+    "privacy": "Gizlilik Politikası",
+    "language": "Dil"
+  },
+  "appStore": {
+    "line1": "App Store’dan",
+    "line2": "İndirin"
+  },
+  "hero": {
+    "title": "iOS için OpenRCT2",
+    "tagline": "RollerCoaster Tycoon 2’nin açık kaynak yeniden uygulaması OpenRCT2’nin iOS sürümü.",
+    "requirement": "Bir RollerCoaster Tycoon 2 kopyasına ait oyun dosyaları gereklidir."
+  },
+  "steps": {
+    "title": "Başlarken",
+    "buy": {
+      "title": "RollerCoaster Tycoon 2’yi edinin",
+      "body": "Uygulama hiçbir orijinal oyun içeriği barındırmaz. RollerCoaster Tycoon 2: Triple Thrill Pack, Steam ve GOG’da satın alınabilir ve Wacky Worlds ile Time Twister’ı içerir."
+    },
+    "transfer": {
+      "title": "Dosyaları cihaza aktarın",
+      "body": "Oyun klasörünü, ZIP arşivini veya GOG yükleyicisini AirDrop, iCloud Drive veya bir bilgisayar aracılığıyla Dosyalar uygulamasına kopyalayın."
+    },
+    "import": {
+      "title": "İçe aktarın ve oynayın",
+      "body": "Dosyaları uygulamada seçin. İçe aktarma tamamen cihaz üzerinde gerçekleşir ve GOG yükleyicileri otomatik olarak açılır."
+    }
+  },
+  "features": {
+    "title": "Özellikler",
+    "rct1": {
+      "title": "RollerCoaster Tycoon 1 içeriği",
+      "body": "RollerCoaster Tycoon Deluxe’ü içe aktarmak isteğe bağlıdır; bu işlem RCT1 senaryolarını, grafiklerini ve başlık müziğini ekler."
+    },
+    "metal": {
+      "title": "Yerel Metal ile işleme",
+      "body": "Parklar Metal ile çizilir; böylece en büyük parklarda bile hem yatay hem de dikey yönde akıcı kaydırma sağlanır."
+    },
+    "saves": {
+      "title": "Dosyalar uygulamasında kayıtlar",
+      "body": "Kayıtlı oyunlar Dosyalar uygulamasında saklanır; buradan yedeklenebilir veya başka bir cihaza taşınabilir."
+    },
+    "languages": {
+      "title": "25 dil",
+      "body": "Arayüz 25 dilde kullanılabilir; Çince, Japonca ve Korece için piksel fontlar içerir."
+    },
+    "mac": {
+      "title": "Mac’te çalışır",
+      "body": "Uygulama, Apple çipli Mac bilgisayarlarda da çalışır."
+    },
+    "offline": {
+      "title": "Hesap ve izleme yok",
+      "body": "Uygulama hesap gerektirmez; reklam, analiz veya izleme içermez."
+    }
+  },
+  "footer": {
+    "license": "OpenRCT2, GNU General Public License v3 lisansıyla yayımlanan açık kaynak bir yazılımdır.",
+    "trademark": "RollerCoaster Tycoon, ilgili sahiplerinin ticari markasıdır. Bu uygulama hiçbir orijinal oyun içeriği barındırmaz."
+  },
+  "privacy": {
+    "title": "Gizlilik Politikası",
+    "updated": "Son güncelleme: {{date}}",
+    "intro": "Bu Gizlilik Politikası, iOS için OpenRCT2’nin (“Uygulama”) bilgileri nasıl işlediğini açıklar. Politika, Apple çipli Mac bilgisayarlar dahil olmak üzere desteklenen tüm cihazlarda çalışan Uygulama için geçerlidir.",
+    "collection": {
+      "title": "Topladığımız bilgiler",
+      "body": "Hiçbir kişisel bilgi veya kullanım verisi toplamayız. Uygulama hesap gerektirmez ve reklam, analiz veya izleme içermez."
+    },
+    "device": {
+      "title": "Cihazınızda saklanan bilgiler",
+      "body": "Uygulama, içe aktardığınız oyun dosyalarını, kayıtlı oyunları, ekran görüntülerini ve ayarları yerel olarak cihazınızda saklar. Bu veriler yalnızca Uygulama’nın işlevlerini sağlamak amacıyla kullanılır ve bize ya da herhangi bir üçüncü tarafa iletilmez."
+    },
+    "imports": {
+      "title": "İçe aktarılan oyun dosyaları",
+      "body": "Dosyalar uygulamasında seçtiğiniz oyun klasörleri, ZIP arşivleri ve GOG yükleyicileri cihazınızda okunur ve açılır. İçe aktarılan veriler Uygulama’nın depolama alanında tutulur."
+    },
+    "thirdParties": {
+      "title": "Üçüncü taraflar",
+      "body": "Hiçbir bilgiyi üçüncü taraflara satmayız, paylaşmayız veya ifşa etmeyiz. Steam ve GOG mağazalarına ve içe aktarma rehberine yönelik bağlantılar web tarayıcınızda açılır; bu web siteleri kendi gizlilik politikalarına tabidir. iCloud Drive’da sakladığınız veya AirDrop ile paylaştığınız kayıtlı oyunlar, Apple tarafından Apple Gizlilik Politikası’na uygun olarak işlenir."
+    },
+    "retention": {
+      "title": "Verilerin saklanması ve silinmesi",
+      "body": "Uygulama tarafından saklanan veriler, siz silene kadar cihazınızda kalır. İçe aktarılan oyun verileri istenildiği zaman Uygulama içinden silinebilir; Uygulama’nın silinmesi, tüm verilerini cihazınızdan kaldırır."
+    },
+    "permissions": {
+      "title": "İzinler",
+      "body": "Uygulama konumunuza, kameranıza, mikrofonunuza, kişilerinize veya fotoğraflarınıza erişim istemez."
+    },
+    "children": {
+      "title": "Çocukların gizliliği",
+      "body": "Uygulama, hiçbir yaştaki çocuktan bilerek kişisel bilgi toplamaz."
+    },
+    "changes": {
+      "title": "Bu politikadaki değişiklikler",
+      "body": "Bu Gizlilik Politikası zaman zaman güncellenebilir. Tüm değişiklikler, “Son güncelleme” tarihi yenilenerek bu sayfada yayımlanır."
+    },
+    "contact": {
+      "title": "İletişim",
+      "body": "Bu Gizlilik Politikası ile ilgili sorularınız için {{email}} adresinden bizimle iletişime geçebilirsiniz."
+    }
+  },
+  "notFound": {
+    "title": "Sayfa bulunamadı",
+    "back": "Ana sayfaya dön"
+  }
+}
