@@ -408,8 +408,11 @@ namespace OpenRCT2::Ui
         int32_t r = w.windowPos.x + widget.right;
         int32_t t;
 
+        // Enlarged UI layouts make rows taller (see OptionsWindow::ApplyTouchLayout): centre labels
+        // as the controls beside them.
         if (widget.type == WidgetType::button || widget.type == WidgetType::dropdownMenu || widget.type == WidgetType::spinner
-            || widget.type == WidgetType::tableHeader)
+            || widget.type == WidgetType::tableHeader
+            || (widget.type == WidgetType::label && Config::Get().interface.enlargedUi))
         {
             t = w.windowPos.y + widget.textTop();
         }

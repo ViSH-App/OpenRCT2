@@ -518,6 +518,19 @@ namespace OpenRCT2::Ui::Windows
     class OptionsWindow final : public Window
     {
         u8string _dropdownCaption{};
+        // ApplyTouchLayout's vertical stretch of the current page.
+        int32_t _layoutTop{};
+        float _layoutScale{ 1.0f };
+        // A page taller than the screen scrolls inside a window that fits it (see SetupPageScroll).
+        bool _pageScrolls{};
+        WidgetIndex _pageWidgetEnd{};    // Page widgets are [WIDX_PAGE_START, _pageWidgetEnd).
+        WidgetIndex _pageScrollWidget{}; // The page's scroll bar, after the page widgets.
+        int32_t _pageScrollIndex{};
+        int32_t _pageContentHeight{};
+        int32_t _pageVisibleBottom{};
+        int32_t _pageScrollApplied{};
+        std::vector<WidgetIndex> _pageScrollHidden;
+        std::vector<std::pair<WidgetIndex, std::pair<int16_t, int16_t>>> _pageScrollClamped;
 
     public:
         void onOpen() override
@@ -626,6 +639,7 @@ namespace OpenRCT2::Ui::Windows
 
         void onPrepareDraw() override
         {
+            UndoPageScroll();
             CommonPrepareDrawBefore();
 
             switch (page)
@@ -658,6 +672,7 @@ namespace OpenRCT2::Ui::Windows
                     break;
             }
 
+            ApplyPageScroll();
             CommonPrepareDrawAfter();
         }
 
@@ -703,6 +718,8 @@ namespace OpenRCT2::Ui::Windows
 
         ScreenSize onScrollGetSize(int32_t scrollIndex) override
         {
+            if (_pageScrolls && scrollIndex == _pageScrollIndex)
+                return { 0, _pageContentHeight };
             switch (page)
             {
                 case WINDOW_OPTIONS_PAGE_AUDIO:
@@ -792,12 +809,23 @@ namespace OpenRCT2::Ui::Windows
                 y = std::max<int32_t>(y, widget.bottom);
             }
             y += 6;
+            if (_pageScrolls)
+                y = MaxWindowHeight();
+
 
             if (height != y)
             {
                 invalidate();
                 height = y;
                 resizeFrame();
+                invalidate();
+            }
+            // A taller page (see ApplyTouchLayout) must not run off the bottom of the screen.
+            const int32_t screenHeight = ContextGetHeight();
+            if (windowPos.y + height > screenHeight)
+            {
+                invalidate();
+                windowPos.y = std::max(screenHeight - height, kWindowTopMargin);
                 invalidate();
             }
         }
@@ -2200,8 +2228,9 @@ namespace OpenRCT2::Ui::Windows
                 auto clearLabel = LanguageGetString(STR_CLEAR_BUTTON);
                 auto clearLabelWidth = getStringWidth(clearLabel, FontStyle::medium) + 12;
 
-                widgets[WIDX_PATH_TO_RCT1_CLEAR].right = widgets[WIDX_PAGE_BACKGROUND].right - 12;
-                widgets[WIDX_PATH_TO_RCT1_CLEAR].left = widgets[WIDX_PATH_TO_RCT1_BROWSE].right - clearLabelWidth;
+                // Inside the group box, whatever the window width (see SetupPageScroll).
+                widgets[WIDX_PATH_TO_RCT1_CLEAR].right = widgets[WIDX_GROUP_RCT1_PATH].right - 6;
+                widgets[WIDX_PATH_TO_RCT1_CLEAR].left = widgets[WIDX_PATH_TO_RCT1_CLEAR].right - clearLabelWidth;
             }
             else
             {
@@ -2213,7 +2242,7 @@ namespace OpenRCT2::Ui::Windows
                 auto browseLabel = LanguageGetString(STR_BROWSE);
                 auto browseLabelWidth = getStringWidth(browseLabel, FontStyle::medium) + 12;
 
-                widgets[WIDX_PATH_TO_RCT1_BROWSE].right = widgets[WIDX_PAGE_BACKGROUND].right - 12;
+                widgets[WIDX_PATH_TO_RCT1_BROWSE].right = widgets[WIDX_GROUP_RCT1_PATH].right - 6;
                 widgets[WIDX_PATH_TO_RCT1_BROWSE].left = widgets[WIDX_PATH_TO_RCT1_BROWSE].right - browseLabelWidth;
             }
 
@@ -2225,13 +2254,13 @@ namespace OpenRCT2::Ui::Windows
             setCheckboxValue(WIDX_STAY_CONNECTED_AFTER_DESYNC, Config::Get().network.stayConnected);
 
 #ifdef __EMSCRIPTEN__
-            widgets[WIDX_GROUP_ADVANCED].bottom = kAdvancedStart + 84 + getTitleBarDiffNormal();
+            widgets[WIDX_GROUP_ADVANCED].bottom = LayoutY(kAdvancedStart + 84 + getTitleBarDiffNormal());
 #else
-            widgets[WIDX_GROUP_ADVANCED].bottom = kAdvancedStart + 64 + getTitleBarDiffNormal();
+            widgets[WIDX_GROUP_ADVANCED].bottom = LayoutY(kAdvancedStart + 64 + getTitleBarDiffNormal());
 #endif
 
-            widgets[WIDX_ASSET_PACKS].top = widgets[WIDX_GROUP_ADVANCED].bottom - 20;
-            widgets[WIDX_ASSET_PACKS].bottom = widgets[WIDX_GROUP_ADVANCED].bottom - 6;
+            widgets[WIDX_ASSET_PACKS].top = widgets[WIDX_GROUP_ADVANCED].bottom - std::lround(20 * _layoutScale);
+            widgets[WIDX_ASSET_PACKS].bottom = widgets[WIDX_GROUP_ADVANCED].bottom - std::lround(6 * _layoutScale);
         }
 
         void AdvancedDraw(RenderTarget& rt)
@@ -2287,12 +2316,136 @@ namespace OpenRCT2::Ui::Windows
             page = p;
             currentFrame = 0;
             setWidgets(window_options_page_widgets[page]);
+            _layoutScale = 1.0f;
+            if (Config::Get().interface.enlargedUi)
+                ApplyTouchLayout();
+            SetupPageScroll();
 
             invalidate();
             onPrepareDraw();
             onResize();
             initScrollWidgets();
             invalidate();
+        }
+
+        // Enlarged UI: stretches the page's widgets vertically so every row is a comfortable touch
+        // target. Pages that become taller than the screen scroll (see SetupPageScroll).
+        void ApplyTouchLayout()
+        {
+            static constexpr float kTouchLayoutScale = 1.5f;
+            _layoutTop = widgets[WIDX_PAGE_BACKGROUND].top;
+            _layoutScale = kTouchLayoutScale;
+            for (WidgetIndex i = WIDX_PAGE_START; i < widgets.size(); i++)
+            {
+                auto& widget = widgets[i];
+                const int32_t top = LayoutY(widget.top);
+                widget.bottom = static_cast<int16_t>(LayoutY(widget.bottom + 1) - 1);
+                widget.top = static_cast<int16_t>(top);
+            }
+        }
+
+        // Windows stay below the top toolbar and within the screen.
+        static constexpr int32_t kWindowTopMargin = 30;
+
+        static int32_t MaxWindowHeight()
+        {
+            return std::max(ContextGetHeight() - kWindowTopMargin, 100);
+        }
+
+        // Adds a vertical scroll bar to a page that does not fit on the screen, widening the window
+        // for it. The page widgets are moved by the scroll position in ApplyPageScroll.
+        void SetupPageScroll()
+        {
+            static constexpr int32_t kScrollBarWidth = 14;
+            _pageScrolls = false;
+            _pageScrollApplied = 0;
+            _pageScrollHidden.clear();
+            _pageScrollClamped.clear();
+            _pageWidgetEnd = static_cast<WidgetIndex>(widgets.size());
+            const int32_t pageTop = widgets[WIDX_PAGE_BACKGROUND].top;
+            int32_t contentBottom = pageTop;
+            for (WidgetIndex i = WIDX_PAGE_START; i < _pageWidgetEnd; i++)
+                contentBottom = std::max<int32_t>(contentBottom, widgets[i].bottom + 1);
+            if (width != kWindowSize.width)
+            {
+                invalidate();
+                width = kWindowSize.width;
+                resizeFrame();
+            }
+            if (contentBottom + 6 <= MaxWindowHeight())
+                return;
+
+            _pageScrolls = true;
+            _pageVisibleBottom = MaxWindowHeight() - 4;
+            _pageContentHeight = contentBottom + 6 - pageTop;
+            _pageScrollIndex = 0;
+            for (WidgetIndex i = 0; i < _pageWidgetEnd; i++)
+                if (widgets[i].type == WidgetType::scroll)
+                    _pageScrollIndex++;
+            invalidate();
+            width = kWindowSize.width + kScrollBarWidth;
+            auto scrollBar = makeWidget(
+                { kWindowSize.width - 2, pageTop + 2 }, { kScrollBarWidth, _pageVisibleBottom - pageTop - 2 }, WidgetType::scroll,
+                WindowColour::secondary, SCROLL_VERTICAL);
+            _pageScrollWidget = static_cast<WidgetIndex>(widgets.size());
+            widgets.push_back(scrollBar);
+            resizeFrame();
+        }
+
+        void UndoPageScroll()
+        {
+            for (auto& [index, extent] : _pageScrollClamped)
+            {
+                widgets[index].top = extent.first;
+                widgets[index].bottom = extent.second;
+            }
+            _pageScrollClamped.clear();
+            for (auto index : _pageScrollHidden)
+                widgets[index].setHidden(false);
+            _pageScrollHidden.clear();
+            for (WidgetIndex i = WIDX_PAGE_START; i < _pageWidgetEnd; i++)
+            {
+                widgets[i].top += _pageScrollApplied;
+                widgets[i].bottom += _pageScrollApplied;
+            }
+            _pageScrollApplied = 0;
+        }
+
+        // Moves the page widgets up by the scroll position. Widgets not fully inside the visible
+        // part are hidden (so they can be neither seen nor touched there), except group boxes,
+        // which are cut to it.
+        void ApplyPageScroll()
+        {
+            if (!_pageScrolls)
+                return;
+            const int32_t offset = scrolls[_pageScrollIndex].contentOffsetY;
+            const int32_t visibleTop = widgets[WIDX_PAGE_BACKGROUND].top + 2;
+            for (WidgetIndex i = WIDX_PAGE_START; i < _pageWidgetEnd; i++)
+            {
+                auto& widget = widgets[i];
+                widget.top -= offset;
+                widget.bottom -= offset;
+                if (widget.top >= visibleTop && widget.bottom < _pageVisibleBottom)
+                    continue;
+                if (widget.type == WidgetType::groupbox && widget.bottom >= visibleTop && widget.top < _pageVisibleBottom)
+                {
+                    _pageScrollClamped.push_back({ i, { widget.top, widget.bottom } });
+                    widget.top = std::max<int16_t>(widget.top, visibleTop);
+                    widget.bottom = std::min<int16_t>(widget.bottom, _pageVisibleBottom - 1);
+                }
+                else if (widget.isVisible())
+                {
+                    widget.setHidden(true);
+                    _pageScrollHidden.push_back(i);
+                }
+            }
+            _pageScrollApplied = offset;
+        }
+
+        // A y coordinate of the page layout as ApplyTouchLayout placed it (unchanged without it).
+        int32_t LayoutY(int32_t y) const
+        {
+            return _layoutTop + static_cast<int32_t>(std::lround((y - _layoutTop) * _layoutScale));
         }
 
         void SetPressedTab()
