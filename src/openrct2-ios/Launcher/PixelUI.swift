@@ -7,7 +7,7 @@ import SwiftUI
 import UIKit
 
 // The launcher runs before g1.dat exists, so it cannot use the engine's sprites. It draws RCT2's
-// window style itself: one game pixel is 2 pt, colours are the g1 remap ramps, text is Fusion Pixel.
+// window style itself: one game pixel is 2 pt, colours are the g1 remap ramps, text is WenQuanYi Bitmap Song.
 let px: CGFloat = 2
 
 extension Color {
@@ -53,11 +53,12 @@ enum PixelFont {
     // Filled once on the main thread before the first view is built.
     nonisolated(unsafe) private static var names: [Int: String] = [:]
 
-    /// Registers the Fusion Pixel faces the engine already bundles under data/fonts.
+    /// Registers the pixel faces the engine already bundles under data/fonts.
     static func register() {
         let fonts = Bundle.main.resourceURL!.appendingPathComponent("data/fonts")
-        for size in [8, 10] {
-            let url = fonts.appendingPathComponent("fusion-pixel-\(size)px-proportional-zh_hans.otf")
+        let files = [12: "WenQuanYi.Bitmap.Song.12px.ttf"]
+        for (size, file) in files {
+            let url = fonts.appendingPathComponent(file)
             guard let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor],
                 let name = descriptors.first.flatMap({ CTFontDescriptorCopyAttribute($0, kCTFontNameAttribute) as? String })
             else { continue }
@@ -66,10 +67,11 @@ enum PixelFont {
         }
     }
 
-    /// Body text: the 10 px face at 2×. Small: the 8 px face at 2×. Title: the 10 px face at 3×.
-    static let body = font(10, 20)
-    static let small = font(8, 16)
-    static let title = font(10, 30)
+    /// The WenQuanYi 12 px face has a 15 px em. Body text: it at 1.5× (3 device pixels per font pixel at 2×
+    /// screen scale). Small: it at 1×. Title: the WenQuanYi face at 2×.
+    static let body = font(12, 22.5)
+    static let small = font(12, 15)
+    static let title = font(12, 30)
 
     private static func font(_ design: Int, _ size: CGFloat) -> Font {
         if names.isEmpty { register() }

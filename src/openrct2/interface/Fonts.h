@@ -18,7 +18,7 @@ namespace OpenRCT2::Localisation
 
 #ifndef DISABLE_TTF
     #ifdef OPENRCT2_IOS
-extern TTFFontSetDescriptor TTFFontFusionPixelZhHans;
+extern TTFFontSetDescriptor TTFFontWenQuanYiBitmapSong;
     #endif
 extern TTFFontSetDescriptor TTFFontMSGothic;
 extern TTFFontSetDescriptor TTFFontNotoSansMono;

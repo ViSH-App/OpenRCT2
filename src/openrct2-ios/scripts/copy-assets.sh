@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 ASSETS="$ROOT/build/ios-data"
-if [[ ! -f "$ASSETS/g2.dat" || ! -f "$ASSETS/fonts/fusion-pixel-10px-proportional-zh_hans.otf" ]]; then
+if [[ ! -f "$ASSETS/g2.dat" || ! -f "$ASSETS/fonts/WenQuanYi.Bitmap.Song.12px.ttf" ]]; then
     echo "Prepared iOS assets are missing; run src/openrct2-ios/scripts/prepare.sh." >&2
     exit 1
 fi

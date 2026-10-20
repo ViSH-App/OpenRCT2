@@ -27,13 +27,13 @@ uint8_t const HINTING_THRESHOLD_MEDIUM = 60;
 
 // clang-format off
 #ifdef OPENRCT2_IOS
-// Fusion Pixel Font: units per em are 100 per pixel, so ptSize equals the design pixel size.
+// WenQuanYi Bitmap Song 12px for all text: 100 units per pixel on a 15 px em, so ptSize 15 draws the 12 px
+// design pixel-exact. Its Han glyphs are 11 rows tall, one more than the inner rows of buttons.
 // Hinting stays disabled so FreeType rasterises the glyphs as crisp monochrome bitmaps.
-// 10px Han glyphs are 9 rows tall, fitting inside the 10 inner rows of buttons and dropdowns.
-TTFFontSetDescriptor TTFFontFusionPixelZhHans = { {
-    { "fusion-pixel-10px-proportional-zh_hans.otf", "Fusion Pixel 10px Prop zh-Hans", 10, 1, -2, 12, HINTING_DISABLED, nullptr },
-    { "fusion-pixel-10px-proportional-zh_hans.otf", "Fusion Pixel 10px Prop zh-Hans", 10, 1, -2, 12, HINTING_DISABLED, nullptr },
-    { "fusion-pixel-8px-proportional-zh_hans.otf",  "Fusion Pixel 8px Prop zh-Hans",   8, 1, -1,  9, HINTING_DISABLED, nullptr },
+TTFFontSetDescriptor TTFFontWenQuanYiBitmapSong = { {
+    { "WenQuanYi.Bitmap.Song.12px.ttf",           "WenQuanYi Bitmap Song 12px",    15, 1, -2, 14, HINTING_DISABLED, nullptr },
+    { "WenQuanYi.Bitmap.Song.12px.ttf",           "WenQuanYi Bitmap Song 12px",    15, 1, -2, 14, HINTING_DISABLED, nullptr },
+    { "WenQuanYi.Bitmap.Song.12px.ttf",           "WenQuanYi Bitmap Song 12px",    15, 1,  0, 14, HINTING_DISABLED, nullptr },
 } };
 #endif
 
