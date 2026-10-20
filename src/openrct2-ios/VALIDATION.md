@@ -1,5 +1,56 @@
 # iPad port validation — 2026-10-20
 
+## Metal renderer rearchitecture — status
+
+This is a rewrite of the Metal renderer: instanced quads, framebuffer fetch,
+an atlas, dirty regions and parallel drawing. The design is described in
+[README.md](README.md#metal-renderer).
+
+**Verified:**
+
+- The Release build passes:
+
+  ```sh
+  xcodebuild -project src/openrct2-ios/OpenRCT2.xcodeproj -scheme OpenRCT2 \
+    -configuration Release -destination 'generic/platform=iOS' \
+    CODE_SIGNING_ALLOWED=NO build
+  ```
+
+- A signed build for **My Mac (Designed for iPad)** also compiled.
+- The shaders compile with `-std=ios-metal2.3`.
+- No core drawing semantics in `src/openrct2` were changed.
+
+**Not yet verified at runtime.** The app has not been run on My Mac or on an
+iPad since the rewrite. None of the following has been established yet:
+
+- `OPENRCT2_METAL_COMPARE_GPU` mismatch counts;
+- GPU and CPU timings;
+- whether two-pass or single-pass rendering is faster;
+- the visual effect of the alignment changes (`hasZoomSprite`, TrueType
+  hinting thresholds);
+- the parallel-drawing CPU benefit.
+
+The earlier Metal results below describe the previous compute rasterizer.
+
+**Expected differences from the previous renderer.** These are intentional
+alignment changes. They are not comparison mismatches, because both
+rasterizers consume the same commands:
+
+- At zoom > 0, `hasZoomSprite` images use the pre-minified variants.
+- Retina TrueType text uses the font's hinting threshold, or 0 when hinting
+  is disabled, and solid rendering without hinting.
+- Outline and inset passes use threshold 0.
+
+**To record when tested:**
+
+- Title screen and a saved park for several hundred frames with
+  `OPENRCT2_METAL_COMPARE_GPU=1`; the mismatch count must be 0.
+- The 600-frame `Metal GPU frame=` lines in normal mode, compared with the
+  build-7 figure of 11–35 ms on the iPad mini 6.
+- The same lines with `OPENRCT2_METAL_RASTER=single` and with
+  `OPENRCT2_METAL_SERIAL=1`.
+
+
 ## Maintained Xcode project migration
 
 The application now builds from the checked-in
