@@ -14,7 +14,6 @@
 #include <SDL_version.h>
 #include <cmath>
 #include <memory>
-#include <openrct2-ios/UiContext.iOS.h>
 #include <openrct2/Diagnostic.h>
 #include <openrct2/Game.h>
 #include <openrct2/config/Config.h>
@@ -254,25 +253,17 @@ private:
             CopyBitsToTexture(
                 _screenTexture, _bits, static_cast<int32_t>(_width), static_cast<int32_t>(_height), _paletteHWMapped);
         }
-#ifdef OPENRCT2_IOS
-        SDL_Rect content = IOS::PresentationRect(_window, static_cast<int32_t>(_width), static_cast<int32_t>(_height));
-        SDL_SetRenderDrawColor(_sdlRenderer, 0, 0, 0, 255);
-        SDL_RenderClear(_sdlRenderer);
-        const SDL_Rect* destination = &content;
-#else
-        const SDL_Rect* destination = nullptr;
-#endif
         if (smoothNN)
         {
             SDL_SetRenderTarget(_sdlRenderer, _scaledScreenTexture);
             SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, nullptr);
 
             SDL_SetRenderTarget(_sdlRenderer, nullptr);
-            SDL_RenderCopy(_sdlRenderer, _scaledScreenTexture, nullptr, destination);
+            SDL_RenderCopy(_sdlRenderer, _scaledScreenTexture, nullptr, nullptr);
         }
         else
         {
-            SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, destination);
+            SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, nullptr);
         }
 
         if (gShowDirtyVisuals)

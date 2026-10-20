@@ -93,7 +93,7 @@ The importer uses security-scoped access and file coordination. It copies the re
 
 ## Playing and saving
 
-The existing OpenRCT2 interface and construction tools are retained. The default interface scale is 1.5 with enlarged controls enabled; use Options → Display to adjust it. Interface scales step by 0.5 (1.0, 1.5, 2.0, …) so that every logical pixel is a whole number of physical pixels (2, 3, 4, … on the iPad's 2× display); other values in an older configuration are rounded to the nearest such scale. The logical size is the content viewport divided by that number, and physical pixels left over below one logical pixel stay black at the right and bottom edges. Options → Display → Drawing Engine offers **Software** and **Metal**. Software uses the original CPU rasterizer with SDL Metal presentation. Metal uses a native indexed-colour GPU renderer for sprites, palette remapping/filtering, text and weather (see **Metal renderer** below). Both engines draw the game at its logical resolution, one canvas pixel per logical pixel as in the original software renderer, and show it scaled by that whole number with nearest-neighbour sampling. UI layout, park view scale, hit testing and touch coordinates use the same logical space. New installations start with Metal; existing installations keep their selected engine. If Metal cannot start, the game falls back to Software and saves that choice. With the day-night cycle and lighting effects enabled, Metal darkens and lights the park on the GPU (see **Lighting** below); the interface keeps its daylight colours. Game coordinates and input coordinates exclude the native top strip and safe-area insets. Retina pixels are not confused with UIKit points.
+The existing OpenRCT2 interface and construction tools are retained. The default interface scale is 1.5 with enlarged controls enabled; use Options → Display to adjust it. Interface scales step by 0.5 (1.0, 1.5, 2.0, …) so that every logical pixel is a whole number of physical pixels (2, 3, 4, … on the iPad's 2× display); other values in an older configuration are rounded to the nearest such scale. The logical size is the content viewport divided by that number, and physical pixels left over below one logical pixel stay black at the right and bottom edges. The game is drawn by a native indexed-colour Metal renderer for sprites, palette remapping/filtering, text and weather (see **Metal renderer** below); the iPad build has no other drawing engine, and a `drawing_engine` setting from an older configuration is ignored. It draws the game at its logical resolution, one canvas pixel per logical pixel as in the original software renderer, and shows it scaled by that whole number with nearest-neighbour sampling. UI layout, park view scale, hit testing and touch coordinates use the same logical space.  With the day-night cycle and lighting effects enabled, Metal darkens and lights the park on the GPU (see **Lighting** below); the interface keeps its daylight colours. Game coordinates and input coordinates exclude the native top strip and safe-area insets. Retina pixels are not confused with UIKit points.
 
 - Tap menus and buttons once.
 - With a placement tool active, move one finger to position the existing construction preview. Release to inspect it,
@@ -249,9 +249,10 @@ textures.
   first). `noZoomDraw` is unchanged.
 - **TrueType text** uses the core's logical surfaces, with the pass structure
   and hinting thresholds of `X8DrawingContext::DrawTTFBitmap`.
-- **Comparison with Software.** Game screenshots of both engines, taken at
-  the same tick of the same park at zoom 0 to 3, were identical pixel for
-  pixel apart from animation frames.
+- **Comparison with Software.** Before the software engine was removed from
+  the iPad build, game screenshots of both engines, taken at the same tick of
+  the same park at zoom 0 to 3, were identical pixel for pixel apart from
+  animation frames.
 
 ### Parallel drawing
 
@@ -336,4 +337,4 @@ For performance testing:
 
 The renderer is compiled only for iPadOS (`OPENRCT2_METAL`). Shaders are
 compiled with Xcode's iPhoneOS Metal toolchain into `OpenRCT2.metallib`.
-Game screenshots are saved at the logical size, as with the software engine.
+Game screenshots are saved at the logical size, as with the desktop software engine.

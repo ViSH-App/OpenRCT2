@@ -357,10 +357,7 @@ namespace OpenRCT2::Ui::IOS
     SDL_Point OutputPixelSize(SDL_Window* window)
     {
         SDL_Point result{};
-        if (auto renderer = SDL_GetRenderer(window))
-            SDL_GetRendererOutputSize(renderer, &result.x, &result.y);
-        else
-            SDL_Metal_GetDrawableSize(window, &result.x, &result.y);
+        SDL_Metal_GetDrawableSize(window, &result.x, &result.y);
         return result;
     }
     SDL_Rect ContentRect(SDL_Window* window)
@@ -490,9 +487,6 @@ namespace OpenRCT2::Ui
             SDL_DelEventWatch(Lifecycle, nullptr);
             if (_audioObserver) [NSNotificationCenter.defaultCenter removeObserver:_audioObserver];
             gameWindow = window;
-            SDL_RendererInfo rendererInfo{};
-            SDL_GetRendererInfo(SDL_GetRenderer(window), &rendererInfo);
-            fprintf(stderr, "iPad drawing engine: %s\n", rendererInfo.name ? rendererInfo.name : "native Metal");
             auto view = Controller().view;
             _controls = [RCTTouchControls new];
             UIView* bar = [UIView new];

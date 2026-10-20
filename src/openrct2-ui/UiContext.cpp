@@ -1339,10 +1339,6 @@ public:
     {
         char scaleQualityBuffer[4];
         _scaleQuality = ScaleQuality::smoothNearestNeighbour;
-#ifdef OPENRCT2_IOS
-        // The canvas is presented at a whole number of physical pixels per logical pixel.
-        _scaleQuality = ScaleQuality::nearestNeighbour;
-#endif
         if (Config::Get().general.windowScale == std::floor(Config::Get().general.windowScale))
         {
             _scaleQuality = ScaleQuality::nearestNeighbour;
@@ -1581,7 +1577,7 @@ private:
         // Initialise the surface, palette and draw buffer
         DrawingEngineInit();
 #ifdef OPENRCT2_IOS
-        // SDL installs its Metal presentation view when the software display renderer is created.
+        // The Metal engine installs its view when it is created; the native controls go on top.
         _platformUiContext->SetWindowIcon(_window);
 #endif
         InferDisplayDPI();

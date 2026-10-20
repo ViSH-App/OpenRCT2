@@ -608,6 +608,11 @@ namespace OpenRCT2
                 }
                 else
                 {
+#ifdef OPENRCT2_IOS
+                    // The iPad has no other drawing engine to fall back to.
+                    LOG_FATAL("Unable to create the Metal renderer.");
+                    exit(-1);
+#endif
                     // If the drawing engine creation failed, try to create a software engine.
                     if (drawingEngineType != DrawingEngine::softwareWithHardwareDisplay)
                     {

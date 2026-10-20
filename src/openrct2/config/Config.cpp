@@ -214,13 +214,12 @@ namespace OpenRCT2::Config
             model->windowWidth = reader->GetInt32("window_width", -1);
             model->defaultDisplay = reader->GetInt32("default_display", 0);
 #ifdef OPENRCT2_IOS
-            // The iPad build always includes the native Metal renderer; existing configurations
-            // keep their choice, and the software engine remains the fallback.
-            constexpr auto kDefaultDrawingEngine = DrawingEngine::metal;
+            // The iPad draws with the native Metal engine only, whatever an older configuration says.
+            model->drawingEngine = DrawingEngine::metal;
 #else
-            constexpr auto kDefaultDrawingEngine = DrawingEngine::softwareWithHardwareDisplay;
+            model->drawingEngine = reader->GetEnum<DrawingEngine>(
+                "drawing_engine", DrawingEngine::softwareWithHardwareDisplay, Enum_DrawingEngine);
 #endif
-            model->drawingEngine = reader->GetEnum<DrawingEngine>("drawing_engine", kDefaultDrawingEngine, Enum_DrawingEngine);
             model->uncapFPS = reader->GetBoolean("uncap_fps", false);
             model->useVSync = reader->GetBoolean("use_vsync", true);
             model->virtualFloorStyle = reader->GetEnum<VirtualFloorStyles>(
@@ -239,12 +238,8 @@ namespace OpenRCT2::Config
 
             // Default config setting is false until the games canvas can be separated from the effect
             model->dayNightCycle = reader->GetBoolean("day_night_cycle", false);
-#ifdef OPENRCT2_IOS
             const bool supportsLightFx = model->drawingEngine == DrawingEngine::softwareWithHardwareDisplay
                 || model->drawingEngine == DrawingEngine::metal;
-#else
-            const bool supportsLightFx = model->drawingEngine == DrawingEngine::softwareWithHardwareDisplay;
-#endif
             model->enableLightFx = supportsLightFx && reader->GetBoolean("enable_light_fx", false);
             model->enableLightFxForVehicles = supportsLightFx && reader->GetBoolean("enable_light_fx_for_vehicles", false);
             model->upperCaseBanners = reader->GetBoolean("upper_case_banners", false);

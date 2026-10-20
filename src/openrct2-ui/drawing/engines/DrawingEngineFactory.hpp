@@ -17,7 +17,9 @@ namespace OpenRCT2::Ui
 {
     struct IUiContext;
 
+#ifndef OPENRCT2_IOS
     [[nodiscard]] std::unique_ptr<Drawing::IDrawingEngine> CreateHardwareDisplayDrawingEngine(IUiContext& uiContext);
+#endif
 #ifndef DISABLE_OPENGL
     [[nodiscard]] std::unique_ptr<Drawing::IDrawingEngine> CreateOpenGLDrawingEngine(IUiContext& uiContext);
 #endif
@@ -33,8 +35,10 @@ namespace OpenRCT2::Ui
         {
             switch (type)
             {
+#ifndef OPENRCT2_IOS
                 case DrawingEngine::softwareWithHardwareDisplay:
                     return CreateHardwareDisplayDrawingEngine(uiContext);
+#endif
 #ifndef DISABLE_OPENGL
                 case DrawingEngine::openGL:
                     return CreateOpenGLDrawingEngine(uiContext);

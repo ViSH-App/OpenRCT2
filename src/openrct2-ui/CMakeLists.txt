@@ -49,6 +49,11 @@ if (APPLE)
     set_source_files_properties(${OPENRCT2_UI_MM_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fmodules")
 endif ()
 
+if (IOS)
+    # The iPad draws with the native Metal engine only.
+    list(REMOVE_ITEM OPENRCT2_UI_SOURCES "${CMAKE_CURRENT_LIST_DIR}/drawing/engines/HardwareDisplayDrawingEngine.cpp")
+endif ()
+
 # Outputs
 if(IOS)
     # The checked-in Xcode app links the shared UI as a native static library.
