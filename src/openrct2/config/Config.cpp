@@ -192,7 +192,12 @@ namespace OpenRCT2::Config
             model->customCurrencyAffix = reader->GetEnum<CurrencyAffix>(
                 "custom_currency_affix", CurrencyAffix::suffix, Enum_CurrencySymbolAffix);
             model->customCurrencySymbol = reader->GetString("custom_currency_symbol", "Ctm");
+#ifdef OPENRCT2_IOS
+            // There is no hovering mouse to scroll at the screen edge.
+            model->edgeScrolling = false;
+#else
             model->edgeScrolling = reader->GetBoolean("edge_scrolling", true);
+#endif
             model->edgeScrollingSpeed = reader->GetInt32("edge_scrolling_speed", 12);
 #ifdef OPENRCT2_IOS
             // The iPad window always fills the screen; the display mode is fixed to windowed.
@@ -227,6 +232,11 @@ namespace OpenRCT2::Config
 #endif
             model->uncapFPS = reader->GetBoolean("uncap_fps", false);
             model->useVSync = reader->GetBoolean("use_vsync", true);
+#ifdef OPENRCT2_IOS
+            // Frames are paced by the display link: an unrestricted frame rate becomes vsync.
+            if (model->uncapFPS)
+                model->useVSync = true;
+#endif
             model->virtualFloorStyle = reader->GetEnum<VirtualFloorStyles>(
                 "virtual_floor_style", VirtualFloorStyles::glassy, Enum_VirtualFloorStyle);
             model->dateFormat = reader->GetEnum<int32_t>("date_format", Platform::GetLocaleDateFormat(), Enum_DateFormat);
@@ -258,7 +268,11 @@ namespace OpenRCT2::Config
 #else
             model->multiThreading = reader->GetBoolean("multithreading", true);
 #endif // _DEBUG
+#ifdef OPENRCT2_IOS
+            model->trapCursor = false;
+#else
             model->trapCursor = reader->GetBoolean("trap_cursor", false);
+#endif
             model->autoOpenShops = reader->GetBoolean("auto_open_shops", false);
 
             // Gamepad settings
@@ -272,7 +286,12 @@ namespace OpenRCT2::Config
             model->lastSaveTrackDirectory = reader->GetString("last_track_directory", "");
             model->useNativeBrowseDialog = reader->GetBoolean("use_native_browse_dialog", false);
             model->windowLimit = reader->GetInt32("window_limit", kWindowLimitMax);
+#ifdef OPENRCT2_IOS
+            // Zooming follows the pinch.
+            model->zoomToCursor = true;
+#else
             model->zoomToCursor = reader->GetBoolean("zoom_to_cursor", true);
+#endif
             model->renderWeatherEffects = reader->GetBoolean("render_weather_effects", true);
             model->renderWeatherGloom = reader->GetBoolean("render_weather_gloom", true);
             model->showGuestPurchases = reader->GetBoolean("show_guest_purchases", false);
@@ -426,8 +445,14 @@ namespace OpenRCT2::Config
             model->scenarioPreviewScreenshots = reader->GetBoolean("scenario_preview_screenshots", true);
             model->listRideVehiclesSeparately = reader->GetBoolean("list_ride_vehicles_separately", false);
             model->windowButtonsOnTheLeft = reader->GetBoolean("window_buttons_on_the_left", kWindowButtonsOnTheLeftDefault);
+#ifdef OPENRCT2_IOS
+            // The touch interface is always on; the options window does not offer to turn it off.
+            model->enlargedUi = true;
+            model->touchEnhancements = true;
+#else
             model->enlargedUi = reader->GetBoolean("enlarged_ui", kEnlargedUiDefault);
             model->touchEnhancements = reader->GetBoolean("touch_enhancements", kEnlargedUiDefault);
+#endif
         }
     }
 
@@ -471,7 +496,12 @@ namespace OpenRCT2::Config
             model->soundVolume = reader->GetInt32("sound_volume", 100);
             model->rideMusicEnabled = reader->GetBoolean("ride_music", true);
             model->rideMusicVolume = reader->GetInt32("ride_music_volume", 100);
+#ifdef OPENRCT2_IOS
+            // The app is suspended in the background.
+            model->audioFocus = false;
+#else
             model->audioFocus = reader->GetBoolean("audio_focus", false);
+#endif
         }
     }
 

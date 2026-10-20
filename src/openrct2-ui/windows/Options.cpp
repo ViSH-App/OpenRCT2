@@ -13,9 +13,6 @@
  */
 
 #include <cmath>
-#ifdef OPENRCT2_IOS
-    #include <openrct2-ios/UiContext.iOS.h>
-#endif
 #include <openrct2-ui/interface/Dropdown.h>
 #include <openrct2-ui/interface/Theme.h>
 #include <openrct2-ui/interface/Widget.h>
@@ -520,6 +517,56 @@ namespace OpenRCT2::Ui::Windows
 #endif
     };
 
+#ifdef OPENRCT2_IOS
+    // Options that have no effect on iOS, hidden together with the rows they occupy.
+    struct CollapsedRows
+    {
+        std::span<const WidgetIndex> hidden;
+        // Vertical bands [top, bottom) of the page layout that are removed; everything below moves up.
+        std::span<const std::pair<int16_t, int16_t>> bands;
+    };
+
+    // The window always fills the screen, the engine is always Metal, and the app is suspended
+    // in the background, so there is no screensaver or focus loss to handle.
+    static constexpr WidgetIndex kIOSHiddenDisplay[] = {
+        WIDX_FULLSCREEN_LABEL,     WIDX_FULLSCREEN,           WIDX_FULLSCREEN_DROPDOWN,
+        WIDX_RESOLUTION_LABEL,     WIDX_RESOLUTION,           WIDX_RESOLUTION_DROPDOWN,
+        WIDX_DRAWING_ENGINE_LABEL, WIDX_DRAWING_ENGINE,       WIDX_DRAWING_ENGINE_DROPDOWN,
+        WIDX_BEHAVIOUR_GROUP,      WIDX_MINIMIZE_FOCUS_LOSS,  WIDX_DISABLE_SCREENSAVER_LOCK,
+    };
+    static constexpr std::pair<int16_t, int16_t> kIOSBandsDisplay[] = { { 68, 102 }, { 145, 160 }, { 197, 250 } };
+
+    // Audio output follows the system route, and the app does not run in the background.
+    static constexpr WidgetIndex kIOSHiddenAudio[] = { WIDX_SOUND, WIDX_SOUND_DROPDOWN, WIDX_AUDIO_FOCUS_CHECKBOX };
+    static constexpr std::pair<int16_t, int16_t> kIOSBandsAudio[] = { { 53, 71 }, { 115, 129 } };
+
+    // There is no hovering mouse to scroll at the screen edge or to trap, zoom follows the pinch,
+    // and the enlarged touch interface is always on.
+    static constexpr WidgetIndex kIOSHiddenControls[] = {
+        WIDX_SCREEN_EDGE_SCROLLING, WIDX_TRAP_CURSOR, WIDX_ZOOM_TO_CURSOR, WIDX_ENLARGED_UI, WIDX_TOUCH_ENHANCEMENTS,
+    };
+    static constexpr std::pair<int16_t, int16_t> kIOSBandsControls[] = { { 66, 98 }, { 113, 128 }, { 143, 173 } };
+
+    // RCT1 is imported by the launcher, and there is no system load/save dialog.
+    static constexpr WidgetIndex kIOSHiddenAdvanced[] = {
+        WIDX_GROUP_RCT1_PATH,     WIDX_PATH_TO_RCT1_LABEL, WIDX_PATH_TO_RCT1_PATH,      WIDX_PATH_TO_RCT1_BROWSE,
+        WIDX_PATH_TO_RCT1_CLEAR,  WIDX_ALWAYS_NATIVE_LOADSAVE,
+    };
+    static constexpr std::pair<int16_t, int16_t> kIOSBandsAdvanced[] = { { 53, 107 }, { 137, 152 } };
+
+    static constexpr CollapsedRows kIOSCollapsedRows[] = {
+        { kIOSHiddenDisplay, kIOSBandsDisplay }, // Display
+        {},                                      // Rendering
+        {},                                      // Culture
+        { kIOSHiddenAudio, kIOSBandsAudio },     // Audio
+        {},                                      // Interface
+        { kIOSHiddenControls, kIOSBandsControls }, // Controls
+        {},                                      // Misc
+        { kIOSHiddenAdvanced, kIOSBandsAdvanced }, // Advanced
+    };
+    static_assert(std::size(kIOSCollapsedRows) == WINDOW_OPTIONS_PAGE_COUNT);
+#endif
+
 #pragma endregion
 
     class OptionsWindow final : public Window
@@ -802,8 +849,10 @@ namespace OpenRCT2::Ui::Windows
             auto hasFilePicker = GetContext()->GetUiContext().HasFilePicker();
             const bool advancedTabSelected = (WIDX_FIRST_TAB + page) == WIDX_TAB_ADVANCED;
             const bool disableAlwaysNative = !hasFilePicker && advancedTabSelected;
+#ifndef OPENRCT2_IOS
             setWidgetDisabled(WIDX_ALWAYS_NATIVE_LOADSAVE, disableAlwaysNative);
             widgets[WIDX_ALWAYS_NATIVE_LOADSAVE].setHidden(disableAlwaysNative);
+#endif
         }
 
         void CommonPrepareDrawAfter()
@@ -950,9 +999,14 @@ namespace OpenRCT2::Ui::Windows
                 {
                     gDropdown.items[0] = Dropdown::MenuLabel(STR_FRAME_RATE_LIMIT_DEFAULT);
                     gDropdown.items[1] = Dropdown::MenuLabel(STR_FRAME_RATE_LIMIT_VSYNC);
+#ifdef OPENRCT2_IOS
+                    // Frames are paced by the display link: there is no unrestricted rate.
+                    ShowDropdown(widget, 2);
+#else
                     gDropdown.items[2] = Dropdown::MenuLabel(STR_FRAME_RATE_LIMIT_UNRESTRICTED);
 
                     ShowDropdown(widget, 3);
+#endif
 
                     auto& config = Config::Get().general;
                     auto activeItem = 0;
@@ -1044,10 +1098,6 @@ namespace OpenRCT2::Ui::Windows
             auto& generalConfig = Config::Get().general;
             _dropdownCaption = FormatStringID(
                 STR_RESOLUTION_X_BY_Y, generalConfig.fullscreenWidth, generalConfig.fullscreenHeight);
-#ifdef OPENRCT2_IOS
-            const auto pixels = IOS::OutputPixelSize(static_cast<SDL_Window*>(GetContext()->GetUiContext().GetWindow()));
-            _dropdownCaption = FormatStringID(STR_RESOLUTION_X_BY_Y, pixels.x, pixels.y);
-#endif
             widgets[WIDX_RESOLUTION].setString(_dropdownCaption.c_str());
 
             // Disable resolution dropdown on "Windowed" and "Fullscreen (desktop)"
@@ -1056,12 +1106,6 @@ namespace OpenRCT2::Ui::Windows
             setWidgetDisabled(WIDX_RESOLUTION_DROPDOWN, disableResolution);
             setWidgetDisabled(WIDX_RESOLUTION, disableResolution);
             setWidgetDisabled(WIDX_RESOLUTION_LABEL, disableResolution);
-#ifdef OPENRCT2_IOS
-            // The iPad window always fills the screen: display mode and resolution are fixed.
-            setWidgetDisabled(WIDX_FULLSCREEN_LABEL, true);
-            setWidgetDisabled(WIDX_FULLSCREEN, true);
-            setWidgetDisabled(WIDX_FULLSCREEN_DROPDOWN, true);
-#endif
 
             setCheckboxValue(WIDX_SHOW_FPS_CHECKBOX, Config::Get().general.showFPS);
             setCheckboxValue(WIDX_MULTITHREADING_CHECKBOX, Config::Get().general.multiThreading);
@@ -2232,6 +2276,7 @@ namespace OpenRCT2::Ui::Windows
 
         void AdvancedPrepareDraw()
         {
+#ifndef OPENRCT2_IOS // The RCT1 path group is hidden there (see kIOSHiddenAdvanced).
             if (!Config::Get().general.rct1Path.empty())
             {
                 widgets[WIDX_PATH_TO_RCT1_PATH].setVisible();
@@ -2259,6 +2304,7 @@ namespace OpenRCT2::Ui::Windows
                 widgets[WIDX_PATH_TO_RCT1_BROWSE].right = widgets[WIDX_GROUP_RCT1_PATH].right - 6;
                 widgets[WIDX_PATH_TO_RCT1_BROWSE].left = widgets[WIDX_PATH_TO_RCT1_BROWSE].right - browseLabelWidth;
             }
+#endif
 
             setCheckboxValue(WIDX_EXPORT_CUSTOM_OBJECTS_CHECKBOX, Config::Get().general.savePluginData);
             setCheckboxValue(WIDX_ALWAYS_NATIVE_LOADSAVE, Config::Get().general.useNativeBrowseDialog);
@@ -2268,9 +2314,9 @@ namespace OpenRCT2::Ui::Windows
             setCheckboxValue(WIDX_STAY_CONNECTED_AFTER_DESYNC, Config::Get().network.stayConnected);
 
 #ifdef __EMSCRIPTEN__
-            widgets[WIDX_GROUP_ADVANCED].bottom = LayoutY(kAdvancedStart + 84 + getTitleBarDiffNormal());
+            widgets[WIDX_GROUP_ADVANCED].bottom = LayoutY(CollapsedY(kAdvancedStart + 84 + getTitleBarDiffNormal()));
 #else
-            widgets[WIDX_GROUP_ADVANCED].bottom = LayoutY(kAdvancedStart + 64 + getTitleBarDiffNormal());
+            widgets[WIDX_GROUP_ADVANCED].bottom = LayoutY(CollapsedY(kAdvancedStart + 64 + getTitleBarDiffNormal()));
 #endif
 
             widgets[WIDX_ASSET_PACKS].top = widgets[WIDX_GROUP_ADVANCED].bottom - std::lround(20 * _layoutScale);
@@ -2330,6 +2376,9 @@ namespace OpenRCT2::Ui::Windows
             page = p;
             currentFrame = 0;
             setWidgets(window_options_page_widgets[page]);
+#ifdef OPENRCT2_IOS
+            CollapseRows(kIOSCollapsedRows[page]);
+#endif
             _layoutScale = 1.0f;
             if (Config::Get().interface.enlargedUi)
                 ApplyTouchLayout();
@@ -2341,6 +2390,43 @@ namespace OpenRCT2::Ui::Windows
             initScrollWidgets();
             invalidate();
         }
+
+#ifdef OPENRCT2_IOS
+        // Hides the page's unused widgets and closes the gaps they leave. Group boxes around a
+        // removed band shrink; hidden widgets fold away to the top of the page so they do not count
+        // towards its height.
+        void CollapseRows(const CollapsedRows& rows)
+        {
+            const int16_t pageTop = widgets[WIDX_PAGE_BACKGROUND].top;
+            // setWidgets has already moved the page down for a taller title bar.
+            const int16_t titleBarDiff = getTitleBarDiffNormal();
+            for (auto index : rows.hidden)
+            {
+                widgets[index].setHidden(true);
+                widgets[index].top = pageTop;
+                widgets[index].bottom = pageTop;
+            }
+            for (WidgetIndex i = WIDX_PAGE_START; i < widgets.size(); i++)
+            {
+                auto& widget = widgets[i];
+                if (widget.isHidden())
+                    continue;
+                int16_t shiftTop = 0;
+                int16_t shiftBottom = 0;
+                for (const auto& [bandTop, bandBottom] : rows.bands)
+                {
+                    const int16_t bandHeight = bandBottom - bandTop;
+                    if (widget.top >= bandBottom + titleBarDiff)
+                        shiftTop += bandHeight;
+                    // Only group boxes enclose a band; any other widget keeps its height.
+                    if (widget.bottom >= bandBottom + titleBarDiff && widget.type == WidgetType::groupbox)
+                        shiftBottom += bandHeight;
+                }
+                widget.top -= shiftTop;
+                widget.bottom -= widget.type == WidgetType::groupbox ? shiftBottom : shiftTop;
+            }
+        }
+#endif
 
         // Enlarged UI: stretches the page's widgets vertically so every row is a comfortable touch
         // target. Pages that become taller than the screen scroll (see SetupPageScroll).
@@ -2454,6 +2540,18 @@ namespace OpenRCT2::Ui::Windows
                 }
             }
             _pageScrollApplied = offset;
+        }
+
+        // A y coordinate of the page's widget table after CollapseRows (unchanged without it).
+        int32_t CollapsedY(int32_t y) const
+        {
+#ifdef OPENRCT2_IOS
+            const int32_t original = y;
+            for (const auto& [bandTop, bandBottom] : kIOSCollapsedRows[page].bands)
+                if (original >= bandBottom + getTitleBarDiffNormal())
+                    y -= bandBottom - bandTop;
+#endif
+            return y;
         }
 
         // A y coordinate of the page layout as ApplyTouchLayout placed it (unchanged without it).
