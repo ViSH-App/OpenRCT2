@@ -278,7 +278,13 @@ namespace OpenRCT2::Config
             model->enabledAssetPacks = reader->GetString("enabled_asset_packs", "");
             model->transparentScreenshot = reader->GetBoolean("transparent_screenshot", true);
             model->transparentWater = reader->GetBoolean("transparent_water", true);
-            model->crtEffect = reader->GetBoolean("crt_effect", false);
+#ifdef OPENRCT2_IOS
+            // Drawn by the Metal engine, the iPad default.
+            constexpr bool kDefaultCrtEffect = true;
+#else
+            constexpr bool kDefaultCrtEffect = false;
+#endif
+            model->crtEffect = reader->GetBoolean("crt_effect", kDefaultCrtEffect);
 
             model->invisibleRides = reader->GetBoolean("invisible_rides", false);
             model->invisibleVehicles = reader->GetBoolean("invisible_vehicles", false);
