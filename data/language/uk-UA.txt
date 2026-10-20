@@ -3611,3 +3611,5 @@ STR_6626    :Анімація йде задом наперед
 
 STR_6642    :{STRING} ({COMMA32} / {COMMA32})
 STR_6643    :{STRING} ({COMMA32} / {COMMA32} Кб)
+
+STR_7082    :Metal

@@ -66,7 +66,7 @@ if (EMSCRIPTEN)
                                     ${ICU_DATA_LIBRARIES}
                                     ${ICU_DT_LIBRARY_RELEASE})
 elseif (IOS)
-    target_link_libraries(openrct2 libopenrct2 SDL2::SDL2main SDL2::SDL2-static)
+    target_link_libraries(openrct2 libopenrct2 SDL2::SDL2-static)
 elseif (NOT MSVC AND NOT WIN32)
     target_link_libraries(openrct2 "libopenrct2"
                                     PkgConfig::SDL2)

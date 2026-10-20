@@ -3822,3 +3822,5 @@ STR_7027    :{MOVE_X}{29}{STRINGID}
 STR_7028    :Quarto di elica in su
 STR_7029    :Quarto di elica in giù
 STR_7030    :{WINDOW_COLOUR_2}Visitatori intrattenuti: {BLACK}{COMMA32}
+
+STR_7082    :Metal

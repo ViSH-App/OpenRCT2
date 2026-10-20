@@ -22,6 +22,10 @@ namespace OpenRCT2::Ui
     [[nodiscard]] std::unique_ptr<Drawing::IDrawingEngine> CreateOpenGLDrawingEngine(IUiContext& uiContext);
 #endif
 
+#ifdef OPENRCT2_METAL
+    [[nodiscard]] std::unique_ptr<Drawing::IDrawingEngine> CreateMetalDrawingEngine(IUiContext& uiContext);
+#endif
+
     class DrawingEngineFactory final : public Drawing::IDrawingEngineFactory
     {
     public:
@@ -34,6 +38,12 @@ namespace OpenRCT2::Ui
 #ifndef DISABLE_OPENGL
                 case DrawingEngine::openGL:
                     return CreateOpenGLDrawingEngine(uiContext);
+#endif
+                case DrawingEngine::metal:
+#ifdef OPENRCT2_METAL
+                    return CreateMetalDrawingEngine(uiContext);
+#else
+                    return nullptr;
 #endif
                 default:
                     Guard::Fail("Unknown renderer: %u", static_cast<uint32_t>(type));

@@ -13,6 +13,9 @@
  */
 
 #include <cmath>
+#ifdef OPENRCT2_IOS
+    #include "../UiContext.iOS.h"
+#endif
 #include <openrct2-ui/interface/Dropdown.h>
 #include <openrct2-ui/interface/Theme.h>
 #include <openrct2-ui/interface/Widget.h>
@@ -483,10 +486,18 @@ namespace OpenRCT2::Ui::Windows
     };
     // clang-format on
 
-    static constexpr StringId kDrawingEngineStringIds[] = {
-        STR_DRAWING_ENGINE_SOFTWARE,
+    struct DrawingEngineOption
+    {
+        DrawingEngine engine;
+        StringId label;
+    };
+    static constexpr DrawingEngineOption kDrawingEngineOptions[] = {
+        { DrawingEngine::softwareWithHardwareDisplay, STR_DRAWING_ENGINE_SOFTWARE },
 #ifndef DISABLE_OPENGL
-        STR_DRAWING_ENGINE_OPENGL,
+        { DrawingEngine::openGL, STR_DRAWING_ENGINE_OPENGL },
+#endif
+#ifdef OPENRCT2_METAL
+        { DrawingEngine::metal, STR_DRAWING_ENGINE_METAL },
 #endif
     };
 
@@ -863,13 +874,14 @@ namespace OpenRCT2::Ui::Windows
                     break;
                 case WIDX_DRAWING_ENGINE_DROPDOWN:
                 {
-                    const auto numItems = static_cast<int32_t>(std::size(kDrawingEngineStringIds));
+                    const auto numItems = static_cast<int32_t>(std::size(kDrawingEngineOptions));
                     for (int32_t i = 0; i < numItems; i++)
                     {
-                        gDropdown.items[i] = Dropdown::MenuLabel(kDrawingEngineStringIds[i]);
+                        gDropdown.items[i] = Dropdown::MenuLabel(kDrawingEngineOptions[i].label);
                     }
                     ShowDropdown(widget, numItems);
-                    gDropdown.items[EnumValue(Config::Get().general.drawingEngine)].setChecked(true);
+                    for (size_t i = 0; i < std::size(kDrawingEngineOptions); ++i)
+                        gDropdown.items[i].setChecked(kDrawingEngineOptions[i].engine == Config::Get().general.drawingEngine);
                     break;
                 }
                 case WIDX_SCALE_UP:
@@ -942,9 +954,10 @@ namespace OpenRCT2::Ui::Windows
                     }
                     break;
                 case WIDX_DRAWING_ENGINE_DROPDOWN:
-                    if (dropdownIndex != EnumValue(Config::Get().general.drawingEngine))
+                    if (dropdownIndex >= 0 && static_cast<size_t>(dropdownIndex) < std::size(kDrawingEngineOptions)
+                        && kDrawingEngineOptions[dropdownIndex].engine != Config::Get().general.drawingEngine)
                     {
-                        DrawingEngine dstEngine = static_cast<DrawingEngine>(dropdownIndex);
+                        DrawingEngine dstEngine = kDrawingEngineOptions[dropdownIndex].engine;
 
                         Config::Get().general.drawingEngine = dstEngine;
                         RefreshVideo();
@@ -984,6 +997,10 @@ namespace OpenRCT2::Ui::Windows
             auto& generalConfig = Config::Get().general;
             _dropdownCaption = FormatStringID(
                 STR_RESOLUTION_X_BY_Y, generalConfig.fullscreenWidth, generalConfig.fullscreenHeight);
+#ifdef OPENRCT2_IOS
+            const auto pixels = IOS::OutputPixelSize(static_cast<SDL_Window*>(GetContext()->GetUiContext().GetWindow()));
+            _dropdownCaption = FormatStringID(STR_RESOLUTION_X_BY_Y, pixels.x, pixels.y);
+#endif
             widgets[WIDX_RESOLUTION].setString(_dropdownCaption.c_str());
 
             // Disable resolution dropdown on "Windowed" and "Fullscreen (desktop)"
@@ -1000,7 +1017,9 @@ namespace OpenRCT2::Ui::Windows
 
             // Dropdown captions for straightforward strings.
             widgets[WIDX_FULLSCREEN].text = FullscreenModeNames[Config::Get().general.fullscreenMode];
-            widgets[WIDX_DRAWING_ENGINE].text = kDrawingEngineStringIds[EnumValue(Config::Get().general.drawingEngine)];
+            for (const auto& option : kDrawingEngineOptions)
+                if (option.engine == Config::Get().general.drawingEngine)
+                    widgets[WIDX_DRAWING_ENGINE].text = option.label;
 
             static constexpr StringId kFrameRateLimitStringIds[] = {
                 STR_FRAME_RATE_LIMIT_DEFAULT,

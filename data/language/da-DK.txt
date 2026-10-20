@@ -3812,3 +3812,5 @@ STR_7025    :Gør Synlig
 STR_7026    :Gør hele forlystelsen synlig
 STR_7028    :Kvart spiral op
 STR_7029    :Kvart spiral ned
+
+STR_7082    :Metal

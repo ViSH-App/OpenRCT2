@@ -3841,3 +3841,5 @@ STR_7060    :Besucher, die beim Bau von {STRINGID} zuschauen
 STR_7061    :Besucher, die die Landschaft betrachten
 STR_7062    :Besucher, die den Park verlassen
 STR_7063    :Besucher, die beim Bau eines neuen Fahrgeschäfts zuschauen
+
+STR_7082    :Metal

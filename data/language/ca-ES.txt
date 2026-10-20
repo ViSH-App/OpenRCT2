@@ -3824,3 +3824,5 @@ STR_7035    :Estil de botiga
 STR_7036    :Estil de vehicle
 STR_7037    :Mode d’operació
 STR_7038    :Espera i carrega
+
+STR_7082    :Metal

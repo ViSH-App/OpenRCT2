@@ -26,6 +26,14 @@ uint8_t const HINTING_THRESHOLD_LOW = 40;
 uint8_t const HINTING_THRESHOLD_MEDIUM = 60;
 
 // clang-format off
+#ifdef OPENRCT2_IOS
+TTFFontSetDescriptor TTFFontNotoSansCJKsc = { {
+    { "NotoSansCJKsc-Regular.otf", "Noto Sans CJK SC", 12, 1, -3, 14, HINTING_THRESHOLD_MEDIUM, nullptr },
+    { "NotoSansCJKsc-Regular.otf", "Noto Sans CJK SC", 12, 1, -3, 14, HINTING_THRESHOLD_MEDIUM, nullptr },
+    { "NotoSansCJKsc-Regular.otf", "Noto Sans CJK SC",  9, 1, -2,  9, HINTING_THRESHOLD_MEDIUM, nullptr },
+} };
+#endif
+
 TTFFontSetDescriptor TTFFontMSGothic = { {
     { "msgothic.ttc", "MS PGothic", 12, 1,  0, 14, HINTING_THRESHOLD_MEDIUM, nullptr },
     { "msgothic.ttc", "MS PGothic", 12, 1,  0, 14, HINTING_THRESHOLD_MEDIUM, nullptr },

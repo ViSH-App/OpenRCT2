@@ -17,6 +17,9 @@ namespace OpenRCT2::Localisation
 #include "../drawing/Font.h"
 
 #ifndef DISABLE_TTF
+    #ifdef OPENRCT2_IOS
+extern TTFFontSetDescriptor TTFFontNotoSansCJKsc;
+    #endif
 extern TTFFontSetDescriptor TTFFontMSGothic;
 extern TTFFontSetDescriptor TTFFontNotoSansMono;
 extern TTFFontSetDescriptor TTFFontHiragano;

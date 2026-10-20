@@ -609,7 +609,7 @@ namespace OpenRCT2
                 else
                 {
                     // If the drawing engine creation failed, try to create a software engine.
-                    if (drawingEngineType == DrawingEngine::openGL)
+                    if (drawingEngineType != DrawingEngine::softwareWithHardwareDisplay)
                     {
                         drawingEngineType = DrawingEngine::softwareWithHardwareDisplay;
                         LOG_ERROR("Trying fallback back to software...");

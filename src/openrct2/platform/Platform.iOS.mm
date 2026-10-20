@@ -80,6 +80,12 @@ namespace OpenRCT2::Platform
     }
     std::string GetFontPath(const TTFFontDescriptor& font)
     {
+        auto bundled = Path::Combine(GetInstallPath(), "fonts", font.filename);
+        if ([NSFileManager.defaultManager isReadableFileAtPath:[NSString stringWithUTF8String:bundled.c_str()]])
+        {
+            fprintf(stderr, "iPad font: %s (%d pt), bundled font loaded\n", font.font_name, font.ptSize);
+            return bundled;
+        }
         CTFontDescriptorRef descriptor = CTFontDescriptorCreateWithNameAndSize(
             static_cast<CFStringRef>([NSString stringWithUTF8String:font.font_name]), 0);
         auto url = static_cast<CFURLRef>(CTFontDescriptorCopyAttribute(descriptor, kCTFontURLAttribute));

@@ -14,10 +14,10 @@
 #ifndef DISABLE_TTF
 
 TTFontFamily const TTFFamilyChineseSimplified = {
-    &TTFFontSimSun,
-    &TTFFontHeiti,
-    &TTFFontMicroHei,
-    &TTFFontNotoSansCJK,
+    #ifdef OPENRCT2_IOS
+    &TTFFontNotoSansCJKsc,
+    #endif
+    &TTFFontSimSun,        &TTFFontHeiti, &TTFFontMicroHei, &TTFFontNotoSansCJK,
 };
 
 TTFontFamily const TTFFamilyChineseTraditional = {

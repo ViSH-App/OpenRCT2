@@ -3844,3 +3844,5 @@ STR_7060    :Visitantes mirando a construción de {STRINGID}
 STR_7061    :Visitantes mirando a decoración
 STR_7062    :Visitantes saíndo do parque
 STR_7063    :Visitantes mirando a construción dunha nova atracción
+
+STR_7082    :Metal

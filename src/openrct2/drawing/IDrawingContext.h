@@ -13,8 +13,11 @@
 #include "ImageId.hpp"
 #include "PaletteIndex.h"
 
+#include <string_view>
+
 struct ScreenLine;
 struct TTFSurface;
+struct TTFFontDescriptor;
 
 namespace OpenRCT2::Drawing
 {
@@ -30,19 +33,24 @@ namespace OpenRCT2::Drawing
         virtual void Clear(RenderTarget& rt, PaletteIndex paletteIndex) = 0;
         virtual void FillRect(
             RenderTarget& rt, PaletteIndex paletteIndex, int32_t left, int32_t top, int32_t right, int32_t bottom,
-            bool crossHatch = false)
-            = 0;
+            bool crossHatch = false) = 0;
         virtual void FilterRect(
-            RenderTarget& rt, FilterPaletteID palette, int32_t left, int32_t top, int32_t right, int32_t bottom)
-            = 0;
+            RenderTarget& rt, FilterPaletteID palette, int32_t left, int32_t top, int32_t right, int32_t bottom) = 0;
         virtual void DrawLine(RenderTarget& rt, PaletteIndex colour, const ScreenLine& line) = 0;
         virtual void DrawSprite(RenderTarget& rt, ImageId image, int32_t x, int32_t y) = 0;
         virtual void DrawSpriteRawMasked(RenderTarget& rt, int32_t x, int32_t y, ImageId maskImage, ImageId colourImage) = 0;
         virtual void DrawSpriteSolid(RenderTarget& rt, ImageId image, int32_t x, int32_t y, PaletteIndex colour) = 0;
         virtual void DrawGlyph(RenderTarget& rt, ImageId image, int32_t x, int32_t y, const PaletteMap& palette) = 0;
         virtual void DrawTTFBitmap(
-            RenderTarget& rt, const TextDrawInfo& info, TTFSurface* surface, int32_t x, int32_t y, uint8_t hintingThreshold)
-            = 0;
+            RenderTarget& rt, const TextDrawInfo& info, TTFSurface* surface, int32_t x, int32_t y,
+            uint8_t hintingThreshold) = 0;
+        // Optional high-density text path. Layout and advances still use the
+        // logical surface; existing renderers retain their bitmap behaviour.
+        virtual bool TryDrawTTFText(
+            RenderTarget&, const TextDrawInfo&, const TTFFontDescriptor&, std::string_view, const TTFSurface&, int32_t, int32_t)
+        {
+            return false;
+        }
     };
 
 } // namespace OpenRCT2::Drawing

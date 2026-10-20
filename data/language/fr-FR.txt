@@ -3869,3 +3869,5 @@ STR_7078    :Vert sapin
 STR_7079    :Rubis
 STR_7080    :Bleu profond
 STR_7081    :Argent
+
+STR_7082    :Metal

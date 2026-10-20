@@ -3825,3 +3825,5 @@ STR_7035    :Affärsstil
 STR_7036    :Fordonsstil
 STR_7037    :Körläge
 STR_7038    :väntetid och last
+
+STR_7082    :Metal

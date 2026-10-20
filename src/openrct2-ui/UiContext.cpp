@@ -844,6 +844,10 @@ private:
             flags |= SDL_WINDOW_OPENGL;
         }
 
+#ifdef OPENRCT2_METAL
+        if (Config::Get().general.drawingEngine == DrawingEngine::metal)
+            flags |= SDL_WINDOW_METAL;
+#endif
         _window = SDL_CreateWindow(OPENRCT2_NAME, windowPos.x, windowPos.y, width, height, flags);
         if (_window == nullptr)
         {
@@ -854,6 +858,9 @@ private:
             SDLException::Throw(errorMessage.c_str());
         }
 
+#ifdef OPENRCT2_IOS
+        IOS::AttachWindowToScene(_window);
+#endif
         ApplyScreenSaverLockSetting();
 
         SDL_SetWindowMinimumSize(_window, 720, 480);

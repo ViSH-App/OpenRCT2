@@ -10,6 +10,7 @@
 
     #import <AVFAudio/AVFAudio.h>
     #include <SDL.h>
+    #include <SDL_metal.h>
     #include <SDL_syswm.h>
     #import <UIKit/UIKit.h>
     #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
@@ -429,6 +430,15 @@ namespace
 
 namespace OpenRCT2::Ui::IOS
 {
+    SDL_Point OutputPixelSize(SDL_Window* window)
+    {
+        SDL_Point result{};
+        if (auto renderer = SDL_GetRenderer(window))
+            SDL_GetRendererOutputSize(renderer, &result.x, &result.y);
+        else
+            SDL_Metal_GetDrawableSize(window, &result.x, &result.y);
+        return result;
+    }
     SDL_Rect ContentRect(SDL_Window* window)
     {
         int w = 0, h = 0;
@@ -528,10 +538,12 @@ namespace OpenRCT2::Ui
         }
         void SetWindowIcon(SDL_Window* window) override
         {
+            SDL_DelEventWatch(Lifecycle, nullptr);
+            if (_audioObserver) [NSNotificationCenter.defaultCenter removeObserver:_audioObserver];
             gameWindow = window;
             SDL_RendererInfo rendererInfo{};
             SDL_GetRendererInfo(SDL_GetRenderer(window), &rendererInfo);
-            fprintf(stderr, "iPad software rasterizer, SDL presentation: %s\n", rendererInfo.name);
+            fprintf(stderr, "iPad drawing engine: %s\n", rendererInfo.name ? rendererInfo.name : "native Metal");
             auto view = Controller().view;
             _controls = [RCTTouchControls new];
             UIView* bar = [UIView new];
@@ -673,7 +685,7 @@ extern "C" int SDL_main(int argc, char** argv)
         setvbuf(stdout, nullptr, _IOLBF, 0);
         setvbuf(stderr, nullptr, _IOLBF, 0);
         fprintf(stderr, "\nOpenRCT2 iPad startup: %s\n", NSDate.date.description.UTF8String);
-        bootstrapWindow = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
+        bootstrapWindow = [[UIWindow alloc] initWithWindowScene:OpenRCT2::Ui::IOS::GetWindowScene()];
         bootstrapWindow.rootViewController = [UIViewController new];
         bootstrapWindow.rootViewController.view.backgroundColor = UIColor.blackColor;
         [bootstrapWindow makeKeyAndVisible];

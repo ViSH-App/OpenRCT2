@@ -3799,3 +3799,5 @@ STR_7005    :Stavět cesty v oblasti označené tažením
 STR_7006    :Vykreslit okraje tlačítek s obrázky
 STR_7007    :Typ atrakce
 STR_7008    :Neznámá atrakce ({INT32})
+
+STR_7082    :Metal
