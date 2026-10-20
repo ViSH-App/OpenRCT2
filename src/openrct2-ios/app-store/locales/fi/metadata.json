@@ -1,0 +1,12 @@
+{
+  "locale": "fi",
+  "name": "OpenRCT2",
+  "subtitle": "Huvipuistosimulaattori",
+  "privacyPolicyUrl": "https://openrct2.abo.network/fi/privacy",
+  "promotionalText": "Rakenna ja johda huvipuistoja klassikon avoimen lähdekoodin uudelleentoteutuksessa. Vaatii pelitiedostot RollerCoaster Tycoon 2 -kopiosta.",
+  "keywords": "huvipuisto,vuoristorata,teemapuisto,simulaatio,rakentaminen,strategia,tycoon,avoin lähdekoodi",
+  "description": "OpenRCT2:n iOS-sovitus. OpenRCT2 on RollerCoaster Tycoon 2:n avoimen lähdekoodin uudelleentoteutus.\n\nKäyttö edellyttää RollerCoaster Tycoon 2 -pelin kappaleen pelitiedostoja.\n\nAloittaminen\n1. Hanki RollerCoaster Tycoon 2: Appi ei sisällä alkuperäisen pelin materiaalia. RollerCoaster Tycoon 2: Triple Thrill Pack on saatavilla Steamista ja GOG:sta, ja se sisältää Wacky Worlds- ja Time Twister -laajennukset.\n2. Siirrä tiedostot laitteeseen: Kopioi pelikansio, ZIP-arkisto tai GOG-asennusohjelma Tiedostot-appiin AirDropilla, iCloud Drivella tai tietokoneelta.\n3. Tuo ja pelaa: Valitse tiedostot apissa. Tuonti tapahtuu kokonaan laitteella, ja GOG-asennusohjelmat puretaan automaattisesti.\n\nOminaisuudet\n• RollerCoaster Tycoon 1 -sisältö: RollerCoaster Tycoon Deluxen tuonti on valinnaista, ja se lisää RCT1:n skenaariot, grafiikan ja alkumusiikin.\n• Natiivi Metal-renderöinti: Puistot piirretään Metalilla, jotta vieritys on sujuvaa suurimmissakin puistoissa.\n• Tallennetut pelit Tiedostot-apissa: Tallennetut pelit säilytetään Tiedostot-apissa, jossa ne voidaan varmuuskopioida tai siirtää toiselle laitteelle.\n• 25 kieltä: Käyttöliittymä on saatavilla 25 kielellä, ja kiinalle, japanille ja korealle on pikselifontit.\n• Toimii Macissa: Appi toimii myös Apple Silicon -sirulla varustetuissa Mac-tietokoneissa.\n• Ei tiliä eikä seurantaa: Appi ei vaadi tiliä eikä sisällä mainontaa, analytiikkaa tai seurantaa.\n\nOpenRCT2 on avoimen lähdekoodin ohjelmisto, joka on julkaistu GNU General Public License v3 -lisenssillä.\nRollerCoaster Tycoon on omistajiensa tavaramerkki. Tämä appi ei sisällä alkuperäisen pelin materiaalia.",
+  "supportUrl": "https://openrct2.abo.network/fi/support",
+  "marketingUrl": "https://openrct2.abo.network/fi/",
+  "screenshotFallback": "en"
+}

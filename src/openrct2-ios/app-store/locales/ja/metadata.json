@@ -1,0 +1,11 @@
+{
+  "locale": "ja",
+  "name": "OpenRCT2",
+  "subtitle": "オープンソースの遊園地経営シム",
+  "privacyPolicyUrl": "https://openrct2.abo.network/ja/privacy",
+  "promotionalText": "名作遊園地経営ゲームをオープンソースで再実装。プレイには RollerCoaster Tycoon 2 のゲームファイルが必要です。",
+  "keywords": "遊園地,ジェットコースター,経営,シミュレーション,テーマパーク,建設,ストラテジー,オープンソース,タイクーン",
+  "description": "RollerCoaster Tycoon 2 のオープンソース再実装である OpenRCT2 の iOS 移植版です。\n\nRollerCoaster Tycoon 2 のゲームファイルが必要です。\n\nはじめに\n1. RollerCoaster Tycoon 2 を入手する: この App にはオリジナルのゲーム素材は含まれていません。RollerCoaster Tycoon 2: Triple Thrill Pack は Steam と GOG で販売されており、Wacky Worlds と Time Twister が含まれています。\n2. ファイルをデバイスに転送する: ゲームフォルダ、ZIP アーカイブ、または GOG インストーラを、AirDrop、iCloud Drive、またはコンピュータを使用して「ファイル」App にコピーします。\n3. 読み込んでプレイする: App でファイルを選択します。読み込みはすべてデバイス上で行われ、GOG インストーラは自動的に展開されます。\n\n機能\n• RollerCoaster Tycoon 1 のコンテンツ: RollerCoaster Tycoon Deluxe の読み込みは任意です。読み込むと RCT1 のシナリオ、グラフィック、タイトル音楽が追加されます。\n• ネイティブの Metal レンダリング: パークは Metal で描画されるため、最大規模のパークでもスムーズにスクロールできます。\n• セーブデータは「ファイル」App に保存: セーブデータは「ファイル」App に保存され、バックアップや別のデバイスへの移動が可能です。\n• 25 言語に対応: インターフェイスは 25 言語に対応しており、中国語、日本語、韓国語にはピクセルフォントを使用しています。\n• Mac でも動作: この App は Apple シリコン搭載の Mac でも動作します。\n• アカウント不要、トラッキングなし: この App はアカウントを必要とせず、広告、分析、トラッキングを一切含みません。\n\nOpenRCT2 は GNU General Public License v3 のもとで公開されているオープンソースソフトウェアです。\nRollerCoaster Tycoon は各権利者の商標です。この App にはオリジナルのゲーム素材は含まれていません。",
+  "supportUrl": "https://openrct2.abo.network/ja/support",
+  "marketingUrl": "https://openrct2.abo.network/ja/"
+}

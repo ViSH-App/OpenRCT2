@@ -1,0 +1,12 @@
+{
+  "locale": "cs",
+  "name": "OpenRCT2",
+  "subtitle": "Simulátor zábavního parku",
+  "privacyPolicyUrl": "https://openrct2.abo.network/cs/privacy",
+  "promotionalText": "Stavějte a spravujte zábavní parky v open-source implementaci klasické hry. Vyžaduje herní soubory z kopie RollerCoaster Tycoon 2.",
+  "keywords": "zábavní park,horská dráha,lunapark,simulace,budování,strategie,tycoon,open source",
+  "description": "Port projektu OpenRCT2, nové implementace hry RollerCoaster Tycoon 2 s otevřeným zdrojovým kódem, pro iOS.\n\nJsou vyžadovány soubory hry z kopie RollerCoaster Tycoon 2.\n\nZačínáme\n1. Pořiďte si RollerCoaster Tycoon 2: Aplikace neobsahuje žádné původní materiály hry. RollerCoaster Tycoon 2: Triple Thrill Pack je k dispozici ve službách Steam a GOG a obsahuje rozšíření Wacky Worlds a Time Twister.\n2. Přeneste soubory do zařízení: Zkopírujte složku hry, archiv ZIP nebo instalátor GOG do aplikace Soubory přes AirDrop, iCloud Drive nebo z počítače.\n3. Importujte a hrajte: Vyberte soubory v aplikaci. Import probíhá výhradně v zařízení a instalátory GOG se rozbalují automaticky.\n\nFunkce\n• Obsah RollerCoaster Tycoon 1: Import RollerCoaster Tycoon Deluxe je volitelný a přidává scénáře, grafiku a úvodní hudbu RCT1.\n• Nativní vykreslování přes Metal: Parky se vykreslují pomocí Metal, což zajišťuje plynulé posouvání i v největších parcích.\n• Uložené hry v aplikaci Soubory: Uložené hry se ukládají do aplikace Soubory, kde je lze zálohovat nebo přenést do jiného zařízení.\n• 25 jazyků: Rozhraní je k dispozici v 25 jazycích, pro čínštinu, japonštinu a korejštinu s pixelovými písmy.\n• Funguje na Macu: Aplikace funguje také na počítačích Mac s čipem Apple.\n• Bez účtu a sledování: Aplikace nevyžaduje žádný účet a neobsahuje reklamu, analytiku ani sledování.\n\nOpenRCT2 je open source software vydaný pod licencí GNU General Public License v3.\nRollerCoaster Tycoon je ochranná známka příslušných vlastníků. Tato aplikace neobsahuje žádné původní materiály hry.",
+  "supportUrl": "https://openrct2.abo.network/cs/support",
+  "marketingUrl": "https://openrct2.abo.network/cs/",
+  "screenshotFallback": "en"
+}

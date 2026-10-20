@@ -19,6 +19,7 @@
 		3D6912058417FABE41950F9D /* UiContext.iOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5CD8E88126CF4F31BC39307E /* UiContext.iOS.mm */; };
 		4020A348BBF2497783CCF3DD /* InnoExtractor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8BFDC2494113483992B0B84E /* InnoExtractor.cpp */; };
 		487D4158DCBB541D77F709E0 /* PixelUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C6338C8B4127856938AF69 /* PixelUI.swift */; };
+		4E41A7C01D2B4F6A8C9E010C /* ScreenshotRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E41A7C01D2B4F6A8C9E010D /* ScreenshotRenderer.swift */; };
 		50455E3FF9615B81FA48EC16 /* Scenery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E29CCF961BAB97F6FA60A3 /* Scenery.swift */; };
 		5524DDEC416E7E04C6FEEF15 /* GameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1FBCCA52F5869B9D67F2A44 /* GameData.swift */; };
 		5E1C3A7F2B8D4C6E9A0F1D21 /* Licenses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E1C3A7F2B8D4C6E9A0F1D22 /* Licenses.swift */; };
@@ -87,6 +88,7 @@
 		4E41A7C01D2B4F6A8C9E0108 /* CMakeLists.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		4E41A7C01D2B4F6A8C9E0109 /* dependencies.json */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json; path = dependencies.json; sourceTree = "<group>"; };
 		4E41A7C01D2B4F6A8C9E010A /* assets.cmake */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = assets.cmake; sourceTree = "<group>"; };
+		4E41A7C01D2B4F6A8C9E010D /* ScreenshotRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotRenderer.swift; sourceTree = "<group>"; };
 		503AC284472F0002289E7153 /* da */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = da; path = da.lproj/Localizable.strings; sourceTree = "<group>"; };
 		51DFD39ECCD8F9763D9D5829 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		51F456367E1F2B0488D1ABD7 /* VALIDATION.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; path = VALIDATION.md; sourceTree = "<group>"; };
@@ -244,6 +246,7 @@
 				F21FA3B3C2A8F3293C835B02 /* Launcher-Bridging-Header.h */,
 				27C6338C8B4127856938AF69 /* PixelUI.swift */,
 				31E29CCF961BAB97F6FA60A3 /* Scenery.swift */,
+				4E41A7C01D2B4F6A8C9E010D /* ScreenshotRenderer.swift */,
 				F1FBCCA52F5869B9D67F2A44 /* GameData.swift */,
 				10C1D478A71DF6AF99F9D69A /* Importer.swift */,
 				EB3EDBDC5CDFBD4194C2987A /* LauncherView.swift */,
@@ -441,6 +444,7 @@
 				4020A348BBF2497783CCF3DD /* InnoExtractor.cpp in Sources */,
 				487D4158DCBB541D77F709E0 /* PixelUI.swift in Sources */,
 				50455E3FF9615B81FA48EC16 /* Scenery.swift in Sources */,
+				4E41A7C01D2B4F6A8C9E010C /* ScreenshotRenderer.swift in Sources */,
 				5524DDEC416E7E04C6FEEF15 /* GameData.swift in Sources */,
 				80AAF369DBA9DBBBE23EC70A /* Importer.swift in Sources */,
 				E74689C4F7A199EC14678DA7 /* LauncherView.swift in Sources */,

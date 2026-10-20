@@ -1,0 +1,12 @@
+{
+  "locale": "nl-NL",
+  "name": "OpenRCT2",
+  "subtitle": "Pretparksimulatie",
+  "privacyPolicyUrl": "https://openrct2.abo.network/nl/privacy",
+  "promotionalText": "Bouw en beheer pretparken met de opensource-herimplementatie van een klassieker. Vereist de spelbestanden van een exemplaar van RollerCoaster Tycoon 2.",
+  "keywords": "pretpark,achtbaan,attractiepark,simulatie,bouwen,management,strategie,tycoon,open source",
+  "description": "De iOS-port van OpenRCT2, de opensource-herimplementatie van RollerCoaster Tycoon 2.\n\nSpelbestanden van een exemplaar van RollerCoaster Tycoon 2 zijn vereist.\n\nAan de slag\n1. RollerCoaster Tycoon 2 aanschaffen: De app bevat geen originele spelmaterialen. RollerCoaster Tycoon 2: Triple Thrill Pack is verkrijgbaar op Steam en GOG en bevat Wacky Worlds en Time Twister.\n2. De bestanden naar het apparaat overzetten: Kopieer de spelmap, een ZIP-archief of het GOG-installatieprogramma naar de Bestanden-app via AirDrop, iCloud Drive of een computer.\n3. Importeren en spelen: Selecteer de bestanden in de app. Het importeren vindt volledig op het apparaat plaats en GOG-installatieprogramma's worden automatisch uitgepakt.\n\nFuncties\n• Inhoud van RollerCoaster Tycoon 1: Het importeren van RollerCoaster Tycoon Deluxe is optioneel en voegt de RCT1-scenario's, -graphics en -titelmuziek toe.\n• Native weergave met Metal: Parken worden met Metal weergegeven voor vloeiend scrollen, zelfs in de grootste parken.\n• Opgeslagen spellen in de Bestanden-app: Opgeslagen spellen worden bewaard in de Bestanden-app, waar er een reservekopie van kan worden gemaakt of waar ze naar een ander apparaat kunnen worden verplaatst.\n• 25 talen: De interface is beschikbaar in 25 talen, met pixellettertypen voor Chinees, Japans en Koreaans.\n• Werkt op de Mac: De app werkt ook op Mac-computers met Apple Silicon.\n• Geen account of tracking: De app vereist geen account en bevat geen advertenties, analysefuncties of tracking.\n\nOpenRCT2 is opensourcesoftware, uitgebracht onder de GNU General Public License v3.\nRollerCoaster Tycoon is een handelsmerk van de respectieve eigenaars. Deze app bevat geen originele spelmaterialen.",
+  "supportUrl": "https://openrct2.abo.network/nl/support",
+  "marketingUrl": "https://openrct2.abo.network/nl/",
+  "screenshotFallback": "en"
+}

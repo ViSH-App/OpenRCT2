@@ -563,6 +563,9 @@ public final class LauncherHost: NSObject {
     /// A window over the scene that shows the launcher; onStart runs once the scene is turned to landscape.
     @objc public static func makeWindow(scene: UIWindowScene, onStart: @escaping @MainActor () -> Void) -> UIWindow {
         PixelFont.register()
+        #if targetEnvironment(simulator)
+        if #available(iOS 17, *), let directory = ScreenshotRenderer.directory { ScreenshotRenderer.run(scene: scene, into: directory) }
+        #endif
         let window = UIWindow(windowScene: scene)
         let controller = LauncherController(rootView: AnyView(EmptyView()))
         controller.rootView = AnyView(LauncherView {

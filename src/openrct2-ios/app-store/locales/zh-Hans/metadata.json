@@ -1,0 +1,11 @@
+{
+  "locale": "zh-Hans",
+  "name": "OpenRCT2",
+  "subtitle": "开源游乐园模拟经营游戏",
+  "privacyPolicyUrl": "https://openrct2.abo.network/zh-Hans/privacy",
+  "promotionalText": "以开源方式重新实现的经典游乐园模拟经营游戏。需使用自有的 RollerCoaster Tycoon 2 游戏文件。",
+  "keywords": "游乐园,过山车,模拟经营,主题公园,建造,经营,策略,模拟,开源,大亨",
+  "description": "OpenRCT2 的 iOS 移植版。OpenRCT2 是 RollerCoaster Tycoon 2 的开源重新实现。\n\n需要一份 RollerCoaster Tycoon 2 的游戏文件。\n\n开始使用\n1. 获取 RollerCoaster Tycoon 2: 本 App 不含任何原版游戏素材。RollerCoaster Tycoon 2: Triple Thrill Pack 可在 Steam 和 GOG 上购买，其中包含 Wacky Worlds 与 Time Twister。\n2. 将文件传输至设备: 通过隔空投送、iCloud 云盘或电脑，将游戏文件夹、ZIP 压缩包或 GOG 安装包拷贝至「文件」App。\n3. 导入并开始游戏: 在 App 中选择这些文件即可。导入过程完全在设备上进行，GOG 安装包将自动解压。\n\n功能特点\n• RollerCoaster Tycoon 1 内容: 可选择导入 RollerCoaster Tycoon Deluxe，以添加 RCT1 的场景、图形和标题音乐。\n• 原生 Metal 渲染: 游乐园采用 Metal 绘制，即使在最大的游乐园中也能流畅滚动。\n• 存档位于「文件」App: 游戏存档保存在「文件」App 中，可进行备份或移至其他设备。\n• 25 种语言: 界面提供 25 种语言，并为中文、日文和韩文配备像素字体。\n• 支持在 Mac 上运行: 本 App 也可在搭载 Apple 芯片的 Mac 电脑上运行。\n• 无需账户，不含跟踪: 本 App 无需账户，且不包含广告、分析或跟踪功能。\n\nOpenRCT2 是基于 GNU 通用公共许可证第 3 版（GPL v3）发布的开源软件。\nRollerCoaster Tycoon 是其各自所有者的商标。本 App 不含任何原版游戏素材。",
+  "supportUrl": "https://openrct2.abo.network/zh-Hans/support",
+  "marketingUrl": "https://openrct2.abo.network/zh-Hans/"
+}

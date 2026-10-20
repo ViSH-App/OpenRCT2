@@ -1,0 +1,12 @@
+{
+  "locale": "pt-BR",
+  "name": "OpenRCT2",
+  "subtitle": "Simulador de parque temático",
+  "privacyPolicyUrl": "https://openrct2.abo.network/pt-BR/privacy",
+  "promotionalText": "Construa e administre parques temáticos com a reimplementação de código aberto de um clássico. Requer os arquivos de jogo de uma cópia de RollerCoaster Tycoon 2.",
+  "keywords": "parque temático,montanha-russa,parque de diversões,simulação,gestão,construção,estratégia,tycoon",
+  "description": "A versão para iOS do OpenRCT2, a reimplementação de código aberto do RollerCoaster Tycoon 2.\n\nÉ necessário ter os arquivos de jogo de uma cópia do RollerCoaster Tycoon 2.\n\nPrimeiros passos\n1. Obter o RollerCoaster Tycoon 2: O app não contém nenhum material original do jogo. O RollerCoaster Tycoon 2: Triple Thrill Pack está disponível na Steam e na GOG e inclui Wacky Worlds e Time Twister.\n2. Transferir os arquivos para o dispositivo: Copie a pasta do jogo, um arquivo ZIP ou o instalador GOG para o app Arquivos via AirDrop, iCloud Drive ou computador.\n3. Importar e jogar: Selecione os arquivos no app. A importação é feita inteiramente no dispositivo, e os instaladores GOG são extraídos automaticamente.\n\nRecursos\n• Conteúdo do RollerCoaster Tycoon 1: A importação do RollerCoaster Tycoon Deluxe é opcional e adiciona os cenários, os gráficos e a música de abertura do RCT1.\n• Renderização nativa com Metal: Os parques são desenhados com Metal para uma rolagem suave, mesmo nos maiores parques.\n• Jogos salvos no app Arquivos: Os jogos salvos são armazenados no app Arquivos, onde podem receber backup ou ser transferidos para outro dispositivo.\n• 25 idiomas: A interface está disponível em 25 idiomas, com fontes pixeladas para chinês, japonês e coreano.\n• Compatível com Mac: O app também funciona em computadores Mac com chip Apple.\n• Sem conta nem rastreamento: O app não exige conta e não contém publicidade, análise de uso nem rastreamento.\n\nO OpenRCT2 é um software de código aberto distribuído sob a GNU General Public License v3.\nRollerCoaster Tycoon é uma marca comercial de seus respectivos proprietários. Este app não contém nenhum material original do jogo.",
+  "supportUrl": "https://openrct2.abo.network/pt-BR/support",
+  "marketingUrl": "https://openrct2.abo.network/pt-BR/",
+  "screenshotFallback": "en"
+}

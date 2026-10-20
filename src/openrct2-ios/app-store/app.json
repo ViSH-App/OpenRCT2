@@ -1,0 +1,44 @@
+{
+  "bundleId": "com.xu1s.openrct2",
+  "primaryLocale": "en-US",
+  "contentRightsDeclaration": "DOES_NOT_USE_THIRD_PARTY_CONTENT",
+  "categories": {
+    "primaryCategory": "GAMES",
+    "primarySubcategoryOne": "GAMES_SIMULATION",
+    "primarySubcategoryTwo": "GAMES_STRATEGY",
+    "secondaryCategory": "ENTERTAINMENT"
+  },
+  "releaseType": "AFTER_APPROVAL",
+  "ageRating": {
+    "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+    "contests": "NONE",
+    "gamblingSimulated": "NONE",
+    "gunsOrOtherWeapons": "NONE",
+    "horrorOrFearThemes": "NONE",
+    "matureOrSuggestiveThemes": "NONE",
+    "medicalOrTreatmentInformation": "NONE",
+    "profanityOrCrudeHumor": "NONE",
+    "sexualContentGraphicAndNudity": "NONE",
+    "sexualContentOrNudity": "NONE",
+    "violenceCartoonOrFantasy": "NONE",
+    "violenceRealistic": "NONE",
+    "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+    "gambling": false,
+    "lootBox": false,
+    "unrestrictedWebAccess": false,
+    "advertising": false,
+    "ageAssurance": false,
+    "healthOrWellnessTopics": false,
+    "messagingAndChat": false,
+    "parentalControls": false,
+    "userGeneratedContent": false
+  },
+  "price": {
+    "baseTerritory": "USA",
+    "customerPrice": "0.0"
+  },
+  "availability": {
+    "availableInNewTerritories": true,
+    "excludedTerritories": []
+  }
+}

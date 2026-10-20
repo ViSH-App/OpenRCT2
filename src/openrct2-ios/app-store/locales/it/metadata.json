@@ -1,0 +1,12 @@
+{
+  "locale": "it",
+  "name": "OpenRCT2",
+  "subtitle": "Gestionale di parchi a tema",
+  "privacyPolicyUrl": "https://openrct2.abo.network/it/privacy",
+  "promotionalText": "Costruisci e gestisci parchi a tema con la reimplementazione open source di un classico. Richiede i file di gioco di una copia di RollerCoaster Tycoon 2.",
+  "keywords": "parco a tema,montagne russe,luna park,simulazione,gestionale,costruzione,strategia,tycoon",
+  "description": "Il porting per iOS di OpenRCT2, la reimplementazione open source di RollerCoaster Tycoon 2.\n\nSono necessari i file di gioco di una copia di RollerCoaster Tycoon 2.\n\nPer iniziare\n1. Procurarsi RollerCoaster Tycoon 2: L’app non contiene alcuna risorsa originale del gioco. RollerCoaster Tycoon 2: Triple Thrill Pack è disponibile su Steam e GOG e include Wacky Worlds e Time Twister.\n2. Trasferire i file sul dispositivo: Copiare la cartella del gioco, un archivio ZIP o il programma di installazione GOG nell’app File tramite AirDrop, iCloud Drive o un computer.\n3. Importare e giocare: Selezionare i file nell’app. L’importazione avviene interamente sul dispositivo e i programmi di installazione GOG vengono estratti automaticamente.\n\nFunzionalità\n• Contenuti di RollerCoaster Tycoon 1: L’importazione di RollerCoaster Tycoon Deluxe è facoltativa e aggiunge gli scenari, la grafica e la musica del titolo di RCT1.\n• Rendering nativo con Metal: I parchi vengono disegnati con Metal per uno scorrimento fluido, anche nei parchi più grandi.\n• Salvataggi nell’app File: I salvataggi vengono archiviati nell’app File, dove possono essere sottoposti a backup o trasferiti su un altro dispositivo.\n• 25 lingue: L’interfaccia è disponibile in 25 lingue, con font pixel per cinese, giapponese e coreano.\n• Compatibile con Mac: L’app funziona anche sui computer Mac con chip Apple.\n• Nessun account né tracciamento: L’app non richiede alcun account e non contiene pubblicità, strumenti di analisi o sistemi di tracciamento.\n\nOpenRCT2 è un software open source distribuito con licenza GNU General Public License v3.\nRollerCoaster Tycoon è un marchio dei rispettivi proprietari. Questa app non contiene alcuna risorsa originale del gioco.",
+  "supportUrl": "https://openrct2.abo.network/it/support",
+  "marketingUrl": "https://openrct2.abo.network/it/",
+  "screenshotFallback": "en"
+}

@@ -1,0 +1,12 @@
+{
+  "locale": "da",
+  "name": "OpenRCT2",
+  "subtitle": "Forlystelsesparksimulator",
+  "privacyPolicyUrl": "https://openrct2.abo.network/da/privacy",
+  "promotionalText": "Byg og driv forlystelsesparker med open source-genimplementeringen af en klassiker. Kræver spilfilerne fra en kopi af RollerCoaster Tycoon 2.",
+  "keywords": "forlystelsespark,rutsjebane,temapark,simulation,byggeri,management,strategi,tycoon,open source",
+  "description": "iOS-porteringen af OpenRCT2, genimplementeringen af RollerCoaster Tycoon 2 med åben kildekode.\n\nDer kræves spilfiler fra et eksemplar af RollerCoaster Tycoon 2.\n\nKom godt i gang\n1. Anskaf RollerCoaster Tycoon 2: Appen indeholder intet originalt materiale fra spillet. RollerCoaster Tycoon 2: Triple Thrill Pack fås på Steam og GOG og indeholder Wacky Worlds og Time Twister.\n2. Overfør filerne til enheden: Kopier spilmappen, et ZIP-arkiv eller GOG-installationsprogrammet til appen Arkiver via AirDrop, iCloud Drive eller en computer.\n3. Importer og spil: Vælg filerne i appen. Importen foregår udelukkende på enheden, og GOG-installationsprogrammer udpakkes automatisk.\n\nFunktioner\n• Indhold fra RollerCoaster Tycoon 1: Import af RollerCoaster Tycoon Deluxe er valgfri og tilføjer scenarier, grafik og titelmusik fra RCT1.\n• Indbygget Metal-gengivelse: Parker tegnes med Metal, så rulningen er jævn, også i de største parker.\n• Gemte spil i appen Arkiver: Gemte spil opbevares i appen Arkiver, hvor de kan sikkerhedskopieres eller flyttes til en anden enhed.\n• 25 sprog: Brugerfladen findes på 25 sprog med pixelskrifter til kinesisk, japansk og koreansk.\n• Kører på Mac: Appen kører også på Mac-computere med Apple Silicon.\n• Ingen konto eller sporing: Appen kræver ingen konto og indeholder ingen reklamer, analyse eller sporing.\n\nOpenRCT2 er software med åben kildekode, der udgives under GNU General Public License v3.\nRollerCoaster Tycoon er et varemærke tilhørende de respektive ejere. Denne app indeholder intet originalt materiale fra spillet.",
+  "supportUrl": "https://openrct2.abo.network/da/support",
+  "marketingUrl": "https://openrct2.abo.network/da/",
+  "screenshotFallback": "en"
+}
