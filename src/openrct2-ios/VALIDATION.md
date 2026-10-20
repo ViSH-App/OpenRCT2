@@ -260,7 +260,49 @@ rasterizers consume the same commands:
   is disabled, and solid rendering without hinting.
 - Outline and inset passes use threshold 0.
 
+## OpenRCT2Touch input port
 
+Ported the gesture state machine from
+[`chrissotraidis/OpenRCT2Touch` at `5478594ebace99f220fe4c93fe6162bdeea4c69b`](https://github.com/chrissotraidis/OpenRCT2Touch/tree/5478594ebace99f220fe4c93fe6162bdeea4c69b).
+This includes placement preview/double-tap confirmation, hold-to-paint, two-finger pan/pinch/construction rotation,
+secondary tap/path erasing, suppression of the remaining finger, and viewport wheel accumulation.
+The local UIKit gesture-to-mouse recognizers were removed so SDL finger events have a single owner.
+
+Local adaptations:
+
+- Use `OPENRCT2_IOS` to retain the existing platform boundary and leave other platforms' double-tap timing unchanged.
+- Convert normalized SDL touch positions through the full window size, content safe area/top strip, and interface scale.
+  Ignore touch-downs outside the game content.
+- Return the virtual touch cursor in unscaled content coordinates to the existing mouse-drag code, while keeping
+  hardware pointer coordinates on their existing path.
+- Filter SDL's synthetic touch-mouse events before they can overwrite either pointer position.
+
+Validation completed:
+
+- The shared iPhoneOS Release library rebuilt successfully.
+- The full checked-in Xcode project compiled, linked, and packaged successfully with `CODE_SIGNING_ALLOWED=NO`.
+- The modified shared UI translation unit passed a macOS SDK syntax check with iOS-specific defines removed.
+- A task-local C++ harness compiled the actual gesture methods extracted from the modified source with stubbed
+  engine/UI services. All 15 event-sequence scenarios passed: coordinate mapping at three interface scales,
+  content bounds, virtual/hardware cursor units, menu taps during construction, placement movement without clicks,
+  nearby double-tap confirmation, distant/expired taps, paint hold timing, UI dragging, pan and remaining-finger
+  suppression, pinch, construction rotation, two-finger removal, continuous path removal, long press, and wheel
+  accumulation. Related coordinate assertions are grouped within scenarios.
+- C++ formatting and `git diff --check` passed.
+- Comparison of the gesture method block against the pinned upstream version found only the coordinate conversion
+  and content-bounds adaptations described above.
+
+Evidence is under `build/ios-validation/touch-port/`: the native and Xcode build logs, macOS syntax/format logs,
+`test-openrct2touch-port.py`, generated `openrct2touch-port-tests.cpp`, `input-tests.log`, and
+`upstream-adaptations.diff`.
+
+These checks do not establish device behavior or in-game construction outcomes. The harness verifies input events
+with test doubles, not the SDL/UIKit delivery path, rendering, or game-action execution. This build was not signed,
+installed, or launched as part of this port. Physical-iPad testing is still required for menu use, preview placement,
+painting/removal, gesture feel, rotation, interruption, and safe-area accuracy on both rendering engines.
+Behavior intentionally follows the source project: hold-to-paint modifies the park, area-path construction commits
+on release, and adding a second finger to an active tool drag releases that drag. This is not a deferred-confirmation
+or transactional construction redesign.
 
 ## Maintained Xcode project migration
 

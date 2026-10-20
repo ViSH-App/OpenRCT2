@@ -95,13 +95,28 @@ The importer uses security-scoped access and file coordination. It copies the re
 
 The existing OpenRCT2 interface and construction tools are retained. The default interface scale is 1.25 with enlarged controls enabled; use Options → Display to adjust it. Options → Display → Drawing Engine offers **Software** and **Metal**. Software uses the original CPU rasterizer with SDL Metal presentation. Metal uses a native indexed-colour GPU renderer for sprites, palette remapping/filtering, text and weather (see **Metal renderer** below). It composes directly into a canvas matching the physical content viewport (Retina pixels), rather than enlarging the logical game framebuffer. UI layout, park view scale, hit testing and touch coordinates stay in the original logical space. TrueType text is rasterized at the corresponding higher font size while retaining the core’s logical text advances and bounds. New installations start with Metal; existing installations keep their selected engine. If Metal cannot start, the game falls back to Software and saves that choice. Like the desktop OpenGL engine, Metal does not provide LightFX. Game coordinates and input coordinates exclude the native top strip and safe-area insets. Retina pixels are not confused with UIKit points.
 
-- Tap: left click.
-- One-finger drag: use the selected tool or drag a game window.
-- Two-finger drag: pan the park.
-- Pinch: zoom the park view.
-- Hold and release: right click / cancel a tool.
-- Hold and drag: pan the park.
-- Mouse / trackpad: normal OpenRCT2 controls, including right click.
+- Tap menus and buttons once.
+- With a placement tool active, move one finger to position the existing construction preview. Release to inspect it,
+  then double-tap near the desired position to place (within 390 ms).
+- Hold one finger for 350 ms, then drag to use footpath, land, water, or clear-scenery tools. These use the existing
+  tool behavior: ordinary paths are built while painting; area paths are committed on release.
+- Drag a window caption or scroll-bar thumb with one finger using the existing UI behavior. Moving one finger over
+  the park does not pan it.
+- Two-finger drag: pan the park at half sensitivity. Pinch: zoom. Twist during scenery, ride construction, or track-design
+  placement: rotate, starting at 15 degrees.
+- Two-finger tap on a removable object while the active tool permits removal: secondary action. With the footpath tool
+  active, hold two fingers for 350 ms over a removable path, then drag to remove paths continuously.
+- Long press for 500 ms outside paint tools: the existing right-click action, which can remove objects in construction
+  contexts; it is not a universal cancel command.
+- Mouse / trackpad: existing OpenRCT2 controls, including right click. Viewport wheel zoom accumulates four wheel units
+  per zoom step; scrolling other controls retains its normal behavior.
+
+These gestures are ported from [OpenRCT2Touch at `5478594`](https://github.com/chrissotraidis/OpenRCT2Touch/tree/5478594ebace99f220fe4c93fe6162bdeea4c69b),
+under GPL-3.0. The implementation retains that project's preview/double-tap and hold-to-paint behavior, rather than adding
+a separate confirmation panel. SDL finger events are handled in the shared UI; the former UIKit mouse-emulation
+recognizers have been removed. Coordinate conversion accounts for this port's native top strip, safe area and interface
+scale. Starting a second finger during a tool drag releases the existing drag, including any tool-specific release action.
+The source project's device acceptance does not establish physical-touch acceptance for this port.
 
 Use the game's normal save and load windows. Saves are stored under `Documents/OpenRCT2/save`. **Files & controls → Import park** copies an external `.park`, `.sv6`, `.sc6`, `.sv4`, or `.sc4` into the sandbox and loads it. **Export saved park** lets you choose a saved `.park` and export a copy via the system picker. All Documents contents are also visible through Files / Finder file sharing. No access to the original external location is needed after importing.
 

@@ -29,7 +29,6 @@
 using namespace OpenRCT2;
 namespace
 {
-    constexpr Uint32 kTouchPointer = 0xFFFFFFFE;
     constexpr int kToolbarHeight = 44;
     bool IsPlayingPark()
     {
@@ -93,28 +92,6 @@ namespace
         WaitUntil(^bool {
           return done && !alert.presentingViewController;
         });
-    }
-    void ButtonEvent(Uint32 type, Uint8 button, CGPoint point)
-    {
-        SDL_Event event{};
-        event.type = type;
-        event.button.windowID = SDL_GetWindowID(gameWindow);
-        event.button.which = kTouchPointer;
-        event.button.button = button;
-        event.button.state = type == SDL_MOUSEBUTTONDOWN ? SDL_PRESSED : SDL_RELEASED;
-        event.button.x = point.x;
-        event.button.y = point.y;
-        SDL_PushEvent(&event);
-    }
-    void MotionEvent(CGPoint point)
-    {
-        SDL_Event event{};
-        event.type = SDL_MOUSEMOTION;
-        event.motion.windowID = SDL_GetWindowID(gameWindow);
-        event.motion.which = kTouchPointer;
-        event.motion.x = point.x;
-        event.motion.y = point.y;
-        SDL_PushEvent(&event);
     }
 } // namespace
 
@@ -364,68 +341,12 @@ namespace
     }
 } // namespace
 
-@interface RCTTouchControls : NSObject <UIGestureRecognizerDelegate>
-@property(nonatomic, strong) UIView* bar;
+@interface RCTTouchControls : NSObject
 @end
 @implementation RCTTouchControls
-- (BOOL)gestureRecognizer:(UIGestureRecognizer*)gesture shouldReceiveTouch:(UITouch*)touch
-{
-    return ![touch.view isDescendantOfView:self.bar];
-}
-- (BOOL)gestureRecognizer:(UIGestureRecognizer*)first
-    shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer*)second
-{
-    // Allow two-finger panning and zooming together, but never combine them with a construction drag.
-    auto isNavigation = [](UIGestureRecognizer* gesture) {
-        return [gesture isKindOfClass:UIPinchGestureRecognizer.class]
-            || ([gesture isKindOfClass:UIPanGestureRecognizer.class]
-                && static_cast<UIPanGestureRecognizer*>(gesture).minimumNumberOfTouches == 2);
-    };
-    return isNavigation(first) && isNavigation(second);
-}
 - (void)files
 {
     RequestMenu();
-}
-- (void)tap:(UITapGestureRecognizer*)gesture
-{
-    CGPoint p = [gesture locationInView:gesture.view];
-    MotionEvent(p);
-    ButtonEvent(SDL_MOUSEBUTTONDOWN, SDL_BUTTON_LEFT, p);
-    ButtonEvent(SDL_MOUSEBUTTONUP, SDL_BUTTON_LEFT, p);
-}
-- (void)drag:(UIPanGestureRecognizer*)gesture
-{
-    CGPoint p = [gesture locationInView:gesture.view];
-    Uint8 button = gesture.minimumNumberOfTouches == 2 ? SDL_BUTTON_RIGHT : SDL_BUTTON_LEFT;
-    if (gesture.state == UIGestureRecognizerStateBegan)
-    {
-        CGPoint delta = [gesture translationInView:gesture.view];
-        ButtonEvent(SDL_MOUSEBUTTONDOWN, button, CGPointMake(p.x - delta.x, p.y - delta.y));
-    }
-    MotionEvent(p);
-    if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled)
-        ButtonEvent(SDL_MOUSEBUTTONUP, button, p);
-}
-- (void)hold:(UILongPressGestureRecognizer*)gesture
-{
-    CGPoint p = [gesture locationInView:gesture.view];
-    MotionEvent(p);
-    if (gesture.state == UIGestureRecognizerStateBegan)
-        ButtonEvent(SDL_MOUSEBUTTONDOWN, SDL_BUTTON_RIGHT, p);
-    if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled)
-        ButtonEvent(SDL_MOUSEBUTTONUP, SDL_BUTTON_RIGHT, p);
-}
-- (void)pinch:(UIPinchGestureRecognizer*)gesture
-{
-    if (gesture.scale > 1.18 || gesture.scale < 0.85)
-    {
-        SDL_Event event{};
-        event.type = SDL_MOUSEWHEEL;
-        event.wheel.y = gesture.scale > 1 ? 1 : -1;
-        SDL_PushEvent(&event);
-        gesture.scale = 1;
-    }
 }
 @end
 
@@ -488,9 +409,11 @@ namespace OpenRCT2::Ui::IOS
             if (selection == 2)
                 Alert(
                     @"Touch controls",
-                    @"Tap: left click\nOne-finger drag: use the selected tool\nTwo-finger drag: move the view\nPinch: zoom the "
-                    @"view\nHold then release: right click / cancel tool\nHold and drag: move the view\nOptions → Display: "
-                    @"change interface scale");
+                    @"Tap menus and buttons once.\nMove one finger to preview placement; double-tap to build.\n"
+                    @"Hold briefly, then drag to paint paths, land, water, or clear scenery.\n"
+                    @"Two-finger drag: pan. Pinch: zoom. Twist: rotate supported construction.\n"
+                    @"Two-finger tap on a removable path: remove. Hold two fingers, then drag: erase paths.\n"
+                    @"Long press outside paint tools: right click.\nOptions → Display: change interface scale");
         }
         if (!pendingPark.empty())
         {
@@ -500,8 +423,11 @@ namespace OpenRCT2::Ui::IOS
             GetContext()->LoadParkFromFile(
                 path, false, [extension isEqualToString:@"sc6"] || [extension isEqualToString:@"sc4"]);
         }
-        if (event.type == SDL_FINGERDOWN || event.type == SDL_FINGERUP || event.type == SDL_FINGERMOTION
-            || event.type == SDL_MULTIGESTURE)
+        // Finger events are handled by UiContext's OpenRCT2Touch gesture state machine.
+        // Do not let SDL's optional synthetic mouse events overwrite its virtual cursor.
+        if ((event.type == SDL_MOUSEMOTION && event.motion.which == SDL_TOUCH_MOUSEID)
+            || ((event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP)
+                && event.button.which == SDL_TOUCH_MOUSEID))
             return true;
         auto r = ContentRect(window);
         if (event.type == SDL_MOUSEMOTION)
@@ -557,26 +483,12 @@ namespace OpenRCT2::Ui
                 [bar.topAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.topAnchor],
                 [bar.heightAnchor constraintEqualToConstant:kToolbarHeight]
             ]];
-            _controls.bar = bar;
             UIButton* button = [UIButton buttonWithType:UIButtonTypeSystem];
             button.frame = CGRectMake(12, 0, 160, kToolbarHeight);
             [button setTitle:@"Files & controls" forState:UIControlStateNormal];
             [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
             [button addTarget:_controls action:@selector(files) forControlEvents:UIControlEventTouchUpInside];
             [bar addSubview:button];
-            auto tap = [[UITapGestureRecognizer alloc] initWithTarget:_controls action:@selector(tap:)];
-            auto drag = [[UIPanGestureRecognizer alloc] initWithTarget:_controls action:@selector(drag:)];
-            drag.maximumNumberOfTouches = 1;
-            auto pan = [[UIPanGestureRecognizer alloc] initWithTarget:_controls action:@selector(drag:)];
-            pan.minimumNumberOfTouches = pan.maximumNumberOfTouches = 2;
-            auto hold = [[UILongPressGestureRecognizer alloc] initWithTarget:_controls action:@selector(hold:)];
-            auto pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:_controls action:@selector(pinch:)];
-            [tap requireGestureRecognizerToFail:hold];
-            for (UIGestureRecognizer* recognizer in @[ tap, drag, pan, hold, pinch ])
-            {
-                recognizer.delegate = _controls;
-                [view addGestureRecognizer:recognizer];
-            }
             SDL_AddEventWatch(Lifecycle, nullptr);
             _audioObserver = [NSNotificationCenter.defaultCenter
                 addObserverForName:AVAudioSessionInterruptionNotification
