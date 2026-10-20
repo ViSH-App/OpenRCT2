@@ -6,6 +6,7 @@
   "nav": {
     "home": "Início",
     "privacy": "Política de Privacidade",
+    "support": "Suporte",
     "language": "Idioma"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Contato",
       "body": "Em caso de dúvidas sobre esta Política de Privacidade, entre em contato conosco pelo e-mail {{email}}."
+    }
+  },
+  "support": {
+    "title": "Suporte",
+    "intro": "Dúvidas sobre o OpenRCT2 para iOS e relatos de problemas podem ser enviados à equipe de suporte por e-mail.",
+    "contact": {
+      "title": "Contato",
+      "body": "E-mail: {{email}}",
+      "hint": "Ao relatar um problema, informe o modelo do dispositivo, a versão do sistema, a versão do app e uma descrição das etapas que levaram ao problema."
+    },
+    "faq": {
+      "title": "Perguntas frequentes",
+      "files": {
+        "q": "Quais arquivos de jogo são necessários?",
+        "a": "O app não contém nenhum material original do jogo. É necessária uma cópia do RollerCoaster Tycoon 2; são compatíveis tanto a edição original quanto o Triple Thrill Pack da Steam ou da GOG. É possível importar pastas de jogo, arquivos ZIP, instaladores GOG e a versão para Mac do RCT Classic."
+      },
+      "gog": {
+        "q": "Como importar um instalador GOG?",
+        "a": "O instalador GOG é composto por dois arquivos, setup_….exe e setup_…-1.bin, que somam aproximadamente 600 MB. Coloque os dois arquivos na mesma pasta do app Arquivos e selecione essa pasta durante a importação; o app reconhece os dois arquivos automaticamente."
+      },
+      "failed": {
+        "q": "O que fazer se a importação falhar?",
+        "a": "As falhas de importação costumam ser causadas por falta de espaço de armazenamento ou por um arquivo incompleto ou danificado. Libere espaço de armazenamento, baixe os arquivos novamente, se necessário, e tente importar outra vez."
+      },
+      "saves": {
+        "q": "Onde os jogos salvos são armazenados?",
+        "a": "Os jogos salvos são armazenados na pasta do app no app Arquivos, em OpenRCT2 › save, e essa pasta também pode ser aberta pelo próprio app. Apagar ou substituir os dados de jogo importados não afeta os jogos salvos."
+      },
+      "rct1": {
+        "q": "Como ativar o conteúdo do RollerCoaster Tycoon 1?",
+        "a": "Importe uma cópia do RollerCoaster Tycoon Deluxe, que inclui Loopy Landscapes. Essa etapa é opcional e adiciona os cenários, os gráficos e a música de abertura do RCT1."
+      }
     }
   },
   "notFound": {

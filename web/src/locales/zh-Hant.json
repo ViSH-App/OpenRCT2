@@ -6,6 +6,7 @@
   "nav": {
     "home": "首頁",
     "privacy": "隱私權政策",
+    "support": "支援",
     "language": "語言"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "聯絡我們",
       "body": "若您對本隱私權政策有任何疑問，請透過 {{email}} 與我們聯絡。"
+    }
+  },
+  "support": {
+    "title": "支援",
+    "intro": "有關 OpenRCT2 iOS 版的疑問及問題回報，可透過電子郵件寄送至支援團隊。",
+    "contact": {
+      "title": "聯絡我們",
+      "body": "電子郵件：{{email}}",
+      "hint": "回報問題時，請註明裝置型號、系統版本、App 版本，並說明導致問題發生的操作步驟。"
+    },
+    "faq": {
+      "title": "常見問題",
+      "files": {
+        "q": "需要哪些遊戲檔案？",
+        "a": "本 App 不含任何原版遊戲素材，需要一份 RollerCoaster Tycoon 2。原版及 Steam 或 GOG 上的 Triple Thrill Pack 皆受支援。可匯入遊戲資料夾、ZIP 壓縮檔、GOG 安裝程式以及 Mac 版 RCT Classic。"
+      },
+      "gog": {
+        "q": "如何匯入 GOG 安裝程式？",
+        "a": "GOG 安裝程式由 setup_….exe 與 setup_…-1.bin 兩個檔案組成，共約 600 MB。請將這兩個檔案放在「檔案」App 的同一個資料夾中，並於匯入時選取該資料夾；App 會自動辨識這兩個檔案。"
+      },
+      "failed": {
+        "q": "匯入失敗時應如何處理？",
+        "a": "匯入失敗通常是由於儲存空間不足，或檔案不完整、已損毀所致。請釋放儲存空間，必要時重新下載檔案，然後再次匯入。"
+      },
+      "saves": {
+        "q": "遊戲存檔儲存於何處？",
+        "a": "遊戲存檔儲存於「檔案」App 中本 App 的資料夾內，路徑為 OpenRCT2 › save；亦可於本 App 內開啟該資料夾。刪除或取代匯入的遊戲資料不會影響遊戲存檔。"
+      },
+      "rct1": {
+        "q": "如何啟用 RollerCoaster Tycoon 1 內容？",
+        "a": "匯入一份 RollerCoaster Tycoon Deluxe（包含 Loopy Landscapes）即可。此項為選用操作，匯入後將加入 RCT1 的劇情、圖形與標題音樂。"
+      }
     }
   },
   "notFound": {

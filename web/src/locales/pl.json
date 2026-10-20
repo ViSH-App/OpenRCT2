@@ -6,6 +6,7 @@
   "nav": {
     "home": "Strona główna",
     "privacy": "Polityka prywatności",
+    "support": "Pomoc techniczna",
     "language": "Język"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Kontakt",
       "body": "W przypadku pytań dotyczących niniejszej Polityki prywatności prosimy o kontakt pod adresem {{email}}."
+    }
+  },
+  "support": {
+    "title": "Pomoc techniczna",
+    "intro": "Pytania dotyczące aplikacji OpenRCT2 na iOS oraz zgłoszenia problemów można przesyłać do zespołu pomocy technicznej pocztą elektroniczną.",
+    "contact": {
+      "title": "Kontakt",
+      "body": "E-mail: {{email}}",
+      "hint": "Zgłaszając problem, prosimy podać model urządzenia, wersję systemu, wersję aplikacji oraz opis czynności, które doprowadziły do jego wystąpienia."
+    },
+    "faq": {
+      "title": "Najczęściej zadawane pytania",
+      "files": {
+        "q": "Jakie pliki gry są wymagane?",
+        "a": "Aplikacja nie zawiera żadnych oryginalnych zasobów gry. Wymagany jest egzemplarz RollerCoaster Tycoon 2; obsługiwane są zarówno wydanie oryginalne, jak i Triple Thrill Pack z serwisu Steam lub GOG. Zaimportować można foldery gry, archiwa ZIP, instalatory GOG oraz wersję RCT Classic na Maca."
+      },
+      "gog": {
+        "q": "Jak zaimportować instalator GOG?",
+        "a": "Instalator GOG składa się z dwóch plików, setup_….exe i setup_…-1.bin, o łącznym rozmiarze około 600 MB. Oba pliki należy umieścić w tym samym folderze w aplikacji Pliki, a następnie wybrać ten folder podczas importu; aplikacja automatycznie rozpozna oba pliki."
+      },
+      "failed": {
+        "q": "Co należy zrobić, jeśli import się nie powiedzie?",
+        "a": "Najczęstszą przyczyną niepowodzenia importu jest brak wolnego miejsca w pamięci urządzenia albo niekompletny lub uszkodzony plik. Należy zwolnić miejsce w pamięci, w razie potrzeby ponownie pobrać pliki i ponowić import."
+      },
+      "saves": {
+        "q": "Gdzie są przechowywane zapisane gry?",
+        "a": "Zapisane gry są przechowywane w aplikacji Pliki, w folderze aplikacji pod ścieżką OpenRCT2 › save; folder ten można również otworzyć z poziomu aplikacji. Usunięcie lub zastąpienie zaimportowanych danych gry nie wpływa na zapisane gry."
+      },
+      "rct1": {
+        "q": "Jak włączyć zawartość RollerCoaster Tycoon 1?",
+        "a": "Należy zaimportować egzemplarz RollerCoaster Tycoon Deluxe, który zawiera dodatek Loopy Landscapes. Jest to opcjonalne i dodaje scenariusze, grafikę oraz muzykę tytułową z RCT1."
+      }
     }
   },
   "notFound": {

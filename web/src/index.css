@@ -108,3 +108,12 @@ body { background: var(--color-grass); color: var(--color-ink); font-family: var
   font: inherit;
   font-weight: 700;
 }
+
+.faq { background: var(--color-panel); box-shadow: inset 2px 2px 0 var(--color-panel-hi), inset -2px -2px 0 var(--color-panel-lo); }
+.faq > summary { cursor: pointer; list-style: none; padding: 0.75rem 1rem 0.75rem 2.25rem; font-weight: 800; position: relative; }
+.faq > summary::-webkit-details-marker { display: none; }
+.faq > summary::before {
+  content: ""; position: absolute; left: 1rem; top: 1.05rem;
+  border: 6px solid transparent; border-left: 8px solid var(--color-ink); border-right: 0;
+}
+.faq[open] > summary::before { transform: rotate(90deg); transform-origin: 4px 6px; }

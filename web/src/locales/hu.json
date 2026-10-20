@@ -6,6 +6,7 @@
   "nav": {
     "home": "Kezdőlap",
     "privacy": "Adatvédelmi irányelvek",
+    "support": "Támogatás",
     "language": "Nyelv"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Kapcsolat",
       "body": "Az Adatvédelmi irányelvekkel kapcsolatos kérdéseivel forduljon hozzánk a következő címen: {{email}}."
+    }
+  },
+  "support": {
+    "title": "Támogatás",
+    "intro": "Az OpenRCT2 iOS-re appal kapcsolatos kérdéseit és problémabejelentéseit e-mailben küldheti el a támogatási csapatnak.",
+    "contact": {
+      "title": "Kapcsolat",
+      "body": "E-mail: {{email}}",
+      "hint": "Probléma bejelentésekor kérjük, adja meg az eszköz típusát, a rendszer verzióját, az app verzióját, valamint a problémához vezető lépések leírását."
+    },
+    "faq": {
+      "title": "Gyakran ismételt kérdések",
+      "files": {
+        "q": "Milyen játékfájlok szükségesek?",
+        "a": "Az app nem tartalmaz eredeti játékanyagokat. A használathoz a RollerCoaster Tycoon 2 egy példánya szükséges; az eredeti kiadás és a Steamen vagy a GOG-on elérhető Triple Thrill Pack egyaránt támogatott. Importálhatók játékmappák, ZIP-archívumok, GOG telepítők, valamint az RCT Classic Mac verziója."
+      },
+      "gog": {
+        "q": "Hogyan importálható a GOG telepítő?",
+        "a": "A GOG telepítő két fájlból áll (setup_….exe és setup_…-1.bin), amelyek mérete összesen körülbelül 600 MB. Helyezze mindkét fájlt ugyanabba a mappába a Fájlok appban, majd az importáláskor válassza ki ezt a mappát; az app automatikusan felismeri mindkét fájlt."
+      },
+      "failed": {
+        "q": "Mi a teendő, ha az importálás sikertelen?",
+        "a": "Az importálás leggyakrabban elégtelen tárhely, illetve hiányos vagy sérült fájl miatt sikertelen. Szabadítson fel tárhelyet, szükség esetén töltse le újra a fájlokat, majd ismételje meg az importálást."
+      },
+      "saves": {
+        "q": "Hol tárolódnak a mentett játékok?",
+        "a": "A mentett játékok a Fájlok appban, az app mappájában, az OpenRCT2 › save útvonalon tárolódnak; ez a mappa az appból is megnyitható. Az importált játékadatok törlése vagy cseréje nem érinti a mentett játékokat."
+      },
+      "rct1": {
+        "q": "Hogyan engedélyezhetők a RollerCoaster Tycoon 1 tartalmak?",
+        "a": "Importálja a RollerCoaster Tycoon Deluxe egy példányát, amely tartalmazza a Loopy Landscapes kiegészítőt. Ez opcionális, és hozzáadja az RCT1 pályáit, grafikáját és főcímzenéjét."
+      }
     }
   },
   "notFound": {

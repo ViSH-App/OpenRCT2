@@ -6,6 +6,7 @@
   "nav": {
     "home": "Home",
     "privacy": "Privacy Policy",
+    "support": "Support",
     "language": "Language"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Contact",
       "body": "If you have any questions about this Privacy Policy, please contact us at {{email}}."
+    }
+  },
+  "support": {
+    "title": "Support",
+    "intro": "Questions about OpenRCT2 for iOS and reports of problems may be sent to the support team by email.",
+    "contact": {
+      "title": "Contact",
+      "body": "Email: {{email}}",
+      "hint": "When reporting a problem, please include the device model, the system version, the app version and a description of the steps that led to the problem."
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "files": {
+        "q": "Which game files are required?",
+        "a": "The app contains no original game assets. A copy of RollerCoaster Tycoon 2 is required; both the original edition and the Triple Thrill Pack from Steam or GOG are supported. Game folders, ZIP archives, GOG installers and the Mac version of RCT Classic can be imported."
+      },
+      "gog": {
+        "q": "How is a GOG installer imported?",
+        "a": "The GOG installer consists of two files, setup_….exe and setup_…-1.bin, totalling approximately 600 MB. Place both files in the same folder in the Files app and select that folder during import; the app recognises both files automatically."
+      },
+      "failed": {
+        "q": "What should be done if an import fails?",
+        "a": "Import failures are most often caused by insufficient storage space or by an incomplete or damaged file. Free up storage space, download the files again if necessary, and retry the import."
+      },
+      "saves": {
+        "q": "Where are saved games stored?",
+        "a": "Saved games are stored in the app’s folder in the Files app, under OpenRCT2 › save, and the folder can also be opened from within the app. Deleting or replacing imported game data does not affect saved games."
+      },
+      "rct1": {
+        "q": "How is RollerCoaster Tycoon 1 content enabled?",
+        "a": "Import a copy of RollerCoaster Tycoon Deluxe, which includes Loopy Landscapes. This is optional and adds the RCT1 scenarios, graphics and title music."
+      }
     }
   },
   "notFound": {

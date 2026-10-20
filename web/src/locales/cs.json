@@ -6,6 +6,7 @@
   "nav": {
     "home": "Domů",
     "privacy": "Zásady ochrany soukromí",
+    "support": "Podpora",
     "language": "Jazyk"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Kontakt",
       "body": "S případnými dotazy k těmto zásadám ochrany soukromí se na nás obraťte na adrese {{email}}."
+    }
+  },
+  "support": {
+    "title": "Podpora",
+    "intro": "Dotazy k aplikaci OpenRCT2 pro iOS a hlášení problémů můžete zasílat týmu podpory e-mailem.",
+    "contact": {
+      "title": "Kontakt",
+      "body": "E-mail: {{email}}",
+      "hint": "Při hlášení problému prosím uveďte model zařízení, verzi systému, verzi aplikace a popis kroků, které k problému vedly."
+    },
+    "faq": {
+      "title": "Často kladené dotazy",
+      "files": {
+        "q": "Které soubory hry jsou vyžadovány?",
+        "a": "Aplikace neobsahuje žádné původní materiály hry. Je vyžadována kopie RollerCoaster Tycoon 2; podporováno je původní vydání i Triple Thrill Pack ze služby Steam nebo GOG. Importovat lze složky hry, archivy ZIP, instalátory GOG a verzi RCT Classic pro Mac."
+      },
+      "gog": {
+        "q": "Jak se importuje instalátor GOG?",
+        "a": "Instalátor GOG se skládá ze dvou souborů, setup_….exe a setup_…-1.bin, o celkové velikosti přibližně 600 MB. Umístěte oba soubory do stejné složky v aplikaci Soubory a při importu vyberte tuto složku; aplikace oba soubory rozpozná automaticky."
+      },
+      "failed": {
+        "q": "Jak postupovat, pokud se import nezdaří?",
+        "a": "Import se nejčastěji nezdaří kvůli nedostatku místa v úložišti nebo kvůli neúplnému či poškozenému souboru. Uvolněte místo v úložišti, v případě potřeby soubory stáhněte znovu a import opakujte."
+      },
+      "saves": {
+        "q": "Kde se nacházejí uložené hry?",
+        "a": "Uložené hry se nacházejí v aplikaci Soubory ve složce aplikace, v umístění OpenRCT2 › save; tuto složku lze otevřít také přímo z aplikace. Smazání nebo nahrazení importovaných dat hry uložené hry neovlivní."
+      },
+      "rct1": {
+        "q": "Jak lze aktivovat obsah RollerCoaster Tycoon 1?",
+        "a": "Importujte kopii RollerCoaster Tycoon Deluxe, která obsahuje rozšíření Loopy Landscapes. Tento krok je volitelný a přidává scénáře, grafiku a úvodní hudbu RCT1."
+      }
     }
   },
   "notFound": {

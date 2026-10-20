@@ -6,6 +6,7 @@
   "nav": {
     "home": "Ana Sayfa",
     "privacy": "Gizlilik Politikası",
+    "support": "Destek",
     "language": "Dil"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "İletişim",
       "body": "Bu Gizlilik Politikası ile ilgili sorularınız için {{email}} adresinden bizimle iletişime geçebilirsiniz."
+    }
+  },
+  "support": {
+    "title": "Destek",
+    "intro": "iOS için OpenRCT2 ile ilgili sorularınızı ve sorun bildirimlerinizi e-posta yoluyla destek ekibine iletebilirsiniz.",
+    "contact": {
+      "title": "İletişim",
+      "body": "E-posta: {{email}}",
+      "hint": "Bir sorunu bildirirken lütfen cihaz modelini, sistem sürümünü, uygulama sürümünü ve soruna yol açan adımların açıklamasını ekleyin."
+    },
+    "faq": {
+      "title": "Sıkça sorulan sorular",
+      "files": {
+        "q": "Hangi oyun dosyaları gereklidir?",
+        "a": "Uygulama hiçbir orijinal oyun içeriği barındırmaz. Bir RollerCoaster Tycoon 2 kopyası gereklidir; hem orijinal sürüm hem de Steam veya GOG’daki Triple Thrill Pack desteklenir. Oyun klasörleri, ZIP arşivleri, GOG yükleyicileri ve RCT Classic’in Mac sürümü içe aktarılabilir."
+      },
+      "gog": {
+        "q": "GOG yükleyicisi nasıl içe aktarılır?",
+        "a": "GOG yükleyicisi, toplam boyutu yaklaşık 600 MB olan iki dosyadan oluşur: setup_….exe ve setup_…-1.bin. Her iki dosyayı da Dosyalar uygulamasında aynı klasöre yerleştirin ve içe aktarma sırasında bu klasörü seçin; uygulama iki dosyayı otomatik olarak tanır."
+      },
+      "failed": {
+        "q": "İçe aktarma başarısız olursa ne yapılmalıdır?",
+        "a": "İçe aktarma hataları çoğunlukla yetersiz depolama alanından ya da eksik veya bozuk bir dosyadan kaynaklanır. Depolama alanında yer açın, gerekirse dosyaları yeniden indirin ve içe aktarmayı tekrar deneyin."
+      },
+      "saves": {
+        "q": "Kayıtlı oyunlar nerede saklanır?",
+        "a": "Kayıtlı oyunlar, Dosyalar uygulamasında uygulamanın klasörü içindeki OpenRCT2 › save konumunda saklanır; bu klasör uygulama içinden de açılabilir. İçe aktarılan oyun verilerinin silinmesi veya değiştirilmesi kayıtlı oyunları etkilemez."
+      },
+      "rct1": {
+        "q": "RollerCoaster Tycoon 1 içeriği nasıl etkinleştirilir?",
+        "a": "Loopy Landscapes’i içeren bir RollerCoaster Tycoon Deluxe kopyasını içe aktarın. Bu işlem isteğe bağlıdır ve RCT1 senaryolarını, grafiklerini ve başlık müziğini ekler."
+      }
     }
   },
   "notFound": {

@@ -6,6 +6,7 @@
   "nav": {
     "home": "Inici",
     "privacy": "Política de privadesa",
+    "support": "Assistència",
     "language": "Idioma"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Contacte",
       "body": "Si teniu cap pregunta sobre aquesta Política de privadesa, poseu-vos en contacte amb nosaltres a {{email}}."
+    }
+  },
+  "support": {
+    "title": "Assistència",
+    "intro": "Les consultes sobre OpenRCT2 per a iOS i els informes de problemes es poden enviar a l’equip d’assistència per correu electrònic.",
+    "contact": {
+      "title": "Contacte",
+      "body": "Correu electrònic: {{email}}",
+      "hint": "En informar d’un problema, indiqueu el model del dispositiu, la versió del sistema, la versió de l’app i una descripció dels passos que han provocat el problema."
+    },
+    "faq": {
+      "title": "Preguntes freqüents",
+      "files": {
+        "q": "Quins fitxers del joc són necessaris?",
+        "a": "L’app no inclou cap recurs original del joc. Cal una còpia de RollerCoaster Tycoon 2; s’admeten tant l’edició original com el Triple Thrill Pack de Steam o GOG. Es poden importar carpetes del joc, arxius ZIP, instal·ladors de GOG i la versió per a Mac de RCT Classic."
+      },
+      "gog": {
+        "q": "Com s’importa un instal·lador de GOG?",
+        "a": "L’instal·lador de GOG consta de dos fitxers, setup_….exe i setup_…-1.bin, que ocupen en total uns 600 MB. Col·loqueu tots dos fitxers a la mateixa carpeta de l’app Fitxers i seleccioneu aquesta carpeta durant la importació; l’app reconeix tots dos fitxers automàticament."
+      },
+      "failed": {
+        "q": "Què cal fer si una importació falla?",
+        "a": "Els errors d’importació solen ser causats per la manca d’espai d’emmagatzematge o per un fitxer incomplet o malmès. Allibereu espai d’emmagatzematge, torneu a baixar els fitxers si cal i torneu a provar la importació."
+      },
+      "saves": {
+        "q": "On s’emmagatzemen les partides desades?",
+        "a": "Les partides desades s’emmagatzemen a la carpeta de l’app dins de l’app Fitxers, a OpenRCT2 › save, i la carpeta també es pot obrir des de la mateixa app. Eliminar o substituir les dades del joc importades no afecta les partides desades."
+      },
+      "rct1": {
+        "q": "Com s’activa el contingut de RollerCoaster Tycoon 1?",
+        "a": "Importeu una còpia de RollerCoaster Tycoon Deluxe, que inclou Loopy Landscapes. Aquest pas és opcional i afegeix els escenaris, els gràfics i la música del títol de RCT1."
+      }
     }
   },
   "notFound": {

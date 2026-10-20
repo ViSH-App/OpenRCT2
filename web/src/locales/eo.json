@@ -6,6 +6,7 @@
   "nav": {
     "home": "Ĉefpaĝo",
     "privacy": "Privateca politiko",
+    "support": "Subteno",
     "language": "Lingvo"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Kontakto",
       "body": "Se vi havas demandojn pri ĉi tiu privateca politiko, bonvolu kontakti nin ĉe {{email}}."
+    }
+  },
+  "support": {
+    "title": "Subteno",
+    "intro": "Demandojn pri OpenRCT2 por iOS kaj raportojn pri problemoj eblas sendi al la subtena teamo per retpoŝto.",
+    "contact": {
+      "title": "Kontakto",
+      "body": "Retpoŝto: {{email}}",
+      "hint": "Raportante problemon, bonvolu indiki la modelon de la aparato, la version de la sistemo, la version de la aplikaĵo kaj priskribon de la paŝoj, kiuj kondukis al la problemo."
+    },
+    "faq": {
+      "title": "Oftaj demandoj",
+      "files": {
+        "q": "Kiuj luddosieroj estas bezonataj?",
+        "a": "La aplikaĵo enhavas neniun originalan ludmaterialon. Necesas ekzemplero de RollerCoaster Tycoon 2; subtenataj estas kaj la originala eldono kaj la Triple Thrill Pack de Steam aŭ GOG. Eblas importi luddosierujojn, ZIP-arkivojn, GOG-instalilojn kaj la Mac-version de RCT Classic."
+      },
+      "gog": {
+        "q": "Kiel oni importas GOG-instalilon?",
+        "a": "La GOG-instalilo konsistas el du dosieroj, setup_….exe kaj setup_…-1.bin, entute ĉirkaŭ 600 MB. Metu ambaŭ dosierojn en la saman dosierujon en la aplikaĵo Dosieroj kaj elektu tiun dosierujon dum la importado; la aplikaĵo aŭtomate rekonas ambaŭ dosierojn."
+      },
+      "failed": {
+        "q": "Kion fari, se importado malsukcesas?",
+        "a": "Malsukcesa importado plej ofte estas kaŭzita de nesufiĉa konservospaco aŭ de nekompleta aŭ difektita dosiero. Liberigu konservospacon, se necese denove elŝutu la dosierojn, kaj reprovu la importadon."
+      },
+      "saves": {
+        "q": "Kie troviĝas la konservitaj ludoj?",
+        "a": "Konservitaj ludoj troviĝas en la dosierujo de la aplikaĵo en la aplikaĵo Dosieroj, sub OpenRCT2 › save, kaj eblas malfermi la dosierujon ankaŭ el la aplikaĵo. Forigo aŭ anstataŭigo de importitaj luddatumoj ne tuŝas konservitajn ludojn."
+      },
+      "rct1": {
+        "q": "Kiel oni ebligas la enhavon de RollerCoaster Tycoon 1?",
+        "a": "Importu ekzempleron de RollerCoaster Tycoon Deluxe, kiu enhavas Loopy Landscapes. Tio estas laŭvola kaj aldonas la scenarojn, grafikon kaj titolmuzikon de RCT1."
+      }
     }
   },
   "notFound": {

@@ -6,6 +6,7 @@
   "nav": {
     "home": "Etusivu",
     "privacy": "Tietosuojakäytäntö",
+    "support": "Tuki",
     "language": "Kieli"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Yhteystiedot",
       "body": "Jos sinulla on kysyttävää tästä tietosuojakäytännöstä, ota meihin yhteyttä osoitteeseen {{email}}."
+    }
+  },
+  "support": {
+    "title": "Tuki",
+    "intro": "OpenRCT2 iOS:lle -appia koskevia kysymyksiä ja ongelmailmoituksia voi lähettää tukitiimille sähköpostitse.",
+    "contact": {
+      "title": "Yhteystiedot",
+      "body": "Sähköposti: {{email}}",
+      "hint": "Kun ilmoitat ongelmasta, liitä mukaan laitteen malli, järjestelmän versio, apin versio sekä kuvaus vaiheista, jotka johtivat ongelmaan."
+    },
+    "faq": {
+      "title": "Usein kysytyt kysymykset",
+      "files": {
+        "q": "Mitä pelitiedostoja tarvitaan?",
+        "a": "Appi ei sisällä alkuperäisen pelin materiaalia. Käyttö edellyttää RollerCoaster Tycoon 2 -pelin kappaletta; sekä alkuperäistä julkaisua että Steamista tai GOG:sta saatavaa Triple Thrill Packia tuetaan. Pelikansiot, ZIP-arkistot, GOG-asennusohjelmat ja RCT Classicin Mac-versio voidaan tuoda."
+      },
+      "gog": {
+        "q": "Miten GOG-asennusohjelma tuodaan?",
+        "a": "GOG-asennusohjelma koostuu kahdesta tiedostosta, setup_….exe ja setup_…-1.bin, joiden yhteiskoko on noin 600 Mt. Sijoita molemmat tiedostot samaan kansioon Tiedostot-apissa ja valitse kyseinen kansio tuonnin aikana; appi tunnistaa molemmat tiedostot automaattisesti."
+      },
+      "failed": {
+        "q": "Mitä tehdä, jos tuonti epäonnistuu?",
+        "a": "Tuonnin epäonnistuminen johtuu useimmiten riittämättömästä tallennustilasta tai puutteellisesta tai vioittuneesta tiedostosta. Vapauta tallennustilaa, lataa tiedostot tarvittaessa uudelleen ja yritä tuontia vielä kerran."
+      },
+      "saves": {
+        "q": "Missä tallennetut pelit säilytetään?",
+        "a": "Tallennetut pelit säilytetään apin kansiossa Tiedostot-apissa kohdassa OpenRCT2 › save, ja kansion voi avata myös apin sisältä. Tuotujen pelitietojen poistaminen tai korvaaminen ei vaikuta tallennettuihin peleihin."
+      },
+      "rct1": {
+        "q": "Miten RollerCoaster Tycoon 1 -sisältö otetaan käyttöön?",
+        "a": "Tuo RollerCoaster Tycoon Deluxen kappale, joka sisältää Loopy Landscapes -laajennuksen. Tämä on valinnaista, ja se lisää RCT1:n skenaariot, grafiikan ja alkumusiikin."
+      }
     }
   },
   "notFound": {

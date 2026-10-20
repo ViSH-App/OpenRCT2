@@ -6,6 +6,7 @@
   "nav": {
     "home": "Startseite",
     "privacy": "Datenschutzerklärung",
+    "support": "Support",
     "language": "Sprache"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Kontakt",
       "body": "Bei Fragen zu dieser Datenschutzerklärung können Sie uns unter {{email}} kontaktieren."
+    }
+  },
+  "support": {
+    "title": "Support",
+    "intro": "Fragen zu OpenRCT2 für iOS sowie Problemberichte können per E-Mail an das Support-Team gesendet werden.",
+    "contact": {
+      "title": "Kontakt",
+      "body": "E-Mail: {{email}}",
+      "hint": "Bitte geben Sie bei der Meldung eines Problems das Gerätemodell, die Systemversion, die App-Version sowie eine Beschreibung der Schritte an, die zu dem Problem geführt haben."
+    },
+    "faq": {
+      "title": "Häufig gestellte Fragen",
+      "files": {
+        "q": "Welche Spieldateien sind erforderlich?",
+        "a": "Die App enthält keine Originalinhalte des Spiels. Erforderlich ist eine Kopie von RollerCoaster Tycoon 2; unterstützt werden sowohl die Originalausgabe als auch das Triple Thrill Pack von Steam oder GOG. Importiert werden können Spielordner, ZIP-Archive, GOG-Installationsprogramme sowie die Mac-Version von RCT Classic."
+      },
+      "gog": {
+        "q": "Wie wird ein GOG-Installationsprogramm importiert?",
+        "a": "Das GOG-Installationsprogramm besteht aus zwei Dateien, setup_….exe und setup_…-1.bin, mit einer Gesamtgröße von etwa 600 MB. Legen Sie beide Dateien in der App „Dateien“ im selben Ordner ab und wählen Sie diesen Ordner beim Import aus; die App erkennt beide Dateien automatisch."
+      },
+      "failed": {
+        "q": "Was ist zu tun, wenn ein Import fehlschlägt?",
+        "a": "Ein fehlgeschlagener Import ist meist auf unzureichenden Speicherplatz oder auf eine unvollständige oder beschädigte Datei zurückzuführen. Geben Sie Speicherplatz frei, laden Sie die Dateien bei Bedarf erneut herunter und wiederholen Sie den Import."
+      },
+      "saves": {
+        "q": "Wo werden Spielstände gespeichert?",
+        "a": "Spielstände werden im Ordner der App in der App „Dateien“ unter OpenRCT2 › save abgelegt; der Ordner kann auch direkt aus der App heraus geöffnet werden. Das Löschen oder Ersetzen importierter Spieldaten wirkt sich nicht auf die Spielstände aus."
+      },
+      "rct1": {
+        "q": "Wie werden Inhalte aus RollerCoaster Tycoon 1 aktiviert?",
+        "a": "Importieren Sie eine Kopie von RollerCoaster Tycoon Deluxe, die Loopy Landscapes enthält. Dies ist optional und ergänzt die RCT1-Szenarios, -Grafiken und -Titelmusik."
+      }
     }
   },
   "notFound": {

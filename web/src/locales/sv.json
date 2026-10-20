@@ -6,6 +6,7 @@
   "nav": {
     "home": "Startsida",
     "privacy": "Integritetspolicy",
+    "support": "Support",
     "language": "Språk"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Kontakt",
       "body": "Om du har frågor om denna integritetspolicy är du välkommen att kontakta oss på {{email}}."
+    }
+  },
+  "support": {
+    "title": "Support",
+    "intro": "Frågor om OpenRCT2 för iOS och rapporter om problem kan skickas till supportteamet via e-post.",
+    "contact": {
+      "title": "Kontakt",
+      "body": "E-post: {{email}}",
+      "hint": "Ange enhetsmodell, systemversion och appversion samt en beskrivning av de steg som ledde till problemet när du rapporterar ett problem."
+    },
+    "faq": {
+      "title": "Vanliga frågor",
+      "files": {
+        "q": "Vilka spelfiler krävs?",
+        "a": "Appen innehåller inget originalmaterial från spelet. Ett exemplar av RollerCoaster Tycoon 2 krävs; både originalutgåvan och Triple Thrill Pack från Steam eller GOG stöds. Spelmappar, ZIP-arkiv, GOG-installationsprogram och Mac-versionen av RCT Classic kan importeras."
+      },
+      "gog": {
+        "q": "Hur importeras ett GOG-installationsprogram?",
+        "a": "GOG-installationsprogrammet består av två filer, setup_….exe och setup_…-1.bin, på sammanlagt cirka 600 MB. Placera båda filerna i samma mapp i appen Filer och välj den mappen vid importen; appen identifierar båda filerna automatiskt."
+      },
+      "failed": {
+        "q": "Vad bör man göra om en import misslyckas?",
+        "a": "Misslyckade importer beror oftast på otillräckligt lagringsutrymme eller på en ofullständig eller skadad fil. Frigör lagringsutrymme, hämta filerna igen vid behov och försök importera på nytt."
+      },
+      "saves": {
+        "q": "Var lagras sparade spel?",
+        "a": "Sparade spel lagras i appens mapp i appen Filer, under OpenRCT2 › save, och mappen kan även öppnas inifrån appen. Om importerade speldata raderas eller ersätts påverkas inte sparade spel."
+      },
+      "rct1": {
+        "q": "Hur aktiveras innehåll från RollerCoaster Tycoon 1?",
+        "a": "Importera ett exemplar av RollerCoaster Tycoon Deluxe, som innehåller Loopy Landscapes. Detta är valfritt och lägger till scenarier, grafik och titelmusik från RCT1."
+      }
     }
   },
   "notFound": {

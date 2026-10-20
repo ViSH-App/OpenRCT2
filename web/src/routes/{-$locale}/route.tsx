@@ -32,13 +32,7 @@ function Layout() {
             <span className="max-sm:sr-only">OpenRCT2</span>
           </Link>
           <div className="flex items-center gap-5 text-sm">
-            <Link
-              to="/{-$locale}/privacy"
-              params={{ locale }}
-              className="whitespace-nowrap text-panel-hi hover:text-white [&.active]:text-yellow"
-            >
-              {t("nav.privacy")}
-            </Link>
+            <NavLinks className="max-sm:hidden" />
             <LanguageSelect />
           </div>
         </nav>
@@ -48,10 +42,27 @@ function Layout() {
       </main>
       <footer className="footer">
         <div className="mx-auto max-w-5xl space-y-1 px-4 py-8 text-sm">
+          <NavLinks className="mb-4 sm:hidden" />
           <p>{t("footer.license")}</p>
           <p>{t("footer.trademark")}</p>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function NavLinks({ className }: { className: string }) {
+  const { t } = useTranslation();
+  const { locale } = Route.useParams();
+  const linkClass = "whitespace-nowrap text-panel-hi hover:text-white [&.active]:text-yellow";
+  return (
+    <div className={`flex gap-5 ${className}`}>
+      <Link to="/{-$locale}/support" params={{ locale }} className={linkClass}>
+        {t("nav.support")}
+      </Link>
+      <Link to="/{-$locale}/privacy" params={{ locale }} className={linkClass}>
+        {t("nav.privacy")}
+      </Link>
     </div>
   );
 }

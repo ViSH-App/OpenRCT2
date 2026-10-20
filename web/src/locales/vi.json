@@ -6,6 +6,7 @@
   "nav": {
     "home": "Trang chủ",
     "privacy": "Chính sách quyền riêng tư",
+    "support": "Hỗ trợ",
     "language": "Ngôn ngữ"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Liên hệ",
       "body": "Nếu bạn có bất kỳ câu hỏi nào về Chính sách quyền riêng tư này, vui lòng liên hệ với chúng tôi qua {{email}}."
+    }
+  },
+  "support": {
+    "title": "Hỗ trợ",
+    "intro": "Các câu hỏi về OpenRCT2 cho iOS và báo cáo sự cố có thể được gửi đến nhóm hỗ trợ qua email.",
+    "contact": {
+      "title": "Liên hệ",
+      "body": "Email: {{email}}",
+      "hint": "Khi báo cáo sự cố, vui lòng cung cấp kiểu máy của thiết bị, phiên bản hệ thống, phiên bản ứng dụng và mô tả các bước dẫn đến sự cố."
+    },
+    "faq": {
+      "title": "Câu hỏi thường gặp",
+      "files": {
+        "q": "Cần những tệp trò chơi nào?",
+        "a": "Ứng dụng không chứa bất kỳ tài nguyên gốc nào của trò chơi. Cần có một bản RollerCoaster Tycoon 2; cả bản gốc lẫn Triple Thrill Pack từ Steam hoặc GOG đều được hỗ trợ. Có thể nhập thư mục trò chơi, tệp nén ZIP, bộ cài đặt GOG và phiên bản Mac của RCT Classic."
+      },
+      "gog": {
+        "q": "Làm thế nào để nhập bộ cài đặt GOG?",
+        "a": "Bộ cài đặt GOG gồm hai tệp là setup_….exe và setup_…-1.bin, tổng cộng khoảng 600 MB. Vui lòng đặt cả hai tệp vào cùng một thư mục trong ứng dụng Tệp và chọn thư mục đó khi nhập; ứng dụng sẽ tự động nhận diện cả hai tệp."
+      },
+      "failed": {
+        "q": "Cần làm gì nếu quá trình nhập không thành công?",
+        "a": "Việc nhập không thành công thường là do không đủ dung lượng lưu trữ hoặc do tệp không đầy đủ hay bị hỏng. Vui lòng giải phóng dung lượng lưu trữ, tải lại các tệp nếu cần và thực hiện nhập lại."
+      },
+      "saves": {
+        "q": "Tệp lưu trò chơi được lưu trữ ở đâu?",
+        "a": "Các tệp lưu trò chơi được lưu trữ trong thư mục của ứng dụng trong ứng dụng Tệp, tại OpenRCT2 › save, và thư mục này cũng có thể được mở từ trong ứng dụng. Việc xóa hoặc thay thế dữ liệu trò chơi đã nhập không ảnh hưởng đến các tệp lưu trò chơi."
+      },
+      "rct1": {
+        "q": "Làm thế nào để bật nội dung RollerCoaster Tycoon 1?",
+        "a": "Vui lòng nhập một bản RollerCoaster Tycoon Deluxe, bao gồm Loopy Landscapes. Việc này là tùy chọn và sẽ bổ sung các kịch bản, đồ họa và nhạc chủ đề của RCT1."
+      }
     }
   },
   "notFound": {

@@ -6,6 +6,7 @@
   "nav": {
     "home": "Startpagina",
     "privacy": "Privacybeleid",
+    "support": "Ondersteuning",
     "language": "Taal"
   },
   "appStore": {
@@ -102,6 +103,38 @@
     "contact": {
       "title": "Contact",
       "body": "Als u vragen hebt over dit privacybeleid, kunt u contact met ons opnemen via {{email}}."
+    }
+  },
+  "support": {
+    "title": "Ondersteuning",
+    "intro": "Vragen over OpenRCT2 voor iOS en meldingen van problemen kunnen per e-mail naar het ondersteuningsteam worden gestuurd.",
+    "contact": {
+      "title": "Contact",
+      "body": "E-mail: {{email}}",
+      "hint": "Vermeld bij het melden van een probleem het apparaatmodel, de systeemversie, de versie van de app en een beschrijving van de stappen die tot het probleem hebben geleid."
+    },
+    "faq": {
+      "title": "Veelgestelde vragen",
+      "files": {
+        "q": "Welke spelbestanden zijn vereist?",
+        "a": "De app bevat geen originele spelmaterialen. Een exemplaar van RollerCoaster Tycoon 2 is vereist; zowel de originele editie als het Triple Thrill Pack van Steam of GOG wordt ondersteund. Spelmappen, ZIP-archieven, GOG-installatieprogramma's en de Mac-versie van RCT Classic kunnen worden geïmporteerd."
+      },
+      "gog": {
+        "q": "Hoe wordt een GOG-installatieprogramma geïmporteerd?",
+        "a": "Het GOG-installatieprogramma bestaat uit twee bestanden, setup_….exe en setup_…-1.bin, met een totale grootte van ongeveer 600 MB. Plaats beide bestanden in dezelfde map in de Bestanden-app en selecteer die map tijdens het importeren; de app herkent beide bestanden automatisch."
+      },
+      "failed": {
+        "q": "Wat te doen als het importeren mislukt?",
+        "a": "Het mislukken van een import wordt meestal veroorzaakt door onvoldoende opslagruimte of door een onvolledig of beschadigd bestand. Maak opslagruimte vrij, download de bestanden indien nodig opnieuw en probeer het importeren nogmaals."
+      },
+      "saves": {
+        "q": "Waar worden opgeslagen spellen bewaard?",
+        "a": "Opgeslagen spellen worden bewaard in de map van de app in de Bestanden-app, onder OpenRCT2 › save. Deze map kan ook vanuit de app worden geopend. Het verwijderen of vervangen van geïmporteerde spelgegevens heeft geen invloed op opgeslagen spellen."
+      },
+      "rct1": {
+        "q": "Hoe wordt inhoud van RollerCoaster Tycoon 1 ingeschakeld?",
+        "a": "Importeer een exemplaar van RollerCoaster Tycoon Deluxe, dat Loopy Landscapes bevat. Dit is optioneel en voegt de RCT1-scenario's, -graphics en -titelmuziek toe."
+      }
     }
   },
   "notFound": {
