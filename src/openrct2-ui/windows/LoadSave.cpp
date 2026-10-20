@@ -61,6 +61,27 @@ namespace OpenRCT2::Ui::Windows
 
     static constexpr auto kPadding = 5;
 
+    // Enlarged UI: list rows, column headers and the save row sized as touch targets.
+    static constexpr int32_t kTouchRowHeight = 20;
+
+    static int32_t ListRowHeight()
+    {
+        return Config::Get().interface.enlargedUi ? kTouchRowHeight : kScrollableRowHeight;
+    }
+
+    static int32_t ControlHeight()
+    {
+        return Config::Get().interface.enlargedUi ? kTouchRowHeight : kButtonFaceHeight;
+    }
+
+    // Enlarged UI: tapping a file selects it (and shows its preview); tapping it again or the Load
+    // button opens it.
+    // A touch has no hover, and a list that loads on the first tap is easy to misuse.
+    static bool LoadsWithButton(LoadSaveAction action)
+    {
+        return action == LoadSaveAction::load && Config::Get().interface.enlargedUi;
+    }
+
     static constexpr auto kPreviewWidthScreenshot = 250;
     static constexpr auto kPreviewWidthMiniMap = 180;
 
@@ -535,6 +556,13 @@ namespace OpenRCT2::Ui::Windows
         void onOpen() override
         {
             setWidgets(window_loadsave_widgets);
+            if (Config::Get().interface.enlargedUi)
+            {
+                const int32_t extra = ControlHeight() - kButtonFaceHeight;
+                for (auto index : { WIDX_SORT_NAME, WIDX_SORT_SIZE, WIDX_SORT_DATE, WIDX_SORT_CUSTOMISE })
+                    widgets[index].bottom += extra;
+                widgets[WIDX_SCROLL].top += extra;
+            }
 
             const auto& uiContext = GetContext()->GetUiContext();
             widgets[WIDX_SYSTEM_BROWSER].setVisible(uiContext.HasFilePicker());
@@ -690,9 +718,27 @@ namespace OpenRCT2::Ui::Windows
                 widgets[WIDX_SORT_DATE].setHidden();
             }
 
-            if (action == LoadSaveAction::save)
+            if (LoadsWithButton(action))
             {
-                widgets[WIDX_SCROLL].bottom -= kButtonFaceHeight + 7;
+                widgets[WIDX_SCROLL].bottom -= ControlHeight() + 7;
+                auto loadLabel = LanguageGetString(STR_LOAD_GAME);
+                auto loadLabelWidth = std::max(getStringWidth(loadLabel, FontStyle::medium) + 24, 60);
+                auto& button = widgets[WIDX_SAVE];
+                button.text = STR_LOAD_GAME;
+                button.setVisible();
+                button.bottom = height - paddingBottom - 2;
+                button.top = button.bottom - ControlHeight();
+                button.right = widgets[WIDX_SCROLL].right;
+                button.left = button.right - loadLabelWidth;
+                setWidgetDisabled(
+                    WIDX_SAVE,
+                    selectedListItem < 0 || selectedListItem >= numListItems
+                        || _listItems[selectedListItem].type != FileType::file);
+                widgets[WIDX_FILENAME_TEXTBOX].setHidden();
+            }
+            else if (action == LoadSaveAction::save)
+            {
+                widgets[WIDX_SCROLL].bottom -= ControlHeight() + 7;
 
                 // Get 'Save' button string width
                 auto saveLabel = LanguageGetString(STR_FILEBROWSER_SAVE_BUTTON);
@@ -700,7 +746,7 @@ namespace OpenRCT2::Ui::Windows
 
                 widgets[WIDX_SAVE].setVisible();
                 widgets[WIDX_SAVE].bottom = height - paddingBottom - 2;
-                widgets[WIDX_SAVE].top = widgets[WIDX_SAVE].bottom - kButtonFaceHeight;
+                widgets[WIDX_SAVE].top = widgets[WIDX_SAVE].bottom - ControlHeight();
                 widgets[WIDX_SAVE].right = widgets[WIDX_SCROLL].right;
                 widgets[WIDX_SAVE].left = widgets[WIDX_SAVE].right - saveLabelWidth;
 
@@ -710,7 +756,7 @@ namespace OpenRCT2::Ui::Windows
 
                 widgets[WIDX_FILENAME_TEXTBOX].setVisible();
                 widgets[WIDX_FILENAME_TEXTBOX].bottom = height - paddingBottom - 2;
-                widgets[WIDX_FILENAME_TEXTBOX].top = widgets[WIDX_FILENAME_TEXTBOX].bottom - kButtonFaceHeight;
+                widgets[WIDX_FILENAME_TEXTBOX].top = widgets[WIDX_FILENAME_TEXTBOX].bottom - ControlHeight();
                 widgets[WIDX_FILENAME_TEXTBOX].left = 4 + filenameLabelWidth + 6;
                 widgets[WIDX_FILENAME_TEXTBOX].right = widgets[WIDX_SAVE].left - 5;
             }
@@ -757,7 +803,7 @@ namespace OpenRCT2::Ui::Windows
 
                     auto cRT = const_cast<const RenderTarget&>(rt);
                     drawTextEllipsised(
-                        cRT, windowPos + ScreenCoordsXY{ widget.left + 5, widget.top + 1 }, widget.width() - 1, strId, ft,
+                        cRT, windowPos + ScreenCoordsXY{ widget.left + 5, widget.textTop() + 1 }, widget.width() - 1, strId, ft,
                         { Drawing::Colour::grey });
                 };
 
@@ -778,7 +824,7 @@ namespace OpenRCT2::Ui::Windows
             if (action == LoadSaveAction::save)
             {
                 auto& widget = widgets[WIDX_FILENAME_TEXTBOX];
-                drawText(rt, windowPos + ScreenCoordsXY{ 5, widget.top + 1 }, STR_FILENAME_LABEL, { Drawing::Colour::grey });
+                drawText(rt, windowPos + ScreenCoordsXY{ 5, widget.textTop() + 1 }, STR_FILENAME_LABEL, { Drawing::Colour::grey });
             }
         }
 
@@ -875,6 +921,13 @@ namespace OpenRCT2::Ui::Windows
 
                 case WIDX_SAVE:
                 {
+                    if (LoadsWithButton(action))
+                    {
+                        if (selectedListItem >= 0 && selectedListItem < numListItems
+                            && _listItems[selectedListItem].type == FileType::file)
+                            Select(_listItems[selectedListItem].path.c_str(), action, type, _trackDesign);
+                        break;
+                    }
                     const u8string path = Path::WithExtension(
                         Path::Combine(_directory, _currentFilename), RemovePatternWildcard(_extensionPattern));
 
@@ -1004,12 +1057,14 @@ namespace OpenRCT2::Ui::Windows
 
         ScreenSize onScrollGetSize(int32_t scrollIndex) override
         {
-            return { 0, numListItems * kScrollableRowHeight };
+            return { 0, numListItems * ListRowHeight() };
         }
 
         void onScrollMouseOver(int32_t scrollIndex, const ScreenCoordsXY& screenCoords) override
         {
-            int32_t selectedItem = screenCoords.y / kScrollableRowHeight;
+            if (LoadsWithButton(action))
+                return;
+            int32_t selectedItem = screenCoords.y / ListRowHeight();
             if (selectedItem >= numListItems)
                 return;
 
@@ -1025,7 +1080,7 @@ namespace OpenRCT2::Ui::Windows
         {
             int32_t selectedItem;
 
-            selectedItem = screenCoords.y / kScrollableRowHeight;
+            selectedItem = screenCoords.y / ListRowHeight();
             if (selectedItem >= numListItems)
                 return;
 
@@ -1054,6 +1109,12 @@ namespace OpenRCT2::Ui::Windows
                     WindowOverwritePromptOpen(
                         _listItems[selectedItem].name, _listItems[selectedItem].path, action, type, _trackDesign);
                 }
+                else if (LoadsWithButton(action) && selectedListItem != selectedItem)
+                {
+                    selectedListItem = selectedItem;
+                    LoadPreview();
+                    invalidate();
+                }
                 else
                 {
                     Select(_listItems[selectedItem].path.c_str(), action, type, _trackDesign);
@@ -1074,14 +1135,17 @@ namespace OpenRCT2::Ui::Windows
 
             auto& config = Config::Get().general;
 
+            const int32_t rowHeight = ListRowHeight();
             for (int32_t i = 0; i < numListItems; i++)
             {
-                int32_t y = i * kScrollableRowHeight;
-                if (y > rt.y + rt.height)
+                const int32_t rowTop = i * rowHeight;
+                if (rowTop > rt.y + rt.height)
                     break;
 
-                if (y + kScrollableRowHeight < rt.y)
+                if (rowTop + rowHeight < rt.y)
                     continue;
+                // Contents are centred in taller rows.
+                const int32_t y = rowTop + (rowHeight - kScrollableRowHeight) / 2;
 
                 StringId stringId = STR_BLACK_STRING;
 
@@ -1089,7 +1153,7 @@ namespace OpenRCT2::Ui::Windows
                 if (i == selectedListItem)
                 {
                     stringId = STR_WINDOW_COLOUR_2_STRINGID;
-                    Rectangle::filter(rt, { 0, y, listWidth, y + kScrollableRowHeight }, FilterPaletteID::paletteDarken1);
+                    Rectangle::filter(rt, { 0, rowTop, listWidth, rowTop + rowHeight }, FilterPaletteID::paletteDarken1);
                 }
                 // display a marker next to the currently loaded game file
                 if (_listItems[i].loaded)
