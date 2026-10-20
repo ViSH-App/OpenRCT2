@@ -12,6 +12,7 @@
 #include "CursorRepository.h"
 #include "SDLException.h"
 #include "TextComposition.h"
+#include "UiContext.iOS.h"
 #include "WindowManager.h"
 #include "drawing/engines/DrawingEngineFactory.hpp"
 #include "input/ShortcutManager.h"
@@ -242,6 +243,10 @@ public:
 
     bool IsMinimised() override
     {
+#ifdef OPENRCT2_IOS
+        if (IOS::IsBackgrounded())
+            return true;
+#endif
         uint32_t windowFlags = GetWindowFlags();
         return (windowFlags & SDL_WINDOW_MINIMIZED) || (windowFlags & SDL_WINDOW_HIDDEN);
     }
@@ -289,14 +294,24 @@ public:
 
     ScreenCoordsXY GetCursorPosition() override
     {
+#ifdef OPENRCT2_IOS
+        auto point = IOS::PointerPosition();
+        return { point.x, point.y };
+#else
         ScreenCoordsXY cursorPosition;
         SDL_GetMouseState(&cursorPosition.x, &cursorPosition.y);
         return cursorPosition;
+#endif
     }
 
     void SetCursorPosition(const ScreenCoordsXY& cursorPosition) override
     {
+#ifdef OPENRCT2_IOS
+        const auto rect = IOS::ContentRect(_window);
+        SDL_WarpMouseInWindow(_window, cursorPosition.x + rect.x, cursorPosition.y + rect.y);
+#else
         SDL_WarpMouseInWindow(nullptr, cursorPosition.x, cursorPosition.y);
+#endif
     }
 
     void SetCursorTrap(bool value) override
@@ -356,6 +371,10 @@ public:
         SDL_Event e;
         while (SDL_PollEvent(&e))
         {
+#ifdef OPENRCT2_IOS
+            if (IOS::ProcessEvent(e, _window))
+                continue;
+#endif
             switch (e.type)
             {
                 case SDL_QUIT:
@@ -434,7 +453,11 @@ public:
                             _cursorState.old = 2;
                             break;
                     }
+#ifdef OPENRCT2_IOS
+                    _cursorState.touch = e.button.which == 0xFFFFFFFE;
+#else
                     _cursorState.touch = false;
+#endif
 
                     {
                         InputEvent ie;
@@ -470,7 +493,11 @@ public:
                             _cursorState.old = 4;
                             break;
                     }
+#ifdef OPENRCT2_IOS
+                    _cursorState.touch = e.button.which == 0xFFFFFFFE;
+#else
                     _cursorState.touch = false;
+#endif
 
                     {
                         InputEvent ie;
@@ -831,10 +858,16 @@ private:
 
         SDL_SetWindowMinimumSize(_window, 720, 480);
         SetCursorTrap(Config::Get().general.trapCursor);
+#ifndef OPENRCT2_IOS
         _platformUiContext->SetWindowIcon(_window);
+#endif
 
         // Initialise the surface, palette and draw buffer
         DrawingEngineInit();
+#ifdef OPENRCT2_IOS
+        // SDL installs its Metal presentation view when the software display renderer is created.
+        _platformUiContext->SetWindowIcon(_window);
+#endif
         InferDisplayDPI();
         OnResize(width, height);
 
@@ -846,6 +879,11 @@ private:
 
     void OnResize(int32_t width, int32_t height)
     {
+#ifdef OPENRCT2_IOS
+        const auto content = IOS::ContentRect(_window);
+        width = content.w;
+        height = content.h;
+#endif
         // Scale the native window size to the game's canvas size
         _width = static_cast<int32_t>(width / Config::Get().general.windowScale);
         _height = static_cast<int32_t>(height / Config::Get().general.windowScale);

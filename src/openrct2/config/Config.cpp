@@ -45,7 +45,7 @@ static constexpr bool kWindowButtonsOnTheLeftDefault = true;
 #else
 static constexpr bool kWindowButtonsOnTheLeftDefault = false;
 #endif
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(OPENRCT2_IOS)
 static constexpr bool kEnlargedUiDefault = true;
 // Android phones can come with rounded screen corners, making corner buttons harder to access.
 static constexpr bool kToolbarButtonsCentredDefault = true;

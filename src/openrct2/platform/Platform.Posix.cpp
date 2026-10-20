@@ -129,7 +129,7 @@ namespace OpenRCT2::Platform
         if (tryPath(appStr))
             return true;
 
-    #ifdef __APPLE__
+    #if defined(__APPLE__) && !defined(OPENRCT2_IOS)
         // Apps on macOS don't inherit the shell PATH, so check common Homebrew install locations as a fallback.
         for (const char* prefix : { "/opt/homebrew/bin/", "/usr/local/bin/" })
         {
@@ -154,7 +154,7 @@ namespace OpenRCT2::Platform
                 commandLine += args[i];
             }
         }
-    #ifndef __EMSCRIPTEN__
+    #if !defined(__EMSCRIPTEN__) && !defined(OPENRCT2_IOS)
         int status;
         pid_t pid1;
 
@@ -225,7 +225,7 @@ namespace OpenRCT2::Platform
             return 0; /* success! */
         }
     #else
-        LOG_WARNING("Emscripten cannot execute processes. The commandline was '%s'.", commandLine.c_str());
+        LOG_WARNING("This platform cannot execute processes. The commandline was '%s'.", commandLine.c_str());
         return -1;
     #endif // __EMSCRIPTEN__
     }

@@ -40,7 +40,10 @@ static std::shared_ptr<T> ToShared(std::unique_ptr<T>&& src)
 /**
  * Main entry point for non-Windows systems. Windows instead uses its own DLL proxy.
  */
-#if defined(_MSC_VER) && !defined(__DISABLE_DLL_PROXY__)
+#if defined(OPENRCT2_IOS)
+int IosGameMain(int argc, const char** argv);
+int IosGameMain(int argc, const char** argv)
+#elif defined(_MSC_VER) && !defined(__DISABLE_DLL_PROXY__)
 int NormalisedMain(int argc, const char** argv)
 #else
 int main(int argc, const char** argv)

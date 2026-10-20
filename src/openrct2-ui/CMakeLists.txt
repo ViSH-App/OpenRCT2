@@ -13,6 +13,8 @@ if (EMSCRIPTEN)
     set(SHARED_FLAGS "-fexceptions")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USE_FLAGS} ${SHARED_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EMSCRIPTEN_LDFLAGS} --bind ${SHARED_FLAGS} -sEXPORTED_FUNCTIONS=${EMSCRIPTEN_EXPORTED_FUNCTIONS} --js-library ${ROOT_DIR}/emscripten/deps.js")
+elseif (IOS)
+    find_package(SDL2 CONFIG REQUIRED)
 elseif (MSVC)
     find_package(SDL2 REQUIRED)
 else ()
@@ -48,7 +50,11 @@ if (APPLE)
 endif ()
 
 # Outputs
-add_executable(openrct2 ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES})
+if(IOS)
+    add_executable(openrct2 MACOSX_BUNDLE ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES})
+else()
+    add_executable(openrct2 ${OPENRCT2_UI_SOURCES} ${OPENRCT2_UI_MM_SOURCES})
+endif()
 add_executable(OpenRCT2::openrct2 ALIAS openrct2)
 
 SET_CHECK_CXX_FLAGS(openrct2)
@@ -59,6 +65,8 @@ if (EMSCRIPTEN)
     target_link_libraries(openrct2 "libopenrct2"
                                     ${ICU_DATA_LIBRARIES}
                                     ${ICU_DT_LIBRARY_RELEASE})
+elseif (IOS)
+    target_link_libraries(openrct2 libopenrct2 SDL2::SDL2main SDL2::SDL2-static)
 elseif (NOT MSVC AND NOT WIN32)
     target_link_libraries(openrct2 "libopenrct2"
                                     PkgConfig::SDL2)
@@ -267,3 +275,7 @@ if(MACOS_BUNDLE)
         "  BUNDLE DESTINATION ${CMAKE_BINARY_DIR}
     )
 endif ()
+
+if(IOS)
+    include("${ROOT_DIR}/cmake/ios/bundle.cmake")
+endif()

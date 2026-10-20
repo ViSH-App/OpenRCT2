@@ -1,0 +1,25 @@
+# This target is UIKit/iPhoneOS, never Catalyst or the simulator.
+if(NOT CMAKE_OSX_SYSROOT MATCHES "iphoneos|iPhoneOS")
+    message(FATAL_ERROR "The iPad port requires the iPhoneOS SDK (no simulator).")
+endif()
+add_compile_definitions(OPENRCT2_IOS)
+# Match the upstream warning set rather than Xcode's extra narrowing warnings.
+set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_64_TO_32_BIT_CONVERSION NO)
+set(IOS_DEPENDENCIES "${CMAKE_SOURCE_DIR}/build/ios-deps/install" CACHE PATH "arm64 iPhoneOS dependencies")
+list(PREPEND CMAKE_PREFIX_PATH "${IOS_DEPENDENCIES}")
+list(PREPEND CMAKE_FIND_ROOT_PATH "${IOS_DEPENDENCIES}")
+set(ENV{PKG_CONFIG_LIBDIR} "${IOS_DEPENDENCIES}/lib/pkgconfig")
+set(ENV{PKG_CONFIG_PATH} "")
+set(ICU_ROOT "${IOS_DEPENDENCIES}")
+foreach(feature MACOS_USE_DEPENDENCIES MACOS_BUNDLE ENABLE_SCRIPTING WITH_TESTS)
+    set(${feature} OFF CACHE BOOL "Disabled in iPad MVP" FORCE)
+endforeach()
+foreach(feature DISABLE_NETWORK DISABLE_HTTP DISABLE_DISCORD_RPC DISABLE_VERSION_CHECKER DISABLE_OPENGL DISABLE_FLAC DISABLE_VORBIS DISABLE_IPO)
+    set(${feature} ON CACHE BOOL "Disabled in iPad MVP" FORCE)
+endforeach()
+
+set(PNG_LIBRARY "${IOS_DEPENDENCIES}/lib/libpng16.a" CACHE FILEPATH "iPhoneOS libpng" FORCE)
+set(PNG_PNG_INCLUDE_DIR "${IOS_DEPENDENCIES}/include/libpng16" CACHE PATH "iPhoneOS libpng headers" FORCE)
+
+set(PNG_LIBRARY_RELEASE "${IOS_DEPENDENCIES}/lib/libpng16.a" CACHE FILEPATH "iPhoneOS static libpng" FORCE)
+set(PNG_LIBRARY_DEBUG "${IOS_DEPENDENCIES}/lib/libpng16.a" CACHE FILEPATH "iPhoneOS static libpng" FORCE)

@@ -54,7 +54,9 @@
 #if defined(__linux__) && !defined(__ANDROID__)
     #define OPENRCT2_PLATFORM "Linux"
 #endif
-#if (defined(__APPLE__) && defined(__MACH__))
+#if defined(OPENRCT2_IOS)
+    #define OPENRCT2_PLATFORM "iPadOS"
+#elif (defined(__APPLE__) && defined(__MACH__))
     #define OPENRCT2_PLATFORM "macOS"
 #endif
 #ifdef __FreeBSD__

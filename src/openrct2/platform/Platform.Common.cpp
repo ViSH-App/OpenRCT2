@@ -192,7 +192,11 @@ namespace OpenRCT2::Platform
 #ifndef __ANDROID__
     float GetDefaultScale()
     {
+#ifdef OPENRCT2_IOS
+        return 1.25f;
+#else
         return 1;
+#endif
     }
 #endif
 

@@ -27,7 +27,7 @@ if (OPENRCT2_USE_CCACHE)
     endif()
 endif (OPENRCT2_USE_CCACHE)
 
-if (APPLE)
+if (APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     execute_process(COMMAND /usr/bin/uname -m OUTPUT_VARIABLE SYSTEM_MACOS_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
     if (NOT DEFINED ARCH)
         set(ARCH "${SYSTEM_MACOS_ARCH}")
@@ -51,13 +51,17 @@ endif ()
 # C Language required for quickjs-ng
 project(openrct2 CXX C)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    include(cmake/ios/options.cmake)
+endif()
+
 include(cmake/platform.cmake)
 include(CMakeDependentOption)
 
 # vcpkg includes its own copy of *.cmake; only include ours as needed.
 if (NOT MSVC)
     include(FindPkgConfig)
-    set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+    list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 endif ()
 include(CheckCXXCompilerFlag)
 include(GNUInstallDirs)
@@ -95,7 +99,7 @@ option(DOWNLOAD_OPENMUSIC "Download OpenMusic during installation." ON)
 CMAKE_DEPENDENT_OPTION(DOWNLOAD_REPLAYS "Download replays during installation." ON
     "WITH_TESTS" OFF)
 CMAKE_DEPENDENT_OPTION(MACOS_USE_DEPENDENCIES "Use OpenRCT2 dependencies instead of system libraries" ON
-    "APPLE" OFF)
+    "APPLE; NOT IOS" OFF)
 CMAKE_DEPENDENT_OPTION(MACOS_BUNDLE "Build macOS application bundle (OpenRCT2.app)" ON
      "MACOS_USE_DEPENDENCIES; NOT DISABLE_GUI" OFF)
 
@@ -369,7 +373,7 @@ else ()
         set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     endif ()
 
-    if (HAIKU OR (APPLE AND NOT USE_MMAP))
+    if (HAIKU OR (APPLE AND NOT IOS AND NOT USE_MMAP))
         set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
     else ()
         set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -392,7 +396,9 @@ endif ()
 
 # Include sub-projects
 include("${ROOT_DIR}/src/openrct2/CMakeLists.txt" NO_POLICY_SCOPE)
-include("${ROOT_DIR}/src/openrct2-cli/CMakeLists.txt" NO_POLICY_SCOPE)
+if(NOT IOS)
+    include("${ROOT_DIR}/src/openrct2-cli/CMakeLists.txt" NO_POLICY_SCOPE)
+endif()
 if(NOT DISABLE_GUI)
     include("${ROOT_DIR}/src/openrct2-ui/CMakeLists.txt" NO_POLICY_SCOPE)
 endif()
@@ -431,7 +437,7 @@ endif ()
 
 # macOS bundle "install" is handled in src/openrct2-ui/CMakeLists.txt
 # This is because the openrct2 target is modified (and that is where that target is defined)
-if (NOT MACOS_BUNDLE OR (MACOS_BUNDLE AND WITH_TESTS))
+if (NOT IOS AND (NOT MACOS_BUNDLE OR (MACOS_BUNDLE AND WITH_TESTS)))
     # Install
     # Don't recurse, grab all *.txt and *.md files
     add_definitions(-DDOCDIR="${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}")

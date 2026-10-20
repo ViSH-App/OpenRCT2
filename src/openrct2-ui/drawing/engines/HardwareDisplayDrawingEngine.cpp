@@ -7,6 +7,7 @@
  * OpenRCT2 is licensed under the GNU General Public License version 3.
  *****************************************************************************/
 
+#include "../../UiContext.iOS.h"
 #include "DrawingEngineFactory.hpp"
 
 #include <SDL_hints.h>
@@ -253,17 +254,25 @@ private:
             CopyBitsToTexture(
                 _screenTexture, _bits, static_cast<int32_t>(_width), static_cast<int32_t>(_height), _paletteHWMapped);
         }
+#ifdef OPENRCT2_IOS
+        SDL_Rect content = IOS::DrawableRect(_window, _sdlRenderer);
+        SDL_SetRenderDrawColor(_sdlRenderer, 0, 0, 0, 255);
+        SDL_RenderClear(_sdlRenderer);
+        const SDL_Rect* destination = &content;
+#else
+        const SDL_Rect* destination = nullptr;
+#endif
         if (smoothNN)
         {
             SDL_SetRenderTarget(_sdlRenderer, _scaledScreenTexture);
             SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, nullptr);
 
             SDL_SetRenderTarget(_sdlRenderer, nullptr);
-            SDL_RenderCopy(_sdlRenderer, _scaledScreenTexture, nullptr, nullptr);
+            SDL_RenderCopy(_sdlRenderer, _scaledScreenTexture, nullptr, destination);
         }
         else
         {
-            SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, nullptr);
+            SDL_RenderCopy(_sdlRenderer, _screenTexture, nullptr, destination);
         }
 
         if (gShowDirtyVisuals)
