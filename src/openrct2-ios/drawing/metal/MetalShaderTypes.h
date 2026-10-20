@@ -144,6 +144,24 @@ namespace OpenRCT2
                 MetalUInt offsetY;
             };
 
+            // CRT presentation: one scanline per logical row, drawn as gaussian electron beams.
+            struct CrtUniforms
+            {
+                MetalUInt offsetX; // Content origin in drawable pixels.
+                MetalUInt offsetY;
+                MetalUInt rasterWidth;
+                MetalUInt rasterHeight;
+                MetalUInt logicalWidth;
+                MetalUInt logicalHeight;
+                float logicalPerRasterX;
+                float logicalPerRasterY;
+                float rasterPerLogicalX;
+                float rasterPerLogicalY;
+                float beamPhase;     // Scanline centre offset in logical rows, aligning beams to raster rows.
+                float sharpness;   // Horizontal transition steepness; 1 is bilinear.
+                float outputGamma;     // Encoding of the linear result for the display.
+            };
+
             // Raster-pass vertex buffer bindings.
             METAL_CONSTANT MetalUInt kBufferCommands = 0;
             METAL_CONSTANT MetalUInt kBufferOrder = 1;
@@ -168,6 +186,11 @@ namespace OpenRCT2
             METAL_CONSTANT MetalUInt kTexturePalettes = 1;
             METAL_CONSTANT MetalUInt kTextureBlend = 2;
             METAL_CONSTANT MetalUInt kTextureCanvas = 3;
+            METAL_CONSTANT MetalUInt kTextureCrtBeams = 4;
+
+            // CRT beam table: light per (sqrt of the brightest channel, distance in logical rows).
+            METAL_CONSTANT MetalUInt kCrtBeamIntensities = 64;
+            METAL_CONSTANT MetalUInt kCrtBeamDistances = 128;
         } // namespace Metal
     } // namespace Ui
 } // namespace OpenRCT2

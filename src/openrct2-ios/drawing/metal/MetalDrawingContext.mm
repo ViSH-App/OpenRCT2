@@ -723,6 +723,9 @@ bool DrawingContext::TryDrawTTFText(
     #ifndef DISABLE_TTF
     if (logical.w <= 0 || logical.h <= 0 || _density <= 1.0f || rt.zoom_level != ZoomLevel{ 0 })
         return false;
+    // The CRT effect draws one scanline per logical row; Retina glyph pixels would straddle them.
+    if (Config::Get().general.crtEffect)
+        return false;
     // Same hinting policy as the core's logical surfaces (TTFToggleHinting, ttfDrawStringRaw).
     const bool enableHinting = Config::Get().fonts.enableHinting;
     const bool useHinting = enableHinting && fontDesc.hinting_threshold != 0;

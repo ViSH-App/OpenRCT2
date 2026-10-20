@@ -67,6 +67,43 @@ namespace
     constexpr uint8_t kInitialCanvasIndex = 10;
     constexpr uint64_t kStatisticsInterval = 600;
 
+    // CRT effect, tuned towards a late-1990s PC monitor: fine scanlines that dark areas show
+    // and bright areas fill in. Beam widths are gaussian sigmas in logical rows.
+    constexpr float kCrtGamma = 2.4f;
+    constexpr float kCrtBeamWidthDark = 0.18f;
+    constexpr float kCrtBeamWidthBright = 0.35f;
+    // Horizontal transition between signal samples; 1 is plain linear interpolation.
+    constexpr float kCrtSharpness = 1.5f;
+
+    struct LinearColour
+    {
+        _Float16 r, g, b, a;
+    };
+
+    // Light that one scanline puts on an output pixel, by beam intensity and by distance between
+    // the pixel centre and the beam centre (in logical rows). A beam is a gaussian whose width
+    // grows with intensity, so bright areas fill the gaps between lines and dark areas show them.
+    // It is normalised to its integral, so a wider beam spreads its light without changing the
+    // average brightness, and averaged over the pixel's height (2 × extent) rather than sampled
+    // at its centre, so non-integer densities do not alias into uneven lines.
+    std::vector<_Float16> CrtBeamTable(float extent)
+    {
+        std::vector<_Float16> table(kCrtBeamIntensities * kCrtBeamDistances);
+        for (uint32_t i = 0; i < kCrtBeamIntensities; ++i)
+        {
+            const float intensity = static_cast<float>(i) / (kCrtBeamIntensities - 1); // sqrt of the brightest channel
+            const float sigma = kCrtBeamWidthDark + (kCrtBeamWidthBright - kCrtBeamWidthDark) * intensity;
+            const float scale = 1.0f / (sigma * std::sqrt(2.0f));
+            for (uint32_t d = 0; d < kCrtBeamDistances; ++d)
+            {
+                const float distance = static_cast<float>(d) / (kCrtBeamDistances - 1);
+                const float light = (std::erf((distance + extent) * scale) - std::erf((distance - extent) * scale)) * 0.25f / extent;
+                table[d * kCrtBeamIntensities + i] = static_cast<_Float16>(light);
+            }
+        }
+        return table;
+    }
+
     // Accumulated on Metal's completion threads; owned jointly with in-flight handlers.
     struct GpuStatistics
     {
@@ -169,6 +206,8 @@ namespace
         id<MTLRenderPipelineState> _independentPipeline;
         id<MTLRenderPipelineState> _dependentPipeline;
         id<MTLRenderPipelineState> _presentPipeline;
+        id<MTLRenderPipelineState> _crtSignalPipeline;
+        id<MTLRenderPipelineState> _crtPipeline;
         id<MTLDepthStencilState> _depthWrite;
         id<MTLDepthStencilState> _depthTest;
         id<MTLDepthStencilState> _depthAlways;
@@ -184,12 +223,16 @@ namespace
         std::vector<PaletteIndex> _bits;
         InvalidationGrid _invalidationGrid;
         std::array<uint32_t, 256> _palette{};
+        std::array<LinearColour, 256> _linearPalette{};
 
         // Raster (physical pixel) canvas and its mapping to logical pixels.
         uint32_t _rasterWidth{}, _rasterHeight{};
         uint32_t _drawableOffsetX{}, _drawableOffsetY{};
         uint32_t _integerDensity{}; // k when raster = k × logical exactly, else 0.
         id<MTLTexture> _canvas;
+        id<MTLTexture> _crtSignal; // Linear colour per logical pixel.
+        id<MTLTexture> _crtBeams;  // CrtBeamTable for _crtBeamExtent.
+        float _crtBeamExtent{};
         id<MTLTexture> _depth;
         id<MTLTexture> _copyScratch;
         id<MTLBuffer> _rasterMap;
@@ -197,6 +240,7 @@ namespace
         bool _canvasNeedsClear{};
         bool _forceFullRedraw{ true };
         bool _ignoreCopyRect{};
+        bool _crtEnabled{}; // Config::general.crtEffect when this frame began.
         bool _parallelThisFrame{};
         bool _verifyThisFrame{};
         id<MTLTexture> _verifyCanvas;
@@ -300,6 +344,14 @@ namespace
             present.label = @"Palette presentation";
             _presentPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
             Require(_presentPipeline != nil, "Unable to create the Metal presentation pipeline");
+            present.fragmentFunction = [library newFunctionWithName:@"crtFragment"];
+            present.label = @"CRT presentation";
+            _crtPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
+            present.fragmentFunction = [library newFunctionWithName:@"crtSignal"];
+            present.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
+            present.label = @"CRT signal";
+            _crtSignalPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
+            Require(_crtPipeline != nil && _crtSignalPipeline != nil, "Unable to create the Metal CRT pipelines");
 
             auto depth = [MTLDepthStencilDescriptor new];
             depth.depthCompareFunction = MTLCompareFunctionLess;
@@ -362,8 +414,12 @@ namespace
 
         void SetPalette(const GamePalette& colours) override
         {
+            auto linear = [](uint8_t value) { return static_cast<_Float16>(std::pow(value / 255.0f, kCrtGamma)); };
             for (size_t i = 0; i < _palette.size(); ++i)
+            {
                 _palette[i] = colours[i].red | (colours[i].green << 8) | (colours[i].blue << 16) | 0xFF000000u;
+                _linearPalette[i] = { linear(colours[i].red), linear(colours[i].green), linear(colours[i].blue), 1 };
+            }
         }
 
         void SetVSync(bool) override
@@ -387,6 +443,12 @@ namespace
             _frameDrawableWait = 0;
             _frameRedrawArea = 0;
             _frameRects = 0;
+            if (_crtEnabled != Config::Get().general.crtEffect)
+            {
+                // Text is drawn differently with the CRT effect (see TryDrawTTFText).
+                _crtEnabled = Config::Get().general.crtEffect;
+                _forceFullRedraw = true;
+            }
             UpdateRasterSize();
             if (_gpuStatistics->failed.exchange(false))
             {
@@ -576,6 +638,7 @@ namespace
         void EncodeReference(
             id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms);
         void EncodePresent(id<MTLCommandBuffer> commandBuffer);
+        bool EncodeCrtSignal(id<MTLCommandBuffer> commandBuffer, const CrtUniforms& crt);
         void CompareWithReference();
         bool ReadCanvas();
         bool EnsureVerificationResources();
@@ -838,6 +901,29 @@ namespace
 
     void MetalDrawingEngine::EncodePresent(id<MTLCommandBuffer> commandBuffer)
     {
+        const auto logicalWidth = static_cast<uint32_t>(_rt.width);
+        const auto logicalHeight = static_cast<uint32_t>(_rt.height);
+        // With an even number of raster rows per logical row no raster row is centred on a
+        // scanline, and every row would sample the beams symmetrically: shift the beams by half a
+        // raster row so alternate rows land on the beam and on the gap.
+        const float beamPhase = _integerDensity != 0 && _integerDensity % 2 == 0 ? -0.5f / _integerDensity : 0.0f;
+        const CrtUniforms crt{
+            _drawableOffsetX,
+            _drawableOffsetY,
+            _rasterWidth,
+            _rasterHeight,
+            logicalWidth,
+            logicalHeight,
+            static_cast<float>(logicalWidth) / _rasterWidth,
+            static_cast<float>(logicalHeight) / _rasterHeight,
+            static_cast<float>(_rasterWidth) / logicalWidth,
+            static_cast<float>(_rasterHeight) / logicalHeight,
+            beamPhase,
+            kCrtSharpness,
+            kCrtGamma,
+        };
+        const bool useCrt = _crtEnabled && EncodeCrtSignal(commandBuffer, crt);
+
         const auto waitStart = std::chrono::steady_clock::now();
         id<CAMetalDrawable> drawable = [_layer nextDrawable];
         _frameDrawableWait = Milliseconds(std::chrono::steady_clock::now() - waitStart);
@@ -850,22 +936,85 @@ namespace
         pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
         pass.colorAttachments[0].storeAction = MTLStoreActionStore;
         auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
-        encoder.label = @"OpenRCT2 palette presentation";
+        encoder.label = useCrt ? @"OpenRCT2 CRT presentation" : @"OpenRCT2 palette presentation";
         const auto width = std::min<uint32_t>(_rasterWidth, drawable.texture.width - std::min<NSUInteger>(_drawableOffsetX, drawable.texture.width));
         const auto height = std::min<uint32_t>(_rasterHeight, drawable.texture.height - std::min<NSUInteger>(_drawableOffsetY, drawable.texture.height));
         if (width != 0 && height != 0)
         {
-            [encoder setRenderPipelineState:_presentPipeline];
             [encoder setViewport:MTLViewport{ static_cast<double>(_drawableOffsetX), static_cast<double>(_drawableOffsetY),
                                               static_cast<double>(width), static_cast<double>(height), 0, 1 }];
-            const PresentUniforms uniforms{ _drawableOffsetX, _drawableOffsetY };
-            [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
-            [encoder setFragmentBytes:_palette.data() length:sizeof(_palette) atIndex:kBufferPalette];
-            [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
+            if (useCrt)
+            {
+                [encoder setRenderPipelineState:_crtPipeline];
+                [encoder setFragmentTexture:_crtSignal atIndex:kTextureCanvas];
+                [encoder setFragmentTexture:_crtBeams atIndex:kTextureCrtBeams];
+                [encoder setFragmentBytes:&crt length:sizeof(crt) atIndex:kBufferUniforms];
+            }
+            else
+            {
+                const PresentUniforms uniforms{ _drawableOffsetX, _drawableOffsetY };
+                [encoder setRenderPipelineState:_presentPipeline];
+                [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
+                [encoder setFragmentBytes:_palette.data() length:sizeof(_palette) atIndex:kBufferPalette];
+                [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
+            }
             [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
         }
         [encoder endEncoding];
         [commandBuffer presentDrawable:drawable];
+    }
+
+    // Resamples the canvas at logical pixel centres into the linear CRT signal texture.
+    bool MetalDrawingEngine::EncodeCrtSignal(id<MTLCommandBuffer> commandBuffer, const CrtUniforms& crt)
+    {
+        if (crt.logicalWidth == 0 || crt.logicalHeight == 0 || crt.rasterWidth == 0 || crt.rasterHeight == 0)
+            return false;
+        if (_crtSignal == nil || _crtSignal.width != crt.logicalWidth || _crtSignal.height != crt.logicalHeight)
+        {
+            auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float
+                                                                                 width:crt.logicalWidth
+                                                                                height:crt.logicalHeight
+                                                                             mipmapped:NO];
+            descriptor.storageMode = MTLStorageModePrivate;
+            descriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+            _crtSignal = [_device newTextureWithDescriptor:descriptor];
+            if (_crtSignal == nil)
+                return false;
+            _crtSignal.label = @"OpenRCT2 CRT signal";
+        }
+        const float extent = 0.5f * crt.logicalPerRasterY;
+        if (_crtBeams == nil || extent != _crtBeamExtent)
+        {
+            auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR16Float
+                                                                                 width:kCrtBeamIntensities
+                                                                                height:kCrtBeamDistances
+                                                                             mipmapped:NO];
+            descriptor.storageMode = MTLStorageModeShared;
+            descriptor.usage = MTLTextureUsageShaderRead;
+            _crtBeams = [_device newTextureWithDescriptor:descriptor];
+            if (_crtBeams == nil)
+                return false;
+            _crtBeams.label = @"OpenRCT2 CRT beams";
+            const auto table = CrtBeamTable(extent);
+            [_crtBeams replaceRegion:MTLRegionMake2D(0, 0, kCrtBeamIntensities, kCrtBeamDistances)
+                         mipmapLevel:0
+                           withBytes:table.data()
+                         bytesPerRow:kCrtBeamIntensities * sizeof(_Float16)];
+            _crtBeamExtent = extent;
+        }
+        auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
+        pass.colorAttachments[0].texture = _crtSignal;
+        pass.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+        pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+        auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
+        encoder.label = @"OpenRCT2 CRT signal";
+        [encoder setRenderPipelineState:_crtSignalPipeline];
+        [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
+        [encoder setFragmentBytes:_linearPalette.data() length:sizeof(_linearPalette) atIndex:kBufferPalette];
+        [encoder setFragmentBytes:&crt length:sizeof(crt) atIndex:kBufferUniforms];
+        [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+        [encoder endEncoding];
+        return true;
     }
 
     bool MetalDrawingEngine::BuildReferenceTiles(

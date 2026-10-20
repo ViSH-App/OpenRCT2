@@ -283,6 +283,59 @@ fragment float4 presentFragment(
 }
 
 // ---------------------------------------------------------------------------------------
+// CRT presentation, in two passes. crtSignal resamples the canvas once per logical pixel (the
+// game's own resolution, the "video signal") into a small linear-light texture, using a palette
+// already decoded with the CRT gamma. Text is drawn on the logical grid while the effect is on
+// (see TryDrawTTFText), so every glyph pixel is one signal sample. crtFragment then draws every
+// output pixel from the two nearest scanlines with two bilinear fetches.
+//
+// The beam profile is precomputed per raster density into a small table (see CrtBeamTable in
+// MetalDrawingEngine.mm), indexed by intensity and distance from the beam centre.
+
+fragment half4 crtSignal(
+    PresentVertex in [[stage_in]], texture2d<uint, access::read> canvas [[texture(kTextureCanvas)]],
+    constant half4* palette [[buffer(kBufferPalette)]], constant CrtUniforms& u [[buffer(kBufferUniforms)]])
+{
+    const uint2 raster = min(
+        uint2((floor(in.position.xy) + 0.5f) * float2(u.rasterPerLogicalX, u.rasterPerLogicalY)),
+        uint2(u.rasterWidth - 1, u.rasterHeight - 1));
+    return palette[canvas.read(raster).r];
+}
+
+fragment float4 crtFragment(
+    PresentVertex in [[stage_in]], texture2d<half> signal [[texture(kTextureCanvas)]],
+    texture2d<half> beams [[texture(kTextureCrtBeams)]], constant CrtUniforms& u [[buffer(kBufferUniforms)]])
+{
+    constexpr sampler bilinear(filter::linear, address::clamp_to_edge);
+    const float2 pixel = in.position.xy - float2(u.offsetX, u.offsetY);
+    const float2 position = pixel * float2(u.logicalPerRasterX, u.logicalPerRasterY);
+
+    // Horizontal band limit: bilinear between neighbouring signal samples, with the transition
+    // steepened around the pixel edge by `sharpness` (1 is plain linear interpolation).
+    const float x = position.x - 0.5f;
+    const float column = floor(x);
+    const float blend = saturate((x - column - 0.5f) * u.sharpness + 0.5f);
+    const float s = (column + 0.5f + blend) / float(u.logicalWidth);
+
+    const float y = position.y - 0.5f - u.beamPhase;
+    const float row = floor(y);
+    const float offset = y - row;
+    const half3 upper = signal.sample(bilinear, float2(s, (row + 0.5f) / float(u.logicalHeight))).rgb;
+    const half3 lower = signal.sample(bilinear, float2(s, (row + 1.5f) / float(u.logicalHeight))).rgb;
+
+    // Beam light for (intensity, distance), see CrtBeamTable. Texel centres span both ranges.
+    const float2 scale = float2(kCrtBeamIntensities - 1, kCrtBeamDistances - 1) / float2(kCrtBeamIntensities, kCrtBeamDistances);
+    const float2 bias = 0.5f / float2(kCrtBeamIntensities, kCrtBeamDistances);
+    const half upperLight = beams.sample(bilinear, float2(sqrt(float(max3(upper.r, upper.g, upper.b))), offset) * scale + bias).r;
+    const half lowerLight = beams.sample(bilinear, float2(sqrt(float(max3(lower.r, lower.g, lower.b))), 1.0f - offset) * scale + bias).r;
+    half3 colour = upper * upperLight + lower * lowerLight;
+    colour = pow(saturate(colour), half(1.0f / u.outputGamma));
+    // Interleaved gradient noise hides 8-bit banding in the dark gaps between scanlines.
+    const half noise = half(fract(52.9829189f * fract(dot(in.position.xy, float2(0.06711056f, 0.00583715f)))));
+    return float4(float3(colour + (noise - 0.5h) / 255.0h), 1);
+}
+
+// ---------------------------------------------------------------------------------------
 // Reference rasterizer for OPENRCT2_METAL_COMPARE_GPU. One thread per raster pixel walks the
 // commands binned to its tile in submission order, starting from the persistent reference
 // canvas. It is deliberately simple and is never used for normal frames.

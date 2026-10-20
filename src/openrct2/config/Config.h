@@ -63,6 +63,7 @@ namespace OpenRCT2::Config
         bool showGuestPurchases;
         bool transparentScreenshot;
         bool transparentWater;
+        bool crtEffect;
 
         bool invisibleRides;
         bool invisibleVehicles;

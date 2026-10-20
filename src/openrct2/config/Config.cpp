@@ -278,6 +278,7 @@ namespace OpenRCT2::Config
             model->enabledAssetPacks = reader->GetString("enabled_asset_packs", "");
             model->transparentScreenshot = reader->GetBoolean("transparent_screenshot", true);
             model->transparentWater = reader->GetBoolean("transparent_water", true);
+            model->crtEffect = reader->GetBoolean("crt_effect", false);
 
             model->invisibleRides = reader->GetBoolean("invisible_rides", false);
             model->invisibleVehicles = reader->GetBoolean("invisible_vehicles", false);
@@ -376,6 +377,7 @@ namespace OpenRCT2::Config
         writer->WriteEnum<VirtualFloorStyles>("virtual_floor_style", model->virtualFloorStyle, Enum_VirtualFloorStyle);
         writer->WriteBoolean("transparent_screenshot", model->transparentScreenshot);
         writer->WriteBoolean("transparent_water", model->transparentWater);
+        writer->WriteBoolean("crt_effect", model->crtEffect);
         writer->WriteBoolean("invisible_rides", model->invisibleRides);
         writer->WriteBoolean("invisible_vehicles", model->invisibleVehicles);
         writer->WriteBoolean("invisible_trees", model->invisibleTrees);
