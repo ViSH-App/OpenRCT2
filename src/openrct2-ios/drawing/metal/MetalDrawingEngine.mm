@@ -206,6 +206,7 @@ namespace
         id<MTLRenderPipelineState> _independentPipeline;
         id<MTLRenderPipelineState> _dependentPipeline;
         id<MTLRenderPipelineState> _presentPipeline;
+        id<MTLRenderPipelineState> _scaledPipeline;
         id<MTLRenderPipelineState> _crtSignalPipeline;
         id<MTLRenderPipelineState> _crtPipeline;
         id<MTLRenderPipelineState> _lightPipeline;
@@ -231,6 +232,7 @@ namespace
         uint32_t _drawableOffsetX{}, _drawableOffsetY{};
         uint32_t _presentScale{ 1 };
         id<MTLTexture> _canvas;
+        id<MTLTexture> _shaded;    // Shaded colour per logical pixel, without CRT.
         id<MTLTexture> _crtSignal; // Linear colour per logical pixel.
         id<MTLTexture> _crtBeams;  // CrtBeamTable for _crtBeamExtent.
         float _crtBeamExtent{};
@@ -359,7 +361,10 @@ namespace
             present.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
             present.label = @"Palette presentation";
             _presentPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
-            Require(_presentPipeline != nil, "Unable to create the Metal presentation pipeline");
+            present.fragmentFunction = [library newFunctionWithName:@"scaledFragment"];
+            present.label = @"Scaled presentation";
+            _scaledPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
+            Require(_presentPipeline != nil && _scaledPipeline != nil, "Unable to create the Metal presentation pipelines");
             present.fragmentFunction = [library newFunctionWithName:@"crtFragment"];
             present.label = @"CRT presentation";
             _crtPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
@@ -657,6 +662,7 @@ namespace
         void UpdateLighting();
         void EncodeLights(id<MTLCommandBuffer> commandBuffer);
         void EncodePresent(id<MTLCommandBuffer> commandBuffer);
+        bool EncodeShaded(id<MTLCommandBuffer> commandBuffer);
         bool EncodeCrtSignal(id<MTLCommandBuffer> commandBuffer, const CrtUniforms& crt);
         void CompareWithReference();
         bool ReadCanvas();
@@ -994,6 +1000,7 @@ namespace
         };
         EncodeLights(commandBuffer);
         const bool useCrt = _crtEnabled && EncodeCrtSignal(commandBuffer, crt);
+        const bool useShaded = !useCrt && EncodeShaded(commandBuffer);
 
         const auto waitStart = std::chrono::steady_clock::now();
         id<CAMetalDrawable> drawable = [_layer nextDrawable];
@@ -1007,7 +1014,7 @@ namespace
         pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
         pass.colorAttachments[0].storeAction = MTLStoreActionStore;
         auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
-        encoder.label = useCrt ? @"OpenRCT2 CRT presentation" : @"OpenRCT2 palette presentation";
+        encoder.label = useCrt ? @"OpenRCT2 CRT presentation" : @"OpenRCT2 scaled presentation";
         const auto width = std::min<uint32_t>(
             _canvasWidth * _presentScale, drawable.texture.width - std::min<NSUInteger>(_drawableOffsetX, drawable.texture.width));
         const auto height = std::min<uint32_t>(
@@ -1022,6 +1029,13 @@ namespace
                 [encoder setFragmentTexture:_crtSignal atIndex:kTextureCanvas];
                 [encoder setFragmentTexture:_crtBeams atIndex:kTextureCrtBeams];
                 [encoder setFragmentBytes:&crt length:sizeof(crt) atIndex:kBufferUniforms];
+            }
+            else if (useShaded)
+            {
+                const PresentUniforms uniforms{ _drawableOffsetX, _drawableOffsetY, _presentScale };
+                [encoder setRenderPipelineState:_scaledPipeline];
+                [encoder setFragmentTexture:_shaded atIndex:kTextureCanvas];
+                [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
             }
             else
             {
@@ -1038,6 +1052,43 @@ namespace
         }
         [encoder endEncoding];
         [commandBuffer presentDrawable:drawable];
+    }
+
+    // Shades the canvas at logical size into _shaded, for the scaled presentation.
+    bool MetalDrawingEngine::EncodeShaded(id<MTLCommandBuffer> commandBuffer)
+    {
+        if (_canvasWidth == 0 || _canvasHeight == 0)
+            return false;
+        if (_shaded == nil || _shaded.width != _canvasWidth || _shaded.height != _canvasHeight)
+        {
+            auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+                                                                                 width:_canvasWidth
+                                                                                height:_canvasHeight
+                                                                             mipmapped:NO];
+            descriptor.storageMode = MTLStorageModePrivate;
+            descriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+            _shaded = [_device newTextureWithDescriptor:descriptor];
+            if (_shaded == nil)
+                return false;
+            _shaded.label = @"OpenRCT2 shaded canvas";
+        }
+        auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
+        pass.colorAttachments[0].texture = _shaded;
+        pass.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+        pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+        auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
+        encoder.label = @"OpenRCT2 shaded canvas";
+        const PresentUniforms uniforms{ 0, 0, 1 };
+        [encoder setRenderPipelineState:_presentPipeline];
+        [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
+        [encoder setFragmentTexture:_height atIndex:kTextureHeight];
+        [encoder setFragmentTexture:_light atIndex:kTextureLight];
+        [encoder setFragmentBytes:_palette.data() length:sizeof(_palette) atIndex:kBufferPalette];
+        [encoder setFragmentBytes:&_ambient length:sizeof(_ambient) atIndex:kBufferAmbient];
+        [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
+        [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+        [encoder endEncoding];
+        return true;
     }
 
     // Shades the canvas into the linear CRT signal texture.

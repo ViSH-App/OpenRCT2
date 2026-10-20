@@ -369,6 +369,15 @@ fragment float4 presentFragment(
     return float4(shadeCanvas(pixel, canvas, heights, lights, palette, ambient) / 255.0f, 1);
 }
 
+// Each drawable pixel takes its logical pixel from the canvas already shaded at logical size by
+// presentFragment, so the shading runs once per logical pixel rather than scale² times.
+fragment half4 scaledFragment(
+    PresentVertex in [[stage_in]], texture2d<half, access::read> shaded [[texture(kTextureCanvas)]],
+    constant PresentUniforms& present [[buffer(kBufferUniforms)]])
+{
+    return shaded.read((uint2(in.position.xy) - uint2(present.offsetX, present.offsetY)) / present.scale);
+}
+
 // ---------------------------------------------------------------------------------------
 // CRT presentation, in two passes. crtSignal shades the canvas (the game's own resolution, the
 // "video signal") and decodes it with the CRT gamma into a linear-light texture of the same
