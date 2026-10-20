@@ -4,13 +4,18 @@ ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 DEPS="$ROOT/build/ios-deps"
 PREFIX="$DEPS/install"
 JOBS=${JOBS:-8}
+# --sdl-only rebuilds just SDL in an existing preparation (see build-native.sh).
+SDL_ONLY=0
+[[ "${1:-}" == "--sdl-only" ]] && SDL_ONLY=1
 SDK=$(xcrun --sdk iphoneos --show-sdk-path)
 mkdir -p "$PREFIX/include" "$DEPS/logs"
 python3 "$ROOT/src/openrct2-ios/scripts/fetch-dependencies.py"
 # These are architecture-independent C++ headers from the checksum-pinned host dependency pack.
-for header in nlohmann fmt rapidjson; do
-    cp -R "$ROOT/lib/macos/include/$header" "$PREFIX/include/"
-done
+if [[ $SDL_ONLY == 0 ]]; then
+    for header in nlohmann fmt rapidjson; do
+        cp -R "$ROOT/lib/macos/include/$header" "$PREFIX/include/"
+    done
+fi
 COMMON=(-G Ninja -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT="$SDK" -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PREFIX" -DCMAKE_PREFIX_PATH="$PREFIX" -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO -DBUILD_SHARED_LIBS=OFF)
 build() {
  local name=$1; local source=$2; shift 2
@@ -19,7 +24,11 @@ build() {
  cmake --build "$DEPS/$name" -j "$JOBS" >> "$DEPS/logs/$name.log" 2>&1
  cmake --install "$DEPS/$name" >> "$DEPS/logs/$name.log" 2>&1
 }
-build SDL "$DEPS/sources/SDL" -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TEST=OFF -DSDL_METAL=ON
+# Metal only: no OpenGL ES video backend or renderers, so the app does not link OpenGLES.
+build SDL "$DEPS/sources/SDL" -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TEST=OFF -DSDL_METAL=ON -DSDL_OPENGLES=OFF -DSDL_OPENGL=OFF
+if [[ $SDL_ONLY == 1 ]]; then
+    exit 0
+fi
 build zstd "$DEPS/sources/zstd/build/cmake" -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_SHARED=OFF -DZSTD_BUILD_TESTS=OFF
 build libpng "$DEPS/sources/libpng" -DPNG_SHARED=OFF -DPNG_FRAMEWORK=OFF -DPNG_TESTS=OFF -DPNG_TOOLS=OFF
 build libzip "$DEPS/sources/libzip" -DBUILD_TOOLS=OFF -DBUILD_REGRESS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_DOC=OFF -DENABLE_COMMONCRYPTO=OFF -DENABLE_GNUTLS=OFF -DENABLE_MBEDTLS=OFF -DENABLE_OPENSSL=OFF -DENABLE_BZIP2=OFF -DENABLE_LZMA=OFF -DENABLE_ZSTD=OFF

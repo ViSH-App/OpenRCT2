@@ -19,6 +19,11 @@ if [[ ! -f "$ROOT/build/ios-deps/install/lib/libSDL2.a" ||
       ! -f "$ROOT/build/ios-data/fonts/NotoSansCJKsc-Regular.otf" ]]; then
     "$ROOT/src/openrct2-ios/scripts/prepare.sh"
 fi
+# Older preparations built SDL with OpenGL ES, which the app no longer links; rebuild only SDL.
+# (grep -q would end the pipe early and fail it under pipefail, so read all of nm's output.)
+if [[ -n "$(nm -u "$ROOT/build/ios-deps/install/lib/libSDL2.a" 2>/dev/null | grep EAGLContext || true)" ]]; then
+    "$ROOT/src/openrct2-ios/scripts/build-dependencies.sh" --sdl-only
+fi
 # Replace only the old generator's configuration when migrating build/ipad.
 # Dependency downloads, installed libraries, assets, and their paths are preserved.
 CMAKE_ARGS=(

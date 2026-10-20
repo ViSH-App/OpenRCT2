@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0579DC0B9344CE08E27CBA74 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D09441E6E1C360811C9B0EC /* OpenGLES.framework */; };
 		066679BC7E43E9147E45CD23 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 51DFD39ECCD8F9763D9D5829 /* CoreBluetooth.framework */; };
 		0A8D8B53FF31BB3AA7CA1CEB /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58D11B9D14A65598E6A130BD /* QuartzCore.framework */; };
 		0E885CBCAE61509BA35C0D61 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3A3C42D812AC8177096320B /* CoreVideo.framework */; };
@@ -41,7 +40,6 @@
 		0481F0881BE3E7BC35551E72 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		08CFB922FBE16B4C31C365EC /* OpenRCT2-iPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OpenRCT2-iPad.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1230E28C1EAF187C254BC4AA /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
-		1D09441E6E1C360811C9B0EC /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
 		1E80AF1F1C7174AEDA623818 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
 		20119E2806DFA58DB57445FD /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		2C916D5125193E553D308F88 /* IosApplication.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = IosApplication.mm; sourceTree = "<group>"; };
@@ -105,7 +103,6 @@
 				0E885CBCAE61509BA35C0D61 /* CoreVideo.framework in Frameworks */,
 				7C870D22386F10B20D300445 /* GameController.framework in Frameworks */,
 				24D130D648933240D47F7319 /* Metal.framework in Frameworks */,
-				0579DC0B9344CE08E27CBA74 /* OpenGLES.framework in Frameworks */,
 				0A8D8B53FF31BB3AA7CA1CEB /* QuartzCore.framework in Frameworks */,
 				9970D4642F0F303627551BD2 /* Security.framework in Frameworks */,
 			);
@@ -183,7 +180,6 @@
 				A3A3C42D812AC8177096320B /* CoreVideo.framework */,
 				0481F0881BE3E7BC35551E72 /* GameController.framework */,
 				E1AB9872CC73821FE155BDA6 /* Metal.framework */,
-				1D09441E6E1C360811C9B0EC /* OpenGLES.framework */,
 				58D11B9D14A65598E6A130BD /* QuartzCore.framework */,
 				9F1246A8574809C718FCE47E /* Security.framework */,
 			);
