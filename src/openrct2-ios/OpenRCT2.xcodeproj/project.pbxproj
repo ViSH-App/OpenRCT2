@@ -38,6 +38,7 @@
 		5524DDEC416E7E04C6FEEF15 /* GameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1FBCCA52F5869B9D67F2A44 /* GameData.swift */; };
 		80AAF369DBA9DBBBE23EC70A /* Importer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10C1D478A71DF6AF99F9D69A /* Importer.swift */; };
 		E74689C4F7A199EC14678DA7 /* LauncherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3EDBDC5CDFBD4194C2987A /* LauncherView.swift */; };
+		9BC40128589959B21FED0FBB /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D78F36697AB55F1EDB2B1 /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,6 +96,7 @@
 		F1FBCCA52F5869B9D67F2A44 /* GameData.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "GameData.swift"; sourceTree = "<group>"; };
 		10C1D478A71DF6AF99F9D69A /* Importer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Importer.swift"; sourceTree = "<group>"; };
 		EB3EDBDC5CDFBD4194C2987A /* LauncherView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "LauncherView.swift"; sourceTree = "<group>"; };
+		1D3D78F36697AB55F1EDB2B1 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -219,6 +221,7 @@
 		AFF230164D604803CF3A8E13 = {
 			isa = PBXGroup;
 			children = (
+				1D3D78F36697AB55F1EDB2B1 /* AppIcon.icon */,
 				86A02489CFE099BF513677DE /* Launcher */,
 				67AB031679422D373AB779D6 /* Products */,
 				BF6EE936D723DDEAE52EFC00 /* Frameworks */,
@@ -299,6 +302,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9BC40128589959B21FED0FBB /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
