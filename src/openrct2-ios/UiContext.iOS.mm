@@ -26,6 +26,7 @@
     #include <algorithm>
     #include <cmath>
     #include <cstdlib>
+    #include <string>
     #include <unistd.h>
 
 using namespace OpenRCT2;
@@ -575,6 +576,27 @@ extern "C" int SDL_main(int argc, char** argv)
             }
             fprintf(stderr, "OPENRCT2_IOS_OPEN_PARK not found: %s\n", park);
         }
+#ifndef DISABLE_NETWORK
+        // A server to join at startup, as "host" or "host:port" (testing).
+        if (const char* server = std::getenv("OPENRCT2_IOS_JOIN"); server != nullptr && *server != '\0')
+        {
+            std::string host = server;
+            std::string port;
+            if (auto colon = host.rfind(':'); colon != std::string::npos && host.find(':') == colon)
+            {
+                port = host.substr(colon + 1);
+                host.resize(colon);
+            }
+            fprintf(stderr, "Joining server at startup: %s\n", server);
+            if (port.empty())
+            {
+                const char* arguments[] = { argv[0], "join", host.c_str(), nullptr };
+                return IosGameMain(3, arguments);
+            }
+            const char* arguments[] = { argv[0], "join", host.c_str(), "--port", port.c_str(), nullptr };
+            return IosGameMain(5, arguments);
+        }
+#endif
         return IosGameMain(1, const_cast<const char**>(argv));
     }
 }

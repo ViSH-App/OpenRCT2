@@ -2554,8 +2554,14 @@ namespace OpenRCT2::Network
             LOG_VERBOSE("Received and loaded network script plugin %u/%u", i + 1, count);
         }
     #else
-        connection.setLastDisconnectReason("The client requires plugin support.");
-        Close();
+        // Servers always send this packet; only refuse to join when it actually carries plugins.
+        uint32_t count{};
+        packet >> count;
+        if (count != 0)
+        {
+            connection.setLastDisconnectReason("The client requires plugin support.");
+            Close();
+        }
     #endif
     }
 

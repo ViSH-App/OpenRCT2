@@ -457,20 +457,24 @@ namespace OpenRCT2::Ui::Windows
                 }
 
                 auto status = kStringIdNone;
-                try
+                // Builds without HTTP have no online list and return an empty future.
+                if (wanF.valid())
                 {
-                    auto entries = wanF.get();
-                    allEntries.reserve(allEntries.capacity() + entries.size());
-                    allEntries.insert(allEntries.end(), entries.begin(), entries.end());
-                }
-                catch (const Network::MasterServerException& e)
-                {
-                    status = e.StatusText;
-                }
-                // TODO: Stop catching all exceptions
-                catch (...)
-                {
-                    status = STR_SERVER_LIST_NO_CONNECTION;
+                    try
+                    {
+                        auto entries = wanF.get();
+                        allEntries.reserve(allEntries.capacity() + entries.size());
+                        allEntries.insert(allEntries.end(), entries.begin(), entries.end());
+                    }
+                    catch (const Network::MasterServerException& e)
+                    {
+                        status = e.StatusText;
+                    }
+                    // TODO: Stop catching all exceptions
+                    catch (...)
+                    {
+                        status = STR_SERVER_LIST_NO_CONNECTION;
+                    }
                 }
                 return std::make_pair(allEntries, status);
             });

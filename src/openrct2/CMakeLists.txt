@@ -47,6 +47,8 @@ SET_CHECK_CXX_FLAGS(libopenrct2)
 if (NOT DISABLE_NETWORK OR NOT DISABLE_HTTP)
     if (WIN32)
         target_link_libraries(libopenrct2 bcrypt)
+    elseif (IOS)
+        # Crypt.Apple.cpp uses the Security framework, which the app target links.
     else ()
         if (APPLE AND NOT IOS AND NOT MACOS_USE_DEPENDENCIES)
             # note - we are not yet compatible with openssl3, which is now default brew version
