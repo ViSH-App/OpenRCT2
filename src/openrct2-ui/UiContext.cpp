@@ -116,6 +116,7 @@ private:
         multiPinch,
         multiRotate,
         multiRemove,
+        pencilPan, // A pencil touch while the Apple Pencil Pro is squeezed.
         suppressed,
     };
 
@@ -639,6 +640,10 @@ private:
             _touchGestureMode = TouchGestureMode::singlePending;
             _touchGestureStart = position;
             _touchGestureStartTimestamp = event.timestamp;
+            if (IOS::IsPencilSqueezeHeld() && ViewportFindFromPoint(position) != nullptr)
+            {
+                BeginPencilPan(position);
+            }
             return;
         }
 
@@ -650,6 +655,10 @@ private:
         if (_touchGestureMode == TouchGestureMode::singleDrag)
         {
             StoreTouchRelease(MouseState::leftRelease, _primaryTouch.position);
+        }
+        else if (_touchGestureMode == TouchGestureMode::pencilPan)
+        {
+            StoreTouchRelease(MouseState::rightRelease, _cursorState.position);
         }
 
         _lastTouchToolTapTimestamp = 0;
@@ -670,6 +679,21 @@ private:
         _touchLastRemovePosition = _touchGestureStart;
         _touchGestureStartTimestamp = event.timestamp;
         _cursorState.position = _touchGestureStart;
+    }
+
+    // Pans like a two-finger drag. The squeeze may also begin once the pencil is down.
+    void BeginPencilPan(const ScreenCoordsXY& position)
+    {
+        if (_touchGestureMode == TouchGestureMode::singleDrag)
+        {
+            StoreTouchRelease(MouseState::leftRelease, position);
+        }
+        _lastTouchToolTapTimestamp = 0;
+        StoreTouchPress(MouseState::rightPress, position);
+        _touchGestureMode = TouchGestureMode::pencilPan;
+        _touchLastCentroid = position;
+        _touchPanCursorX = static_cast<float>(position.x);
+        _touchPanCursorY = static_cast<float>(position.y);
     }
 
     // A finger dragged across a list scrolls it, as on any touch screen, instead of pressing (and
@@ -849,6 +873,26 @@ private:
             return;
         }
 
+        if (_touchGestureMode == TouchGestureMode::pencilPan)
+        {
+            const auto delta = position - _touchLastCentroid;
+            _touchLastCentroid = position;
+            _touchPanCursorX -= delta.x * kTouchPanSensitivity;
+            _touchPanCursorY -= delta.y * kTouchPanSensitivity;
+            _cursorState.position = { static_cast<int32_t>(std::lround(_touchPanCursorX)),
+                                      static_cast<int32_t>(std::lround(_touchPanCursorY)) };
+            return;
+        }
+
+        if (IOS::IsPencilSqueezeHeld()
+            && (_touchGestureMode == TouchGestureMode::singlePending || _touchGestureMode == TouchGestureMode::singleDrag
+                || _touchGestureMode == TouchGestureMode::suppressed)
+            && ViewportFindFromPoint(position) != nullptr)
+        {
+            BeginPencilPan(position);
+            return;
+        }
+
         if (_touchGestureMode == TouchGestureMode::suppressed)
         {
             _cursorState.position = position;
@@ -953,6 +997,9 @@ private:
                 break;
             case TouchGestureMode::singleDrag:
                 StoreTouchRelease(MouseState::leftRelease, position);
+                break;
+            case TouchGestureMode::pencilPan:
+                StoreTouchRelease(MouseState::rightRelease, _cursorState.position);
                 break;
             case TouchGestureMode::singleScroll:
             case TouchGestureMode::suppressed:

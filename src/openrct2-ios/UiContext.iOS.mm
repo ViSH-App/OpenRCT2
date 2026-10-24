@@ -52,6 +52,7 @@ namespace
         SDL_PushEvent(&event);
     }
     SDL_Point pointer{};
+    bool pencilSqueezeHeld = false;
     UIWindow* bootstrapWindow;
 
     UIViewController* Controller()
@@ -246,12 +247,19 @@ namespace
     }
 } // namespace
 
-@interface RCTTouchControls : NSObject
+@interface RCTTouchControls : NSObject <UIPencilInteractionDelegate>
 @end
 @implementation RCTTouchControls
 - (void)files
 {
     RequestMenu();
+}
+// Apple Pencil Pro: the pencil pans the map while squeezed, unless squeeze is turned off in Settings.
+- (void)pencilInteraction:(UIPencilInteraction*)interaction didReceiveSqueeze:(UIPencilInteractionSqueeze*)squeeze
+    API_AVAILABLE(ios(17.5))
+{
+    pencilSqueezeHeld = (squeeze.phase == UIPencilInteractionPhaseBegan || squeeze.phase == UIPencilInteractionPhaseChanged)
+        && UIPencilInteraction.preferredSqueezeAction != UIPencilPreferredActionIgnore;
 }
 @end
 
@@ -308,6 +316,10 @@ namespace OpenRCT2::Ui::IOS
     {
         return pointer;
     }
+    bool IsPencilSqueezeHeld()
+    {
+        return pencilSqueezeHeld;
+    }
     bool ProcessEvent(SDL_Event& event, SDL_Window* window)
     {
         if (pendingMenu)
@@ -335,6 +347,7 @@ namespace OpenRCT2::Ui::IOS
                     @"Hold briefly, then drag to paint paths, land, water, or clear scenery.\n"
                     @"Two-finger drag: pan. Pinch: zoom. Twist: rotate supported construction.\n"
                     @"Two-finger tap on a removable path: remove. Hold two fingers, then drag: erase paths.\n"
+                    @"Apple Pencil Pro: squeeze and drag to pan.\n"
                     @"Long press outside paint tools: right click.\nOptions → Display: change interface scale");
         }
         if (!pendingPark.empty())
@@ -408,6 +421,11 @@ namespace OpenRCT2::Ui
             [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
             [button addTarget:_controls action:@selector(files) forControlEvents:UIControlEventTouchUpInside];
             [bar addSubview:button];
+            if (@available(iOS 17.5, *))
+            {
+                auto pencil = [[UIPencilInteraction alloc] initWithDelegate:_controls];
+                [view addInteraction:pencil];
+            }
             SDL_AddEventWatch(Lifecycle, nullptr);
             _audioObserver = [NSNotificationCenter.defaultCenter
                 addObserverForName:AVAudioSessionInterruptionNotification

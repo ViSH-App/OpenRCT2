@@ -25,5 +25,7 @@ namespace OpenRCT2::Ui::IOS
     bool ProcessEvent(SDL_Event& event, SDL_Window* window);
     bool IsBackgrounded();
     SDL_Point PointerPosition();
+    // Apple Pencil Pro squeeze held: pencil touches pan the map.
+    bool IsPencilSqueezeHeld();
 } // namespace OpenRCT2::Ui::IOS
 #endif
