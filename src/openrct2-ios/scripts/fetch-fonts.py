@@ -2,7 +2,7 @@
 
 Usage: fetch-fonts.py <destination> <download cache>
 
-WenQuanYi Bitmap Song 12px: Chinese.
+WenQuanYi Bitmap Song 12px, with its overhanging yen sign widened: Chinese.
 Shinonome 12 dot Mincho, converted from BDF: Japanese. Galmuri11: Korean and Vietnamese.
 Fusion Pixel 8px (zh_hans and ja): scrolling signs, which show 7 rows.
 """
@@ -44,6 +44,7 @@ NOTICE = f"""WenQuanYi Bitmap Song 12px, TTF conversion {WQY_VERSION}
 Source: https://github.com/AmusementClub/WenQuanYi-Bitmap-Song-TTF/releases/tag/{WQY_VERSION}
 Copyright the WenQuanYi Board of Trustees, FangQ and Firefly; licensed under GNU GPL v2 with the
 font embedding exception; see WenQuanYi-LICENSE.txt and http://wenq.org/wqy2/index.cgi?BitmapSong.
+Modified: the yen sign's advance is widened by one pixel so it no longer touches the next character.
 
 Shinonome 12 dot Mincho {SHINONOME_VERSION}, converted from BDF to Shinonome.Mincho.12.ttf
 Source: http://openlab.ring.gr.jp/efont/shinonome/
@@ -91,8 +92,12 @@ def prepare(destination, cache):
     # Replace previously bundled fonts rather than merging.
     shutil.rmtree(destination, ignore_errors=True)
     destination.mkdir(parents=True)
-    for name in ('WenQuanYi.Bitmap.Song.12px.ttf', 'WenQuanYi-LICENSE.txt'):
-        shutil.copyfile(archives[name], destination / name)
+    shutil.copyfile(archives['WenQuanYi-LICENSE.txt'], destination / 'WenQuanYi-LICENSE.txt')
+    widened = cache / f'WenQuanYi.Bitmap.Song.12px-{WQY_VERSION}-widened.ttf'
+    if not widened.exists():
+        subprocess.run([fonttools_python(cache), '-I', pathlib.Path(__file__).with_name('widen-overhanging-glyphs.py'),
+                        archives['WenQuanYi.Bitmap.Song.12px.ttf'], widened, '100'], check=True)
+    shutil.copyfile(widened, destination / 'WenQuanYi.Bitmap.Song.12px.ttf')
 
     with zipfile.ZipFile(archives['galmuri.zip']) as archive:
         (destination / 'Galmuri11.ttf').write_bytes(archive.read('Galmuri11.ttf'))
