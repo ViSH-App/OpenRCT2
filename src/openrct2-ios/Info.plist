@@ -24,6 +24,8 @@
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>OpenRCT2 uses Bluetooth to connect wireless game controllers.</string>
+	<key>LSSupportsGameMode</key>
+	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
