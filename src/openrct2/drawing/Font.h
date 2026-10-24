@@ -49,6 +49,12 @@ struct TTFFontSetDescriptor
 
 extern TTFFontSetDescriptor* gCurrentTTFFontSet;
 
+    #ifdef OPENRCT2_IOS
+// Scrolling signs show 7 rows of text, fewer than the 12 px tiny fonts take; when the current font set has a
+// smaller font for them, it is loaded here.
+extern TTFFontDescriptor* gScrollingTTFFont;
+    #endif
+
 #endif // DISABLE_TTF
 
 void FontSpriteInitialiseCharacters();

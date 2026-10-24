@@ -91,6 +91,10 @@ static void TTFToggleHinting(bool)
         TTF_SetFontHinting(fontDesc->font, use_hinting ? 1 : 0);
 #endif
     }
+    #ifdef OPENRCT2_IOS
+    if (gScrollingTTFFont != nullptr && gScrollingTTFFont->font != nullptr)
+        TTF_SetFontHinting(gScrollingTTFFont->font, 3);
+    #endif
 
     if (_ttfSurfaceCacheCount)
     {
@@ -130,6 +134,17 @@ bool TTFInitialise()
         }
     }
 
+    #ifdef OPENRCT2_IOS
+    // Without it scrolling signs fall back to the tiny font.
+    if (gScrollingTTFFont != nullptr)
+    {
+        auto fontPath = Platform::GetFontPath(*gScrollingTTFFont);
+        gScrollingTTFFont->font = fontPath.empty() ? nullptr : TTFOpenFont(fontPath.c_str(), gScrollingTTFFont->ptSize);
+        if (gScrollingTTFFont->font == nullptr)
+            LOG_WARNING("Unable to load the scrolling sign font '%s'", gScrollingTTFFont->font_name);
+    }
+    #endif
+
     TTFToggleHinting(true);
 
     _ttfInitialised = true;
@@ -156,6 +171,13 @@ void TTFDispose()
             fontDesc->font = nullptr;
         }
     }
+    #ifdef OPENRCT2_IOS
+    if (gScrollingTTFFont != nullptr && gScrollingTTFFont->font != nullptr)
+    {
+        TTFCloseFont(gScrollingTTFFont->font);
+        gScrollingTTFFont->font = nullptr;
+    }
+    #endif
 
     TTF_Quit();
 

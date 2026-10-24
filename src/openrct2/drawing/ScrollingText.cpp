@@ -51,6 +51,7 @@ namespace OpenRCT2::Drawing::ScrollingText
         std::string_view text, int32_t scroll, PaletteIndex* bitmap, const int16_t* scrollPositionOffsets, PaletteIndex colour);
     static void setBitmapForTTF(
         std::string_view text, int32_t scroll, PaletteIndex* bitmap, const int16_t* scrollPositionOffsets, PaletteIndex colour);
+    static int32_t getScrollingStringWidth(std::string_view text);
 
     static void initialiseCharacterBitmaps(uint32_t glyphStart, uint16_t count)
     {
@@ -1427,7 +1428,7 @@ static constexpr const int16_t* kScrollPositions[kMaxModes] = {
         {
             formattedString = String::toUpper(formattedString);
         }
-        auto stringWidth = getStringWidth(formattedString, FontStyle::tiny);
+        auto stringWidth = getScrollingStringWidth(formattedString);
         auto scroll = stringWidth > 0 ? (getGameState().currentTicks / 2) % stringWidth : 0;
 
         std::scoped_lock<std::mutex> lock(_mutex);
@@ -1523,26 +1524,17 @@ static constexpr const int16_t* kScrollPositions[kMaxModes] = {
         }
     }
 
-    static void setBitmapForTTF(
-        std::string_view text, int32_t scroll, PaletteIndex* bitmap, const int16_t* scrollPositionOffsets, PaletteIndex colour)
-    {
 #ifndef DISABLE_TTF
-        auto fontDesc = TTFGetFontFromSpriteBase(FontStyle::tiny);
-        if (fontDesc->font == nullptr)
-        {
-            setBitmapForSprite(text, scroll, bitmap, scrollPositionOffsets, colour);
-            return;
-        }
-
-        thread_local std::string ttfBuffer;
-        ttfBuffer.clear();
-
+    // The literal text of a formatted string; colour becomes the fill of its last colour token.
+    static void getTTFText(std::string_view text, std::string& buffer, PaletteIndex& colour)
+    {
+        buffer.clear();
         auto fmt = FmtString(text);
         for (const auto& token : fmt)
         {
             if (token.IsLiteral())
             {
-                ttfBuffer.append(token.text);
+                buffer.append(token.text);
             }
             else if (FormatTokenIsColour(token.kind))
             {
@@ -1550,6 +1542,64 @@ static constexpr const int16_t* kScrollPositions[kMaxModes] = {
                 colour = getTextColourMapping(colourIndex).fill;
             }
         }
+    }
+
+    static TTFFontDescriptor* getScrollingTTFFont([[maybe_unused]] std::string_view literal)
+    {
+    #ifdef OPENRCT2_IOS
+        // The smaller sign font is used only when it has every glyph of the text.
+        auto* scrollingFont = gScrollingTTFFont;
+        if (scrollingFont != nullptr && scrollingFont->font != nullptr)
+        {
+            bool provided = true;
+            for (auto codepoint : CodepointView(literal))
+            {
+                if (!TTFProvidesGlyph(scrollingFont->font, codepoint))
+                {
+                    provided = false;
+                    break;
+                }
+            }
+            if (provided)
+                return scrollingFont;
+        }
+    #endif
+        return TTFGetFontFromSpriteBase(FontStyle::tiny);
+    }
+#endif // DISABLE_TTF
+
+    static int32_t getScrollingStringWidth(std::string_view text)
+    {
+#if !defined(DISABLE_TTF) && defined(OPENRCT2_IOS)
+        // Scroll over the width of the font the sign is drawn in.
+        if (LocalisationService_UseTrueTypeFont() && gScrollingTTFFont != nullptr)
+        {
+            std::string literal;
+            PaletteIndex colour{};
+            getTTFText(text, literal, colour);
+            auto fontDesc = getScrollingTTFFont(literal);
+            if (fontDesc == gScrollingTTFFont)
+                return TTFGetWidthCacheGetOrAdd(fontDesc->font, literal);
+        }
+#endif
+        return getStringWidth(text, FontStyle::tiny);
+    }
+
+    static void setBitmapForTTF(
+        std::string_view text, int32_t scroll, PaletteIndex* bitmap, const int16_t* scrollPositionOffsets, PaletteIndex colour)
+    {
+#ifndef DISABLE_TTF
+        thread_local std::string ttfBuffer;
+        auto textColour = colour;
+        getTTFText(text, ttfBuffer, textColour);
+
+        auto fontDesc = getScrollingTTFFont(ttfBuffer);
+        if (fontDesc->font == nullptr)
+        {
+            setBitmapForSprite(text, scroll, bitmap, scrollPositionOffsets, colour);
+            return;
+        }
+        colour = textColour;
 
         auto surface = TTFSurfaceCacheGetOrAdd(fontDesc->font, ttfBuffer.c_str());
         if (surface == nullptr)

@@ -93,6 +93,9 @@ def entries():
     yield ('shinonome', '東雲フォント (Shinonome)', '0.9.11', 'Public domain', 'http://openlab.ring.gr.jp/efont/shinonome/',
            read(FONTS / 'Shinonome-LICENSE.txt'))
     yield 'galmuri', 'Galmuri', '11', 'OFL-1.1', 'https://github.com/quiple/galmuri', read(FONTS / 'Galmuri-LICENSE.txt')
+    yield ('fusion-pixel', 'Fusion Pixel Font', '8px', 'OFL-1.1', 'https://github.com/TakWolf/fusion-pixel-font',
+           read(FONTS / 'FusionPixel-OFL.txt') + ''.join(
+               f'\n\n{path.parent.name}:\n\n' + read(path) for path in sorted((FONTS / 'FusionPixel-LICENSES').glob('*/*'))))
     yield 'sdl', 'SDL', dependency_version('SDL'), 'Zlib', 'https://www.libsdl.org', read(SOURCES / 'SDL/LICENSE.txt')
     yield ('freetype', 'FreeType', dependency_version('freetype'), 'FTL', 'https://freetype.org',
            'Portions of this software are copyright © The FreeType Project (www.freetype.org). All rights reserved.\n\n'

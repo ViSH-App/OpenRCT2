@@ -51,6 +51,13 @@ TTFFontSetDescriptor TTFFontGalmuri11 = { {
     { "Galmuri11.ttf",                            "Galmuri11",                     12, 1, -1, 14, HINTING_DISABLED, nullptr },
     { "Galmuri11.ttf",                            "Galmuri11",                     12, 1,  1, 14, HINTING_DISABLED, nullptr },
 } };
+
+// Fusion Pixel 8px for scrolling signs: 100 units per pixel on an 8 px em. Its Han glyphs are 7 rows tall,
+// as many as the signs show; the zh_hans face also carries Hangul and kana.
+static TTFFontDescriptor TTFFontFusionPixel8pxZhHans =
+    { "fusion-pixel-8px-proportional-zh_hans.otf", "Fusion Pixel 8px Prop zh-Hans",  8, 1, -1,  9, HINTING_DISABLED, nullptr };
+static TTFFontDescriptor TTFFontFusionPixel8pxJa =
+    { "fusion-pixel-8px-proportional-ja.otf",      "Fusion Pixel 8px Prop ja",       8, 1, -1,  9, HINTING_DISABLED, nullptr };
 #endif
 
 TTFFontSetDescriptor TTFFontMSGothic = { {
@@ -149,6 +156,19 @@ TTFFontSetDescriptor TTFFontNotoNaskhArabic = { {
     { "NotoNaskhArabic-Regular.ttf", "Noto Naskh Arabic",  9, 1, -2,  9, HINTING_THRESHOLD_MEDIUM, nullptr },
 } };
 // clang-format on
+
+    #ifdef OPENRCT2_IOS
+TTFFontDescriptor* gScrollingTTFFont = nullptr;
+
+static TTFFontDescriptor* GetScrollingFont(const TTFFontSetDescriptor* font)
+{
+    if (font == &TTFFontShinonomeMincho)
+        return &TTFFontFusionPixel8pxJa;
+    if (font == &TTFFontWenQuanYiBitmapSong || font == &TTFFontGalmuri11)
+        return &TTFFontFusionPixel8pxZhHans;
+    return nullptr;
+}
+    #endif
 #endif // DISABLE_TTF
 
 static void LoadSpriteFont(LocalisationService& localisationService)
@@ -157,6 +177,9 @@ static void LoadSpriteFont(LocalisationService& localisationService)
     localisationService.UseTrueTypeFont(false);
 #ifndef DISABLE_TTF
     gCurrentTTFFontSet = nullptr;
+    #ifdef OPENRCT2_IOS
+    gScrollingTTFFont = nullptr;
+    #endif
 #endif // DISABLE_TTF
 }
 
@@ -167,6 +190,9 @@ static bool LoadFont(LocalisationService& localisationService, TTFFontSetDescrip
     localisationService.UseTrueTypeFont(true);
 
     gCurrentTTFFontSet = font;
+    #ifdef OPENRCT2_IOS
+    gScrollingTTFFont = GetScrollingFont(font);
+    #endif
 
     bool fontInitialised = TTFInitialise();
     return fontInitialised;
@@ -189,6 +215,9 @@ static bool LoadCustomConfigFont(LocalisationService& localisationService)
     TTFDispose();
     localisationService.UseTrueTypeFont(true);
     gCurrentTTFFontSet = &TTFFontCustom;
+    #ifdef OPENRCT2_IOS
+    gScrollingTTFFont = nullptr;
+    #endif
 
     bool fontInitialised = TTFInitialise();
     return fontInitialised;

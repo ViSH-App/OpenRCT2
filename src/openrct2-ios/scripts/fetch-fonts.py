@@ -2,8 +2,9 @@
 
 Usage: fetch-fonts.py <destination> <download cache>
 
-WenQuanYi Bitmap Song 12px: Chinese. Shinonome 12 dot Mincho, converted from BDF: Japanese.
-Galmuri11: Korean and Vietnamese.
+WenQuanYi Bitmap Song 12px: Chinese.
+Shinonome 12 dot Mincho, converted from BDF: Japanese. Galmuri11: Korean and Vietnamese.
+Fusion Pixel 8px (zh_hans and ja): scrolling signs, which show 7 rows.
 """
 import hashlib
 import pathlib
@@ -18,6 +19,7 @@ import zipfile
 WQY_VERSION = 'v1.0.0-RC1-Build1'
 GALMURI_VERSION = 'v2.40.4'
 SHINONOME_VERSION = '0.9.11p1'
+FUSION_VERSION = '2026.10.16'
 FONTTOOLS = 'fonttools==4.67.0'
 DOWNLOADS = {
     'WenQuanYi.Bitmap.Song.12px.ttf': (
@@ -30,6 +32,10 @@ DOWNLOADS = {
     'galmuri.zip': (
         f'https://github.com/quiple/galmuri/releases/download/{GALMURI_VERSION}/Galmuri-{GALMURI_VERSION}.zip',
         'c8b3d9861a62ae73c8b1178091401cd79994812437ef386413f6dd54856e60e7'),
+    'fusion-pixel-8px.zip': (
+        f'https://github.com/TakWolf/fusion-pixel-font/releases/download/{FUSION_VERSION}/'
+        f'fusion-pixel-font-8px-proportional-otf-v{FUSION_VERSION}.zip',
+        'f68fa139be61ccf31dc15c2afe086fa9318530a5d92fe14a4a42a236672bf5f7'),
     'shinonome.tar.bz2': (
         f'http://openlab.ring.gr.jp/efont/dist/shinonome/shinonome-{SHINONOME_VERSION}.tar.bz2',
         '95663c95c92ba5765f63ccbdf033eb93b707be01812a989c548db943479c838f'),
@@ -46,6 +52,11 @@ The Electronic Font Open Laboratory; public domain; see Shinonome-LICENSE.txt.
 Galmuri11 {GALMURI_VERSION}
 Source: https://github.com/quiple/galmuri/releases/tag/{GALMURI_VERSION}
 Copyright (c) 2019-2025 Lee Minseo; licensed under the SIL Open Font License 1.1; see Galmuri-LICENSE.txt.
+
+Fusion Pixel Font {FUSION_VERSION} (8px, proportional, zh_hans and ja)
+Source: https://github.com/TakWolf/fusion-pixel-font/releases/tag/{FUSION_VERSION}
+Licensed under the SIL Open Font License 1.1; see FusionPixel-OFL.txt.
+Licenses of the upstream fonts it is built from are under FusionPixel-LICENSES/.
 """
 
 
@@ -86,6 +97,18 @@ def prepare(destination, cache):
     with zipfile.ZipFile(archives['galmuri.zip']) as archive:
         (destination / 'Galmuri11.ttf').write_bytes(archive.read('Galmuri11.ttf'))
         (destination / 'Galmuri-LICENSE.txt').write_bytes(archive.read('LICENSE.txt'))
+
+    with zipfile.ZipFile(archives['fusion-pixel-8px.zip']) as archive:
+        for name in ('fusion-pixel-8px-proportional-zh_hans.otf', 'fusion-pixel-8px-proportional-ja.otf'):
+            (destination / name).write_bytes(archive.read(name))
+        (destination / 'FusionPixel-OFL.txt').write_bytes(archive.read('OFL.txt'))
+        for member in archive.infolist():
+            path = pathlib.PurePosixPath(member.filename)
+            if member.is_dir() or path.parts[0] != 'LICENSES' or '..' in path.parts:
+                continue
+            target = destination / 'FusionPixel-LICENSES' / pathlib.PurePosixPath(*path.parts[1:])
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(archive.read(member))
 
     shinonome = cache / f'shinonome-{SHINONOME_VERSION}'
     if not (shinonome / 'bdf/shnmk12min.bdf').exists():
