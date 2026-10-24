@@ -1082,21 +1082,29 @@ namespace OpenRCT2::Ui::Windows
         WindowZoomSet(w, w.viewport->zoom + 1, atCursor);
     }
 
-    void MainWindowZoom(bool zoomIn, bool atCursor)
+    bool MainWindowCanZoom()
     {
-        auto* mainWindow = WindowGetMain();
-        if (mainWindow == nullptr)
-            return;
+        if (WindowGetMain() == nullptr)
+            return false;
 
         if (gLegacyScene == LegacyScene::titleSequence)
-            return;
+            return false;
 
         if (gLegacyScene == LegacyScene::scenarioEditor && getGameState().editorStep != Editor::Step::landscapeEditor)
-            return;
+            return false;
 
         if (gLegacyScene == LegacyScene::trackDesignsManager)
+            return false;
+
+        return true;
+    }
+
+    void MainWindowZoom(bool zoomIn, bool atCursor)
+    {
+        if (!MainWindowCanZoom())
             return;
 
+        auto* mainWindow = WindowGetMain();
         if (zoomIn)
             WindowZoomIn(*mainWindow, atCursor);
         else

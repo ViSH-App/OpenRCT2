@@ -92,5 +92,6 @@ namespace OpenRCT2::Ui::Windows
 
     void WindowZoomIn(WindowBase& w, bool atCursor);
     void WindowZoomOut(WindowBase& w, bool atCursor);
+    bool MainWindowCanZoom();
     void MainWindowZoom(bool zoomIn, bool atCursor);
 } // namespace OpenRCT2::Ui::Windows

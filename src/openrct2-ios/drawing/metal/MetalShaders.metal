@@ -379,6 +379,40 @@ fragment half4 scaledFragment(
 }
 
 // ---------------------------------------------------------------------------------------
+// Zoom transition (see ZoomUniforms). The world texture is sampled with a box filter one output
+// pixel wide: the nearest texel inside a texel, blended only where an output pixel straddles
+// two, so pixel art stays sharp at non-integer scales without shimmering as the scale changes.
+
+inline bool showsZoomWorld(uint2 pixel, texture2d<float, access::read> heights)
+{
+    return heights.read(pixel).r <= (kHeightZoomWorld + kHeightInterface) * 0.5f;
+}
+
+// `logical` is a continuous logical position; `footprint` is the output pixel's width in texels.
+inline half4 sampleZoomWorld(texture2d<half> world, float2 logical, float footprint, constant ZoomUniforms& z)
+{
+    constexpr sampler bilinear(filter::linear, address::clamp_to_edge);
+    const float2 texel = float2(z.originX, z.originY) + logical * z.texelsPerLogical;
+    const float box = min(footprint, 1.0f);
+    const float2 corner = texel - 0.5f * box;
+    const float2 cell = floor(corner);
+    const float2 blend = saturate((corner - cell - (1.0f - box)) / box);
+    return world.sample(bilinear, (cell + 0.5f + blend) / float2(z.worldWidth, z.worldHeight));
+}
+
+fragment half4 zoomFragment(
+    PresentVertex in [[stage_in]], texture2d<half, access::read> shaded [[texture(kTextureCanvas)]],
+    texture2d<float, access::read> heights [[texture(kTextureHeight)]], texture2d<half> world [[texture(kTextureZoomWorld)]],
+    constant ZoomUniforms& z [[buffer(kBufferUniforms)]])
+{
+    const float2 logical = (in.position.xy - float2(z.offsetX, z.offsetY)) / float(z.scale);
+    const uint2 pixel = uint2(logical);
+    if (!showsZoomWorld(pixel, heights))
+        return shaded.read(pixel);
+    return sampleZoomWorld(world, logical, z.texelsPerLogical / float(z.scale), z);
+}
+
+// ---------------------------------------------------------------------------------------
 // CRT presentation, in two passes. crtSignal shades the canvas (the game's own resolution, the
 // "video signal") and decodes it with the CRT gamma into a linear-light texture of the same
 // size. crtFragment then draws every output pixel from the two nearest scanlines
@@ -394,6 +428,21 @@ fragment half4 crtSignal(
     constant AmbientUniforms& ambient [[buffer(kBufferAmbient)]], constant CrtUniforms& u [[buffer(kBufferUniforms)]])
 {
     const float3 colour = shadeCanvas(uint2(in.position.xy), canvas, heights, lights, palette, ambient) / 255.0f;
+    return half4(half3(pow(colour, u.outputGamma)), 1);
+}
+
+// crtSignal during a zoom transition: world pixels come from the scaled world texture.
+fragment half4 crtZoomSignal(
+    PresentVertex in [[stage_in]], texture2d<uint, access::read> canvas [[texture(kTextureCanvas)]],
+    texture2d<float, access::read> heights [[texture(kTextureHeight)]],
+    texture2d<half, access::read> lights [[texture(kTextureLight)]], texture2d<half> world [[texture(kTextureZoomWorld)]],
+    constant uchar4* palette [[buffer(kBufferPalette)]], constant AmbientUniforms& ambient [[buffer(kBufferAmbient)]],
+    constant CrtUniforms& u [[buffer(kBufferUniforms)]], constant ZoomUniforms& z [[buffer(kBufferZoom)]])
+{
+    const uint2 pixel = uint2(in.position.xy);
+    const float3 colour = showsZoomWorld(pixel, heights)
+        ? float3(sampleZoomWorld(world, in.position.xy, z.texelsPerLogical, z).rgb)
+        : shadeCanvas(pixel, canvas, heights, lights, palette, ambient) / 255.0f;
     return half4(half3(pow(colour, u.outputGamma)), 1);
 }
 

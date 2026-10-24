@@ -115,6 +115,11 @@ namespace
         // Hitch diagnostics: completion time of the previous frame and lines logged so far.
         std::atomic<int64_t> lastCompletionNanoseconds{};
         std::atomic<uint32_t> hitchesLogged{};
+        // Frames of zoom transitions: GPU time, and the interval since the previous frame when
+        // that was one too.
+        std::mutex zoomMutex;
+        std::vector<float> zoomGpu, zoomIntervals;
+        bool lastWasZoom{};
     };
 
     // What the CPU did for one frame, reported if the frame completes late.
@@ -247,6 +252,28 @@ namespace
         std::vector<LightInstance> _lights;
         AmbientUniforms _ambient{};
         LightUniforms _lightView{};
+        // Light view and size (logical pixels) of the target the lamps are drawn for.
+        float _lightWidth{}, _lightHeight{};
+
+        // Zoom transition (SetZoomTransition): the canvas keeps the interface, and the main
+        // viewport is drawn into its own canvas at the nearest zoom level, which the
+        // presentation scales by the remaining continuous factor.
+        ZoomTransition _zoomTransition{};
+        bool _zoomThisFrame{};
+        bool _zoomLastFrame{};
+        Viewport _zoomViewport{};
+        RenderTarget _zoomRT{};
+        std::vector<PaletteIndex> _zoomBits;
+        uint32_t _zoomWidth{}, _zoomHeight{}; // Texture size; the viewport may use less.
+        id<MTLTexture> _zoomCanvas;
+        id<MTLTexture> _zoomHeights;
+        id<MTLTexture> _zoomDepth;
+        id<MTLTexture> _zoomLight;
+        id<MTLTexture> _zoomShaded;
+        ZoomUniforms _zoomUniforms{};
+        id<MTLRenderPipelineState> _zoomPipeline;
+        id<MTLRenderPipelineState> _crtZoomSignalPipeline;
+
         bool _canvasNeedsClear{};
         bool _forceFullRedraw{ true };
         bool _ignoreCopyRect{};
@@ -282,6 +309,7 @@ namespace
         InvalidationGrid _coarseGrid;
         double _cpuMilliseconds{}, _encodeMilliseconds{}, _drawableWaitMilliseconds{};
         uint64_t _commandsRecorded{}, _framesDrawn{}, _fullRedraws{};
+        std::vector<float> _zoomPaint, _zoomCpu; // Per zoom-transition frame, milliseconds.
         // Pixels redrawn by dirty blocks and by full redraws, and pixels covered by each pass's
         // quads (fragment work before depth rejection).
         uint64_t _dirtyArea{}, _fullArea{};
@@ -364,7 +392,12 @@ namespace
             present.fragmentFunction = [library newFunctionWithName:@"scaledFragment"];
             present.label = @"Scaled presentation";
             _scaledPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
-            Require(_presentPipeline != nil && _scaledPipeline != nil, "Unable to create the Metal presentation pipelines");
+            present.fragmentFunction = [library newFunctionWithName:@"zoomFragment"];
+            present.label = @"Zoom transition presentation";
+            _zoomPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
+            Require(
+                _presentPipeline != nil && _scaledPipeline != nil && _zoomPipeline != nil,
+                "Unable to create the Metal presentation pipelines");
             present.fragmentFunction = [library newFunctionWithName:@"crtFragment"];
             present.label = @"CRT presentation";
             _crtPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
@@ -372,7 +405,12 @@ namespace
             present.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
             present.label = @"CRT signal";
             _crtSignalPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
-            Require(_crtPipeline != nil && _crtSignalPipeline != nil, "Unable to create the Metal CRT pipelines");
+            present.fragmentFunction = [library newFunctionWithName:@"crtZoomSignal"];
+            present.label = @"CRT signal with zoom transition";
+            _crtZoomSignalPipeline = [_device newRenderPipelineStateWithDescriptor:present error:&error];
+            Require(
+                _crtPipeline != nil && _crtSignalPipeline != nil && _crtZoomSignalPipeline != nil,
+                "Unable to create the Metal CRT pipelines");
 
             auto light = [MTLRenderPipelineDescriptor new];
             light.vertexFunction = [library newFunctionWithName:@"lightVertex"];
@@ -496,10 +534,55 @@ namespace
             // Lamps are collected while painting, so every frame that shows them repaints the
             // whole screen.
             _lampsThisFrame = LightFx::IsAvailable() && gDayNightCycle > 0;
+
+            _zoomThisFrame = _zoomTransition.active && main != nullptr && main->viewport != nullptr
+                && !main->viewport->flags.has(ViewportFlag::renderingInhibited) && PrepareZoomWorld(*main->viewport);
+            if (_zoomThisFrame || _zoomLastFrame)
+            {
+                // Zoom frames start from a canvas marked as showing the world texture; the first
+                // frame after one draws the main viewport into the canvas again.
+                _canvasNeedsClear = true;
+                _forceFullRedraw = true;
+            }
+            _zoomLastFrame = _zoomThisFrame;
+        }
+
+        bool SetZoomTransition(const ZoomTransition& transition) override
+        {
+            _zoomTransition = transition;
+            return true;
         }
 
         void PaintWindows() override
         {
+            auto* main = WindowGetMain();
+            if (_zoomThisFrame && main != nullptr && main->viewport != nullptr)
+            {
+                // The interface into the canvas without the main viewport, then the main viewport
+                // into the world canvas.
+                _invalidationGrid.traverseDirtyCells([](int32_t, int32_t, int32_t, int32_t) {});
+                _ignoreCopyRect = true;
+                WindowUpdateAllViewports();
+                _ignoreCopyRect = false;
+                auto& viewport = *main->viewport;
+                viewport.flags.set(ViewportFlag::renderingInhibited);
+                WindowDrawAll(_rt, 0, 0, _rt.width, _rt.height);
+                viewport.flags.unset(ViewportFlag::renderingInhibited);
+                _context->AddMarker(SegmentMarker::none);
+                _context->SetTarget(_zoomRT);
+                _context->SetLitViewport(&_zoomViewport);
+                ViewportRender(_zoomRT, &_zoomViewport);
+                _context->SetTarget(_rt);
+                _context->SetLitViewport(&viewport);
+                _context->AddMarker(SegmentMarker::zoomWorld);
+                _forceFullRedraw = false;
+                ++_fullRedraws;
+                const uint64_t area = static_cast<uint64_t>(_rt.width) * _rt.height
+                    + static_cast<uint64_t>(_zoomViewport.width) * _zoomViewport.height;
+                _fullArea += area;
+                _frameRedrawArea += area;
+                return;
+            }
             if (_forceFullRedraw || _debug.fullRedraw || gPaintForceRedraw || Weather::hasWeatherEffect() || _lampsThisFrame)
             {
                 // Rain and snow are drawn over the canvas, so frames with weather are redrawn in
@@ -649,20 +732,24 @@ namespace
         }
 
         void UpdateCanvasSize();
+        bool PrepareZoomWorld(const Viewport& main);
         void BuildOrder(const RecordedFrame& frame);
         bool BuildReferenceTiles(const RecordedFrame& frame, FrameSlot& slot, uint32_t& tilesAcross, uint32_t& tilesDown);
+        // Draws a segment into target, with its heights into heights. clear clears the target
+        // first, and the heights to clearHeight if there is one.
         void EncodeSegment(
             id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms,
-            id<MTLTexture> target, bool clear);
+            id<MTLTexture> target, id<MTLTexture> heights, id<MTLTexture> depth, bool clear, std::optional<float> clearHeight);
         void EncodeReadback(id<MTLCommandBuffer> commandBuffer, id<MTLTexture> source, id<MTLBuffer> destination);
         void CompareDirtyWithFull();
         void EncodeCopy(id<MTLCommandBuffer> commandBuffer, const CopyOperation& copy);
         void EncodeReference(
             id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms);
         void UpdateLighting();
-        void EncodeLights(id<MTLCommandBuffer> commandBuffer);
+        void EncodeLights(id<MTLCommandBuffer> commandBuffer, id<MTLTexture> target, id<MTLTexture> heights, bool lamps);
         void EncodePresent(id<MTLCommandBuffer> commandBuffer);
         bool EncodeShaded(id<MTLCommandBuffer> commandBuffer);
+        void EncodeZoomShaded(id<MTLCommandBuffer> commandBuffer);
         bool EncodeCrtSignal(id<MTLCommandBuffer> commandBuffer, const CrtUniforms& crt);
         void CompareWithReference();
         bool ReadCanvas();
@@ -731,6 +818,88 @@ namespace
             presentation.h, _drawableOffsetX, _drawableOffsetY);
     }
 
+    // Sets up the viewport, target and textures that draw the main viewport for this frame's
+    // zoom transition. Returns false if the resources are not available.
+    bool MetalDrawingEngine::PrepareZoomWorld(const Viewport& main)
+    {
+        const auto& transition = _zoomTransition;
+        const auto level = static_cast<int8_t>(std::clamp<long>(
+            std::lround(transition.zoom), static_cast<int8_t>(ZoomLevel::min()), static_cast<int8_t>(ZoomLevel::max())));
+        const double step = std::ldexp(1.0, level);             // View units per world texel.
+        const double viewPerLogical = std::exp2(static_cast<double>(transition.zoom));
+        // View rectangle shown in the main viewport's area.
+        const double left = transition.viewX + (main.pos.x - transition.anchorX) * viewPerLogical;
+        const double top = transition.viewY + (main.pos.y - transition.anchorY) * viewPerLogical;
+        const double right = left + main.width * viewPerLogical;
+        const double bottom = top + main.height * viewPerLogical;
+        // The world canvas starts on a whole view unit and texel, with a texel of margin on
+        // every side for the presentation's filter.
+        const double quantum = std::max(step, 1.0);
+        const double originX = std::floor(left / quantum) * quantum - quantum;
+        const double originY = std::floor(top / quantum) * quantum - quantum;
+        const auto width = static_cast<uint32_t>(std::ceil((right - originX) / step)) + 2;
+        const auto height = static_cast<uint32_t>(std::ceil((bottom - originY) / step)) + 2;
+        if (width > 8192 || height > 8192)
+            return false;
+
+        if (_zoomCanvas == nil || width > _zoomWidth || height > _zoomHeight)
+        {
+            // Grown in steps so a pinch does not reallocate every frame.
+            [_lastCommand waitUntilCompleted];
+            _zoomWidth = std::max((width + 63) & ~63u, _zoomWidth);
+            _zoomHeight = std::max((height + 63) & ~63u, _zoomHeight);
+            auto texture = [this](MTLPixelFormat format, MTLStorageMode storage, MTLTextureUsage usage, NSString* label) {
+                auto descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format
+                                                                                     width:_zoomWidth
+                                                                                    height:_zoomHeight
+                                                                                 mipmapped:NO];
+                descriptor.storageMode = storage;
+                descriptor.usage = usage;
+                id<MTLTexture> result = [_device newTextureWithDescriptor:descriptor];
+                result.label = label;
+                return result;
+            };
+            const auto targetUsage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+            _zoomCanvas = texture(MTLPixelFormatR8Uint, MTLStorageModePrivate, targetUsage, @"OpenRCT2 zoom world canvas");
+            _zoomHeights = texture(MTLPixelFormatR32Float, MTLStorageModePrivate, targetUsage, @"OpenRCT2 zoom world height");
+            _zoomDepth = texture(MTLPixelFormatDepth32Float, MTLStorageModeMemoryless, MTLTextureUsageRenderTarget, nil);
+            _zoomLight = texture(MTLPixelFormatRGBA16Float, MTLStorageModePrivate, targetUsage, @"OpenRCT2 zoom world light");
+            _zoomShaded = texture(MTLPixelFormatBGRA8Unorm, MTLStorageModePrivate, targetUsage, @"OpenRCT2 zoom world shaded");
+            _zoomBits.assign(static_cast<size_t>(_zoomWidth) * _zoomHeight, PaletteIndex::transparent);
+            LOG_INFO("Metal zoom world canvas=%ux%u", _zoomWidth, _zoomHeight);
+            if (_zoomCanvas == nil || _zoomHeights == nil || _zoomDepth == nil || _zoomLight == nil || _zoomShaded == nil)
+            {
+                _zoomCanvas = nil;
+                _zoomWidth = _zoomHeight = 0;
+                return false;
+            }
+        }
+
+        _zoomRT = {};
+        _zoomRT.DrawingEngine = this;
+        _zoomRT.bits = _zoomBits.data();
+        _zoomRT.width = static_cast<int32_t>(_zoomWidth);
+        _zoomRT.height = static_cast<int32_t>(_zoomHeight);
+
+        _zoomViewport = main;
+        _zoomViewport.pos = {};
+        _zoomViewport.width = static_cast<int32_t>(width);
+        _zoomViewport.height = static_cast<int32_t>(height);
+        _zoomViewport.viewPos = { static_cast<int32_t>(originX), static_cast<int32_t>(originY) };
+        _zoomViewport.zoom = ZoomLevel{ level };
+        _zoomViewport.isVisible = true;
+
+        // Logical position p shows view position view + (p - anchor) * viewPerLogical, which is
+        // world texel (that - origin) / step.
+        _zoomUniforms = {};
+        _zoomUniforms.originX = static_cast<float>((transition.viewX - transition.anchorX * viewPerLogical - originX) / step);
+        _zoomUniforms.originY = static_cast<float>((transition.viewY - transition.anchorY * viewPerLogical - originY) / step);
+        _zoomUniforms.texelsPerLogical = static_cast<float>(viewPerLogical / step);
+        _zoomUniforms.worldWidth = static_cast<float>(_zoomWidth);
+        _zoomUniforms.worldHeight = static_cast<float>(_zoomHeight);
+        return true;
+    }
+
     // Per segment: destination-independent commands latest-first, then dependent commands in
     // submission order. In single-pass mode every command is submitted in order.
     void MetalDrawingEngine::BuildOrder(const RecordedFrame& frame)
@@ -786,7 +955,7 @@ namespace
 
     void MetalDrawingEngine::EncodeSegment(
         id<MTLCommandBuffer> commandBuffer, const FrameSlot& slot, const SegmentDraw& segment, const FrameUniforms& uniforms,
-        id<MTLTexture> target, bool clear)
+        id<MTLTexture> target, id<MTLTexture> heights, id<MTLTexture> depth, bool clear, std::optional<float> clearHeight)
     {
         if (segment.opaqueCount == 0 && segment.independentCount == 0 && segment.dependentCount == 0 && !clear)
             return;
@@ -795,17 +964,14 @@ namespace
         pass.colorAttachments[0].loadAction = clear ? MTLLoadActionClear : MTLLoadActionLoad;
         pass.colorAttachments[0].clearColor = MTLClearColorMake(kInitialCanvasIndex, 0, 0, 0);
         pass.colorAttachments[0].storeAction = MTLStoreActionStore;
-        // Heights follow the main canvas; the verification canvas redraws the same frame.
-        pass.colorAttachments[1].texture = _height;
-        pass.colorAttachments[1].loadAction = clear && target == _canvas ? MTLLoadActionClear : MTLLoadActionLoad;
-        pass.colorAttachments[1].clearColor = MTLClearColorMake(kHeightInterface, 0, 0, 0);
+        pass.colorAttachments[1].texture = heights;
+        pass.colorAttachments[1].loadAction = clear && clearHeight ? MTLLoadActionClear : MTLLoadActionLoad;
+        pass.colorAttachments[1].clearColor = MTLClearColorMake(clearHeight.value_or(0), 0, 0, 0);
         pass.colorAttachments[1].storeAction = MTLStoreActionStore;
-        pass.depthAttachment.texture = _depth;
+        pass.depthAttachment.texture = depth;
         pass.depthAttachment.loadAction = MTLLoadActionClear;
         pass.depthAttachment.clearDepth = 1.0;
         pass.depthAttachment.storeAction = MTLStoreActionDontCare;
-        if (target == _canvas)
-            _canvasNeedsClear = false;
 
         auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
         encoder.label = @"OpenRCT2 indexed commands";
@@ -897,6 +1063,18 @@ namespace
         const auto* main = WindowGetMain();
         const auto* viewport = main != nullptr ? main->viewport : nullptr;
         float pollution = 0;
+        if (_zoomThisFrame)
+        {
+            // The lamps light the world canvas, which starts at the zoom viewport's origin.
+            viewport = &_zoomViewport;
+            _lightWidth = static_cast<float>(_zoomWidth);
+            _lightHeight = static_cast<float>(_zoomHeight);
+        }
+        else
+        {
+            _lightWidth = static_cast<float>(_rt.width);
+            _lightHeight = static_cast<float>(_rt.height);
+        }
         if (_lampsThisFrame && viewport != nullptr)
         {
             const float step = std::ldexp(1.0f, static_cast<int8_t>(viewport->zoom));
@@ -932,7 +1110,7 @@ namespace
                 const float x = (light.viewX - _lightView.viewOriginX) / step;
                 const float y = (light.viewY - light.height - _lightView.viewOriginY) / step;
                 const float extent = 1.5f * radius / step;
-                if (x + extent < 0 || y + extent < 0 || x - extent > _rt.width || y - extent > _rt.height)
+                if (x + extent < 0 || y + extent < 0 || x - extent > _lightWidth || y - extent > _lightHeight)
                     continue;
                 _lights.push_back(light);
                 // LightFx's light pollution: the area of every visible light texture / 256.
@@ -956,18 +1134,18 @@ namespace
         _ambient.lightFog = ambient.lightFog;
     }
 
-    void MetalDrawingEngine::EncodeLights(id<MTLCommandBuffer> commandBuffer)
+    void MetalDrawingEngine::EncodeLights(id<MTLCommandBuffer> commandBuffer, id<MTLTexture> target, id<MTLTexture> heights, bool lamps)
     {
         auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
-        pass.colorAttachments[0].texture = _light;
+        pass.colorAttachments[0].texture = target;
         pass.colorAttachments[0].loadAction = MTLLoadActionClear;
         pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 0);
         pass.colorAttachments[0].storeAction = MTLStoreActionStore;
         auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
         encoder.label = @"OpenRCT2 lamp light";
-        if (!_lights.empty() && _ambient.mode == 2)
+        if (lamps && !_lights.empty() && _ambient.mode == 2)
         {
-            const FrameUniforms frame{ _canvasWidth, _canvasHeight, 0, 0 };
+            const FrameUniforms frame{ static_cast<uint32_t>(target.width), static_cast<uint32_t>(target.height), 0, 0 };
             [encoder setRenderPipelineState:_lightPipeline];
             const size_t bytes = _lights.size() * sizeof(LightInstance);
             id<MTLBuffer> buffer = [_device newBufferWithBytes:_lights.data() length:bytes options:MTLResourceStorageModeShared];
@@ -976,7 +1154,7 @@ namespace
             [encoder setVertexBytes:&frame length:sizeof(frame) atIndex:kBufferUniforms];
             [encoder setFragmentBuffer:buffer offset:0 atIndex:kBufferLights];
             [encoder setFragmentBytes:&_lightView length:sizeof(_lightView) atIndex:kBufferLightUniforms];
-            [encoder setFragmentTexture:_height atIndex:kTextureHeight];
+            [encoder setFragmentTexture:heights atIndex:kTextureHeight];
             [encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:_lights.size()];
         }
         [encoder endEncoding];
@@ -998,7 +1176,12 @@ namespace
             kCrtSharpness,
             kCrtGamma,
         };
-        EncodeLights(commandBuffer);
+        EncodeLights(commandBuffer, _light, _height, !_zoomThisFrame);
+        if (_zoomThisFrame)
+        {
+            EncodeLights(commandBuffer, _zoomLight, _zoomHeights, true);
+            EncodeZoomShaded(commandBuffer);
+        }
         const bool useCrt = _crtEnabled && EncodeCrtSignal(commandBuffer, crt);
         const bool useShaded = !useCrt && EncodeShaded(commandBuffer);
 
@@ -1029,6 +1212,18 @@ namespace
                 [encoder setFragmentTexture:_crtSignal atIndex:kTextureCanvas];
                 [encoder setFragmentTexture:_crtBeams atIndex:kTextureCrtBeams];
                 [encoder setFragmentBytes:&crt length:sizeof(crt) atIndex:kBufferUniforms];
+            }
+            else if (useShaded && _zoomThisFrame)
+            {
+                auto uniforms = _zoomUniforms;
+                uniforms.offsetX = _drawableOffsetX;
+                uniforms.offsetY = _drawableOffsetY;
+                uniforms.scale = _presentScale;
+                [encoder setRenderPipelineState:_zoomPipeline];
+                [encoder setFragmentTexture:_shaded atIndex:kTextureCanvas];
+                [encoder setFragmentTexture:_height atIndex:kTextureHeight];
+                [encoder setFragmentTexture:_zoomShaded atIndex:kTextureZoomWorld];
+                [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
             }
             else if (useShaded)
             {
@@ -1091,6 +1286,29 @@ namespace
         return true;
     }
 
+    // Shades the world canvas of a zoom transition, the part the main viewport uses.
+    void MetalDrawingEngine::EncodeZoomShaded(id<MTLCommandBuffer> commandBuffer)
+    {
+        auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
+        pass.colorAttachments[0].texture = _zoomShaded;
+        pass.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+        pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+        auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
+        encoder.label = @"OpenRCT2 zoom world shaded";
+        [encoder setViewport:MTLViewport{ 0, 0, static_cast<double>(_zoomViewport.width),
+                                          static_cast<double>(_zoomViewport.height), 0, 1 }];
+        const PresentUniforms uniforms{ 0, 0, 1 };
+        [encoder setRenderPipelineState:_presentPipeline];
+        [encoder setFragmentTexture:_zoomCanvas atIndex:kTextureCanvas];
+        [encoder setFragmentTexture:_zoomHeights atIndex:kTextureHeight];
+        [encoder setFragmentTexture:_zoomLight atIndex:kTextureLight];
+        [encoder setFragmentBytes:_palette.data() length:sizeof(_palette) atIndex:kBufferPalette];
+        [encoder setFragmentBytes:&_ambient length:sizeof(_ambient) atIndex:kBufferAmbient];
+        [encoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:kBufferUniforms];
+        [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+        [encoder endEncoding];
+    }
+
     // Shades the canvas into the linear CRT signal texture.
     bool MetalDrawingEngine::EncodeCrtSignal(id<MTLCommandBuffer> commandBuffer, const CrtUniforms& crt)
     {
@@ -1135,7 +1353,18 @@ namespace
         pass.colorAttachments[0].storeAction = MTLStoreActionStore;
         auto encoder = [commandBuffer renderCommandEncoderWithDescriptor:pass];
         encoder.label = @"OpenRCT2 CRT signal";
-        [encoder setRenderPipelineState:_crtSignalPipeline];
+        if (_zoomThisFrame)
+        {
+            auto zoom = _zoomUniforms;
+            zoom.scale = 1;
+            [encoder setRenderPipelineState:_crtZoomSignalPipeline];
+            [encoder setFragmentTexture:_zoomShaded atIndex:kTextureZoomWorld];
+            [encoder setFragmentBytes:&zoom length:sizeof(zoom) atIndex:kBufferZoom];
+        }
+        else
+        {
+            [encoder setRenderPipelineState:_crtSignalPipeline];
+        }
         [encoder setFragmentTexture:_canvas atIndex:kTextureCanvas];
         [encoder setFragmentTexture:_height atIndex:kTextureHeight];
         [encoder setFragmentTexture:_light atIndex:kTextureLight];
@@ -1405,11 +1634,25 @@ namespace
             {
                 if (verify && segment.marker == SegmentMarker::verifyCanvas)
                 {
-                    EncodeSegment(commandBuffer, slot, segment, uniforms, _verifyCanvas, true);
+                    // Heights follow the main canvas; the verification canvas redraws the same frame.
+                    EncodeSegment(commandBuffer, slot, segment, uniforms, _verifyCanvas, _height, _depth, true, std::nullopt);
                     EncodeReadback(commandBuffer, _verifyCanvas, _verifyFullPixels);
                     continue;
                 }
-                EncodeSegment(commandBuffer, slot, segment, uniforms, _canvas, _canvasNeedsClear);
+                if (segment.marker == SegmentMarker::zoomWorld)
+                {
+                    if (_zoomThisFrame)
+                    {
+                        const FrameUniforms world{ _zoomWidth, _zoomHeight, 0, 0 };
+                        EncodeSegment(
+                            commandBuffer, slot, segment, world, _zoomCanvas, _zoomHeights, _zoomDepth, true, kHeightInterface);
+                    }
+                    continue;
+                }
+                EncodeSegment(
+                    commandBuffer, slot, segment, uniforms, _canvas, _height, _depth, _canvasNeedsClear,
+                    _zoomThisFrame ? kHeightZoomWorld : kHeightInterface);
+                _canvasNeedsClear = false;
                 if (verify && segment.marker == SegmentMarker::snapshotCanvas)
                     EncodeReadback(commandBuffer, _canvas, _verifyDirtyPixels);
                 if (compare)
@@ -1421,6 +1664,7 @@ namespace
             EncodePresent(commandBuffer);
 
             const auto statistics = _gpuStatistics;
+            const bool zoomFrame = _zoomThisFrame;
             dispatch_semaphore_t semaphore = _inflight;
             const FrameDiagnostics diagnostics{
                 _frame,
@@ -1455,6 +1699,16 @@ namespace
                                        .count();
                   const auto previousCompletion = statistics->lastCompletionNanoseconds.exchange(now);
                   const double interval = previousCompletion != 0 ? (now - previousCompletion) / 1e6 : 0.0;
+                  {
+                      std::scoped_lock lock(statistics->zoomMutex);
+                      if (zoomFrame)
+                      {
+                          statistics->zoomGpu.push_back(static_cast<float>(microseconds / 1000.0));
+                          if (statistics->lastWasZoom)
+                              statistics->zoomIntervals.push_back(static_cast<float>(interval));
+                      }
+                      statistics->lastWasZoom = zoomFrame;
+                  }
                   if (interval > 25.0 && statistics->hitchesLogged.fetch_add(1) < 400)
                       LOG_INFO(
                           "Metal hitch frame=%llu interval=%.1fms gpu=%.2fms loop=%.1fms paint=%.1fms slot_wait=%.1fms "
@@ -1486,6 +1740,11 @@ namespace
         const auto end = std::chrono::steady_clock::now();
         _encodeMilliseconds += Milliseconds(end - encodeStart);
         _cpuMilliseconds += Milliseconds(end - _beginDrawTime);
+        if (_zoomThisFrame)
+        {
+            _zoomPaint.push_back(static_cast<float>(Milliseconds(encodeStart - _beginDrawTime)));
+            _zoomCpu.push_back(static_cast<float>(Milliseconds(end - _beginDrawTime) - _frameDrawableWait));
+        }
         if (_frame % kStatisticsInterval == 0)
             LogStatistics(frame.commands.size());
     }
@@ -1565,6 +1824,15 @@ namespace
             _dirtyArea / screen / drawn, _fullArea / screen / drawn, static_cast<double>(_promotedRedraws) / drawn,
             _opaquePixels / screen / drawn, _independentPixels / screen / drawn, _dependentPixels / screen / drawn);
         LOG_INFO("Metal frame timing (GPU ms) %s", _gpuStatistics->timing.Summarise().c_str());
+        {
+            // Zoom transitions over the whole run (pinches are short and sparse).
+            std::scoped_lock lock(_gpuStatistics->zoomMutex);
+            if (!_gpuStatistics->zoomGpu.empty())
+                LOG_INFO(
+                    "Metal zoom frames: gpu %s | paint %s | cpu %s | interval %s",
+                    FrameTiming::Describe(_gpuStatistics->zoomGpu).c_str(), FrameTiming::Describe(_zoomPaint).c_str(),
+                    FrameTiming::Describe(_zoomCpu).c_str(), FrameTiming::Describe(_gpuStatistics->zoomIntervals).c_str());
+        }
         _dirtyArea = _fullArea = _opaquePixels = _independentPixels = _dependentPixels = 0;
         _promotedRedraws = 0;
         _cpuMilliseconds = 0;

@@ -49,6 +49,19 @@ namespace OpenRCT2::Drawing
     struct IDrawingContext;
     struct RenderTarget;
 
+    // The main viewport shown at a continuous zoom while a pinch is in progress: logical pixel
+    // position (anchorX, anchorY) shows zoom-0 view position (viewX, viewY), and every logical
+    // pixel spans 2^zoom view units. The viewport keeps its own zoom and position meanwhile.
+    struct ZoomTransition
+    {
+        bool active{};
+        float zoom{};
+        float anchorX{};
+        float anchorY{};
+        double viewX{};
+        double viewY{};
+    };
+
     struct IDrawingEngine
     {
         virtual ~IDrawingEngine()
@@ -75,6 +88,12 @@ namespace OpenRCT2::Drawing
         virtual DrawingEngineFlags GetFlags() = 0;
 
         virtual void InvalidateImage(uint32_t image) = 0;
+
+        // Returns false if the engine cannot draw a continuous zoom.
+        virtual bool SetZoomTransition(const ZoomTransition&)
+        {
+            return false;
+        }
     };
 
     struct IDrawingEngineFactory

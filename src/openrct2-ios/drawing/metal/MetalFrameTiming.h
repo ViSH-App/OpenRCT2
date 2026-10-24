@@ -62,7 +62,6 @@ namespace OpenRCT2::Ui::Metal
             return line + fps;
         }
 
-    private:
         static std::string Describe(std::vector<float> values)
         {
             if (values.empty())
@@ -84,6 +83,7 @@ namespace OpenRCT2::Ui::Metal
             return text;
         }
 
+    private:
         std::mutex _mutex;
         std::vector<float> _window;
         std::vector<float> _all;

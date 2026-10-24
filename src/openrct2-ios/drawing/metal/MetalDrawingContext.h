@@ -37,6 +37,7 @@ namespace OpenRCT2::Ui::Metal
         none,
         snapshotCanvas, // Read the canvas back after this segment.
         verifyCanvas,   // Draw this segment into the verification canvas from scratch.
+        zoomWorld,      // Draw this segment into the zoom-transition world canvas.
     };
 
     // Commands of one frame in submission order, split where canvas copies must happen.

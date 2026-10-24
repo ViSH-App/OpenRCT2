@@ -51,6 +51,8 @@
 #include <openrct2/scenes/title/TitleSequencePlayer.h>
 #include <openrct2/ui/UiContext.h>
 #include <openrct2/ui/WindowManager.h>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 #ifdef __EMSCRIPTEN__
@@ -90,6 +92,10 @@ private:
     constexpr static float kTouchPinchDominance = 1.5f;
     constexpr static float kTouchPanSensitivity = 0.5f;
     constexpr static float kTouchZoomStep = 20.0f;
+    // A continuous pinch lands on the next zoom level in its direction once it has moved this
+    // fraction of a level, and settles there in this many milliseconds.
+    constexpr static float kTouchZoomCommit = 0.25f;
+    constexpr static uint32_t kTouchZoomSettleDuration = 140;
     constexpr static uint32_t kTouchLongPressTimeout = 500;
     constexpr static int32_t kTouchToolTapDistance = 32;
     constexpr static int32_t kTrackpadViewportWheelStep = 4;
@@ -118,6 +124,9 @@ private:
         SDL_FingerID id = -1;
         ScreenCoordsXY position{};
         bool active = false;
+        // Unrounded position in logical pixels.
+        float x = 0;
+        float y = 0;
     };
 #endif
 
@@ -176,6 +185,17 @@ private:
     WidgetIndex _touchScrollWidget{};
     int32_t _touchScrollIndex{};
     int32_t _touchScrollLastY{};
+    // Continuous pinch zoom, for drawing engines that draw a ZoomTransition. The pinch keeps
+    // the view position under the fingers' centre there, and settles on a whole zoom level.
+    bool _smoothZoomActive{};
+    bool _smoothZoomSettling{};
+    float _smoothZoomBeginLevel{};
+    float _smoothZoomBaseLevel{}; // Level at _smoothZoomBaseSpan; rebased when clamped.
+    float _smoothZoomBaseSpan{};
+    ZoomTransition _smoothZoom{};
+    ZoomTransition _smoothZoomFrom{};
+    ZoomTransition _smoothZoomTo{};
+    uint32_t _smoothZoomSettleStart{};
 #endif
 
     InGameConsole _inGameConsole;
@@ -191,6 +211,149 @@ private:
         const auto scale = Config::Get().general.windowScale;
         return { static_cast<int32_t>(std::floor((event.x * windowWidth - rect.x) / scale)),
                  static_cast<int32_t>(std::floor((event.y * windowHeight - rect.y) / scale)) };
+    }
+
+    std::pair<float, float> GetPreciseTouchPosition(const SDL_TouchFingerEvent& event) const
+    {
+        int windowWidth, windowHeight;
+        SDL_GetWindowSize(_window, &windowWidth, &windowHeight);
+        const auto rect = IOS::ContentRect(_window);
+        const auto scale = Config::Get().general.windowScale;
+        return { (event.x * windowWidth - rect.x) / scale, (event.y * windowHeight - rect.y) / scale };
+    }
+
+    void SetTouchPoint(TouchPoint& point, const SDL_TouchFingerEvent& event, const ScreenCoordsXY& position) const
+    {
+        point.position = position;
+        std::tie(point.x, point.y) = GetPreciseTouchPosition(event);
+    }
+
+    float GetPreciseTouchSpan() const
+    {
+        return std::hypot(_primaryTouch.x - _secondaryTouch.x, _primaryTouch.y - _secondaryTouch.y);
+    }
+
+    bool BeginSmoothZoom()
+    {
+        FinishSmoothZoom();
+        auto* w = WindowGetMain();
+        auto* engine = GetContext()->GetDrawingEngine();
+        if (w == nullptr || w->viewport == nullptr || engine == nullptr || !Windows::MainWindowCanZoom())
+            return false;
+        const auto& viewport = *w->viewport;
+        // View position of the centre between the fingers, as the viewport draws it.
+        const float anchorX = (_primaryTouch.x + _secondaryTouch.x) / 2;
+        const float anchorY = (_primaryTouch.y + _secondaryTouch.y) / 2;
+        const double step = std::ldexp(1.0, static_cast<int8_t>(viewport.zoom));
+        const ZoomTransition transition{
+            true,
+            static_cast<float>(static_cast<int8_t>(viewport.zoom)),
+            anchorX,
+            anchorY,
+            viewport.zoom.ApplyTo(viewport.zoom.ApplyInversedTo(viewport.viewPos.x)) + (anchorX - viewport.pos.x) * step,
+            viewport.zoom.ApplyTo(viewport.zoom.ApplyInversedTo(viewport.viewPos.y)) + (anchorY - viewport.pos.y) * step,
+        };
+        if (!engine->SetZoomTransition(transition))
+            return false;
+        _smoothZoom = transition;
+        _smoothZoomActive = true;
+        _smoothZoomBeginLevel = transition.zoom;
+        _smoothZoomBaseLevel = transition.zoom;
+        _smoothZoomBaseSpan = std::max(GetPreciseTouchSpan(), 1.0f);
+        return true;
+    }
+
+    void UpdateSmoothZoom()
+    {
+        const float span = std::max(GetPreciseTouchSpan(), 1.0f);
+        const float level = _smoothZoomBaseLevel - std::log2(span / _smoothZoomBaseSpan);
+        const float clamped = std::clamp(
+            level, static_cast<float>(static_cast<int8_t>(ZoomLevel::min())),
+            static_cast<float>(static_cast<int8_t>(ZoomLevel::max())));
+        if (clamped != level)
+        {
+            // Past the last level: pinching back responds at once.
+            _smoothZoomBaseLevel = clamped;
+            _smoothZoomBaseSpan = span;
+        }
+        _smoothZoom.zoom = clamped;
+        _smoothZoom.anchorX = (_primaryTouch.x + _secondaryTouch.x) / 2;
+        _smoothZoom.anchorY = (_primaryTouch.y + _secondaryTouch.y) / 2;
+        GetContext()->GetDrawingEngine()->SetZoomTransition(_smoothZoom);
+    }
+
+    void EndSmoothZoom()
+    {
+        if (!_smoothZoomActive)
+            return;
+        _smoothZoomActive = false;
+        auto* w = WindowGetMain();
+        if (w == nullptr || w->viewport == nullptr)
+        {
+            GetContext()->GetDrawingEngine()->SetZoomTransition({});
+            return;
+        }
+        // The nearest level, or the next one in the pinch's direction once it moved far enough.
+        const float delta = _smoothZoom.zoom - _smoothZoomBeginLevel;
+        float target = std::round(_smoothZoom.zoom);
+        if (target == _smoothZoomBeginLevel && std::abs(delta) >= kTouchZoomCommit)
+            target += delta > 0 ? 1.0f : -1.0f;
+        target = std::clamp(
+            target, static_cast<float>(static_cast<int8_t>(ZoomLevel::min())),
+            static_cast<float>(static_cast<int8_t>(ZoomLevel::max())));
+        // Keep the anchor in place, with the viewport on a whole view unit and pixel.
+        const auto& viewport = *w->viewport;
+        const double step = std::ldexp(1.0, static_cast<int>(target));
+        const double quantum = std::max(step, 1.0);
+        const double originX = std::round((_smoothZoom.viewX - (_smoothZoom.anchorX - viewport.pos.x) * step) / quantum) * quantum;
+        const double originY = std::round((_smoothZoom.viewY - (_smoothZoom.anchorY - viewport.pos.y) * step) / quantum) * quantum;
+        _smoothZoomFrom = _smoothZoom;
+        _smoothZoomTo = _smoothZoom;
+        _smoothZoomTo.zoom = target;
+        _smoothZoomTo.viewX = originX + (_smoothZoom.anchorX - viewport.pos.x) * step;
+        _smoothZoomTo.viewY = originY + (_smoothZoom.anchorY - viewport.pos.y) * step;
+        _smoothZoomSettling = true;
+        _smoothZoomSettleStart = SDL_GetTicks();
+    }
+
+    void UpdateSmoothZoomSettle()
+    {
+        if (!_smoothZoomSettling)
+            return;
+        const float t = std::min(1.0f, static_cast<float>(SDL_GetTicks() - _smoothZoomSettleStart) / kTouchZoomSettleDuration);
+        if (t >= 1.0f)
+        {
+            FinishSmoothZoom();
+            return;
+        }
+        const float eased = 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
+        _smoothZoom.zoom = std::lerp(_smoothZoomFrom.zoom, _smoothZoomTo.zoom, eased);
+        _smoothZoom.viewX = std::lerp(_smoothZoomFrom.viewX, _smoothZoomTo.viewX, static_cast<double>(eased));
+        _smoothZoom.viewY = std::lerp(_smoothZoomFrom.viewY, _smoothZoomTo.viewY, static_cast<double>(eased));
+        GetContext()->GetDrawingEngine()->SetZoomTransition(_smoothZoom);
+    }
+
+    // Applies the settled zoom to the main viewport and ends the transition.
+    void FinishSmoothZoom()
+    {
+        if (!_smoothZoomSettling)
+            return;
+        _smoothZoomSettling = false;
+        auto* w = WindowGetMain();
+        if (w != nullptr && w->viewport != nullptr)
+        {
+            const auto& to = _smoothZoomTo;
+            WindowZoomSet(*w, ZoomLevel{ static_cast<int8_t>(to.zoom) }, false);
+            const double step = std::ldexp(1.0, static_cast<int>(to.zoom));
+            const ScreenCoordsXY viewPos{
+                static_cast<int32_t>(std::lround(to.viewX - (to.anchorX - w->viewport->pos.x) * step)),
+                static_cast<int32_t>(std::lround(to.viewY - (to.anchorY - w->viewport->pos.y) * step)),
+            };
+            w->savedViewPos = viewPos;
+            w->viewport->viewPos = viewPos;
+            w->invalidate();
+        }
+        GetContext()->GetDrawingEngine()->SetZoomTransition({});
     }
 
     static int64_t GetTouchDistanceSquared(const ScreenCoordsXY& first, const ScreenCoordsXY& second)
@@ -443,6 +606,7 @@ private:
 
     void ResetTouchGesture()
     {
+        EndSmoothZoom();
         _primaryTouch = {};
         _secondaryTouch = {};
         _touchGestureMode = TouchGestureMode::none;
@@ -471,6 +635,7 @@ private:
         if (!_primaryTouch.active)
         {
             _primaryTouch = { event.fingerId, position, true };
+            SetTouchPoint(_primaryTouch, event, position);
             _touchGestureMode = TouchGestureMode::singlePending;
             _touchGestureStart = position;
             _touchGestureStartTimestamp = event.timestamp;
@@ -490,6 +655,7 @@ private:
         _lastTouchToolTapTimestamp = 0;
 
         _secondaryTouch = { event.fingerId, position, true };
+        SetTouchPoint(_secondaryTouch, event, position);
         _touchGestureMode = TouchGestureMode::multiPending;
         _touchGestureStart = GetTouchCentroid();
         _touchLastCentroid = _touchGestureStart;
@@ -558,11 +724,11 @@ private:
         const auto position = GetTouchPosition(event);
         if (_primaryTouch.active && event.fingerId == _primaryTouch.id)
         {
-            _primaryTouch.position = position;
+            SetTouchPoint(_primaryTouch, event, position);
         }
         else if (_secondaryTouch.active && event.fingerId == _secondaryTouch.id)
         {
-            _secondaryTouch.position = position;
+            SetTouchPoint(_secondaryTouch, event, position);
         }
         else
         {
@@ -599,6 +765,7 @@ private:
                     _touchGestureMode = TouchGestureMode::multiPinch;
                     _touchPinchAccumulator = span - _touchGestureStartSpan;
                     _touchLastSpan = span;
+                    BeginSmoothZoom();
                 }
                 else if (IsDeliberateRotation(angle, span, centroidDistance))
                 {
@@ -633,6 +800,7 @@ private:
                     _touchPinchAccumulator = span - _touchGestureStartSpan;
                     _touchLastSpan = span;
                     _cursorState.position = centroid;
+                    BeginSmoothZoom();
                 }
                 else if (IsDeliberateRotation(angle, span, centroidDistance))
                 {
@@ -651,7 +819,12 @@ private:
                 }
             }
 
-            if (_touchGestureMode == TouchGestureMode::multiPinch)
+            if (_touchGestureMode == TouchGestureMode::multiPinch && _smoothZoomActive)
+            {
+                _cursorState.position = centroid;
+                UpdateSmoothZoom();
+            }
+            else if (_touchGestureMode == TouchGestureMode::multiPinch)
             {
                 _touchPinchAccumulator += span - _touchLastSpan;
                 _touchLastSpan = span;
@@ -749,6 +922,7 @@ private:
 
         if (_secondaryTouch.active)
         {
+            EndSmoothZoom();
             if (_touchGestureMode == TouchGestureMode::multiPan)
             {
                 StoreTouchRelease(MouseState::rightRelease, _cursorState.position);
@@ -1389,6 +1563,7 @@ public:
 
 #ifdef OPENRCT2_IOS
         HandleTouchHold();
+        UpdateSmoothZoomSettle();
 #endif
 
         _cursorState.any = _cursorState.left | _cursorState.middle | _cursorState.right;

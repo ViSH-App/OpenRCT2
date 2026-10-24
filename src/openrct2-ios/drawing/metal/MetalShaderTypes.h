@@ -115,6 +115,8 @@ namespace OpenRCT2
             METAL_CONSTANT float kHeightInterface = -1.0e9f; // Never darkened or lit.
             METAL_CONSTANT float kHeightUnlit = -5.0e8f;     // World without a height: darkened, not lit.
             METAL_CONSTANT float kHeightLitBelow = -1.0e8f;  // Heights above this are lit.
+            // Canvas pixels that show the zoom-transition world texture instead (see ZoomUniforms).
+            METAL_CONSTANT float kHeightZoomWorld = -2.0e9f;
 
             // One light of the main viewport, in its zoom-0 view space (x, y at height 0).
             struct LightInstance
@@ -183,6 +185,20 @@ namespace OpenRCT2
                 MetalUInt scale; // Drawable pixels per logical pixel.
             };
 
+            // Zoom transition: canvas pixels marked kHeightZoomWorld show the main viewport drawn into
+            // a separate texture at a neighbouring zoom level, scaled by a continuous factor.
+            struct ZoomUniforms
+            {
+                MetalUInt offsetX; // Content origin in output pixels.
+                MetalUInt offsetY;
+                MetalUInt scale;        // Output pixels per logical pixel.
+                float originX;          // World texel at logical position (0, 0).
+                float originY;
+                float texelsPerLogical; // World texels per logical pixel.
+                float worldWidth;       // World texture size.
+                float worldHeight;
+            };
+
             // CRT presentation: one scanline per logical row, drawn as gaussian electron beams.
             struct CrtUniforms
             {
@@ -203,6 +219,7 @@ namespace OpenRCT2
             // Fragment buffer bindings.
             METAL_CONSTANT MetalUInt kBufferPalette = 2;
             METAL_CONSTANT MetalUInt kBufferAmbient = 3;
+            METAL_CONSTANT MetalUInt kBufferZoom = 5;
             // Light pass bindings.
             METAL_CONSTANT MetalUInt kBufferLights = 0;
             METAL_CONSTANT MetalUInt kBufferLightUniforms = 1;
@@ -221,6 +238,7 @@ namespace OpenRCT2
             METAL_CONSTANT MetalUInt kTextureCrtBeams = 4;
             METAL_CONSTANT MetalUInt kTextureHeight = 5;
             METAL_CONSTANT MetalUInt kTextureLight = 6;
+            METAL_CONSTANT MetalUInt kTextureZoomWorld = 7;
 
             // CRT beam table: light per (sqrt of the brightest channel, distance in logical rows).
             METAL_CONSTANT MetalUInt kCrtBeamIntensities = 64;
