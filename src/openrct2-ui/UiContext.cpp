@@ -96,6 +96,11 @@ private:
     // fraction of a level, and settles there in this many milliseconds.
     constexpr static float kTouchZoomCommit = 0.25f;
     constexpr static uint32_t kTouchZoomSettleDuration = 140;
+    // One finger slid up or down along the left or right screen edge zooms: up zooms in.
+    // Widths and distances are in points.
+    constexpr static float kTouchEdgeZoomWidth = 44.0f;
+    constexpr static float kTouchEdgeZoomDistance = 160.0f; // Per zoom level.
+    constexpr static float kTouchEdgeZoomDominance = 1.5f;
     constexpr static uint32_t kTouchLongPressTimeout = 500;
     constexpr static int32_t kTouchToolTapDistance = 32;
     constexpr static int32_t kTrackpadViewportWheelStep = 4;
@@ -116,6 +121,7 @@ private:
         multiPinch,
         multiRotate,
         multiRemove,
+        edgeZoom,
         pencilPan, // A pencil touch while the Apple Pencil Pro is squeezed.
         suppressed,
     };
@@ -191,8 +197,10 @@ private:
     bool _smoothZoomActive{};
     bool _smoothZoomSettling{};
     float _smoothZoomBeginLevel{};
-    float _smoothZoomBaseLevel{}; // Level at _smoothZoomBaseSpan; rebased when clamped.
-    float _smoothZoomBaseSpan{};
+    // Zoom progress is in levels: log2 of the pinch span, or edge slide distance.
+    float _smoothZoomBaseLevel{}; // Level at _smoothZoomBaseProgress; rebased when clamped.
+    float _smoothZoomBaseProgress{};
+    float _touchEdgeZoomLastProgress{};
     ZoomTransition _smoothZoom{};
     ZoomTransition _smoothZoomFrom{};
     ZoomTransition _smoothZoomTo{};
@@ -234,7 +242,29 @@ private:
         return std::hypot(_primaryTouch.x - _secondaryTouch.x, _primaryTouch.y - _secondaryTouch.y);
     }
 
+    float GetPinchZoomProgress() const
+    {
+        return std::log2(std::max(GetPreciseTouchSpan(), 1.0f));
+    }
+
+    float GetEdgeZoomProgress() const
+    {
+        return -_primaryTouch.y * Config::Get().general.windowScale / kTouchEdgeZoomDistance;
+    }
+
     bool BeginSmoothZoom()
+    {
+        return BeginSmoothZoom(
+            (_primaryTouch.x + _secondaryTouch.x) / 2, (_primaryTouch.y + _secondaryTouch.y) / 2, GetPinchZoomProgress());
+    }
+
+    void UpdateSmoothZoom()
+    {
+        UpdateSmoothZoom(
+            (_primaryTouch.x + _secondaryTouch.x) / 2, (_primaryTouch.y + _secondaryTouch.y) / 2, GetPinchZoomProgress());
+    }
+
+    bool BeginSmoothZoom(float anchorX, float anchorY, float progress)
     {
         FinishSmoothZoom();
         auto* w = WindowGetMain();
@@ -242,9 +272,7 @@ private:
         if (w == nullptr || w->viewport == nullptr || engine == nullptr || !Windows::MainWindowCanZoom())
             return false;
         const auto& viewport = *w->viewport;
-        // View position of the centre between the fingers, as the viewport draws it.
-        const float anchorX = (_primaryTouch.x + _secondaryTouch.x) / 2;
-        const float anchorY = (_primaryTouch.y + _secondaryTouch.y) / 2;
+        // View position of the anchor, as the viewport draws it.
         const double step = std::ldexp(1.0, static_cast<int8_t>(viewport.zoom));
         const ZoomTransition transition{
             true,
@@ -260,14 +288,13 @@ private:
         _smoothZoomActive = true;
         _smoothZoomBeginLevel = transition.zoom;
         _smoothZoomBaseLevel = transition.zoom;
-        _smoothZoomBaseSpan = std::max(GetPreciseTouchSpan(), 1.0f);
+        _smoothZoomBaseProgress = progress;
         return true;
     }
 
-    void UpdateSmoothZoom()
+    void UpdateSmoothZoom(float anchorX, float anchorY, float progress)
     {
-        const float span = std::max(GetPreciseTouchSpan(), 1.0f);
-        const float level = _smoothZoomBaseLevel - std::log2(span / _smoothZoomBaseSpan);
+        const float level = _smoothZoomBaseLevel - (progress - _smoothZoomBaseProgress);
         const float clamped = std::clamp(
             level, static_cast<float>(static_cast<int8_t>(ZoomLevel::min())),
             static_cast<float>(static_cast<int8_t>(ZoomLevel::max())));
@@ -275,11 +302,11 @@ private:
         {
             // Past the last level: pinching back responds at once.
             _smoothZoomBaseLevel = clamped;
-            _smoothZoomBaseSpan = span;
+            _smoothZoomBaseProgress = progress;
         }
         _smoothZoom.zoom = clamped;
-        _smoothZoom.anchorX = (_primaryTouch.x + _secondaryTouch.x) / 2;
-        _smoothZoom.anchorY = (_primaryTouch.y + _secondaryTouch.y) / 2;
+        _smoothZoom.anchorX = anchorX;
+        _smoothZoom.anchorY = anchorY;
         GetContext()->GetDrawingEngine()->SetZoomTransition(_smoothZoom);
     }
 
@@ -681,6 +708,44 @@ private:
         _cursorState.position = _touchGestureStart;
     }
 
+    bool IsTouchEdgeZoomStart(const ScreenCoordsXY& position) const
+    {
+        const float fromEdge = std::min(_touchGestureStart.x, _width - 1 - _touchGestureStart.x)
+            * Config::Get().general.windowScale;
+        const auto delta = position - _touchGestureStart;
+        return fromEdge < kTouchEdgeZoomWidth && std::abs(delta.y) >= std::abs(delta.x) * kTouchEdgeZoomDominance
+            && ViewportFindFromPoint(_touchGestureStart) != nullptr;
+    }
+
+    // Zooms about the centre of the main view; steps whole levels without a ZoomTransition.
+    void UpdateTouchEdgeZoom(bool begin)
+    {
+        auto* w = WindowGetMain();
+        if (w == nullptr || w->viewport == nullptr)
+            return;
+        const float anchorX = w->viewport->pos.x + w->viewport->width / 2.0f;
+        const float anchorY = w->viewport->pos.y + w->viewport->height / 2.0f;
+        const float progress = GetEdgeZoomProgress();
+        if (begin && BeginSmoothZoom(anchorX, anchorY, progress))
+            return;
+        if (_smoothZoomActive)
+        {
+            UpdateSmoothZoom(anchorX, anchorY, progress);
+            return;
+        }
+        if (begin)
+        {
+            _touchEdgeZoomLastProgress = progress;
+            return;
+        }
+        while (std::abs(progress - _touchEdgeZoomLastProgress) >= 1.0f)
+        {
+            const bool zoomIn = progress > _touchEdgeZoomLastProgress;
+            Windows::MainWindowZoom(zoomIn, false);
+            _touchEdgeZoomLastProgress += zoomIn ? 1.0f : -1.0f;
+        }
+    }
+
     // Pans like a two-finger drag. The squeeze may also begin once the pencil is down.
     void BeginPencilPan(const ScreenCoordsXY& position)
     {
@@ -884,6 +949,12 @@ private:
             return;
         }
 
+        if (_touchGestureMode == TouchGestureMode::edgeZoom)
+        {
+            UpdateTouchEdgeZoom(false);
+            return;
+        }
+
         if (IOS::IsPencilSqueezeHeld()
             && (_touchGestureMode == TouchGestureMode::singlePending || _touchGestureMode == TouchGestureMode::singleDrag
                 || _touchGestureMode == TouchGestureMode::suppressed)
@@ -908,6 +979,13 @@ private:
         if (_touchGestureMode == TouchGestureMode::singlePending
             && GetTouchDistanceSquared(position, _touchGestureStart) >= dragThresholdSquared)
         {
+            if (IsTouchEdgeZoomStart(position))
+            {
+                _lastTouchToolTapTimestamp = 0;
+                _touchGestureMode = TouchGestureMode::edgeZoom;
+                UpdateTouchEdgeZoom(true);
+                return;
+            }
             if (ViewportFindFromPoint(_touchGestureStart) != nullptr)
             {
                 _lastTouchToolTapTimestamp = 0;
@@ -1010,6 +1088,7 @@ private:
             case TouchGestureMode::multiPinch:
             case TouchGestureMode::multiRotate:
             case TouchGestureMode::multiRemove:
+            case TouchGestureMode::edgeZoom:
                 break;
         }
         ResetTouchGesture();

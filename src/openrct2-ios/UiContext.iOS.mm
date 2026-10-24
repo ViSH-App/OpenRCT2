@@ -347,6 +347,7 @@ namespace OpenRCT2::Ui::IOS
                     @"Hold briefly, then drag to paint paths, land, water, or clear scenery.\n"
                     @"Two-finger drag: pan. Pinch: zoom. Twist: rotate supported construction.\n"
                     @"Two-finger tap on a removable path: remove. Hold two fingers, then drag: erase paths.\n"
+                    @"Slide one finger up or down along the left or right edge: zoom.\n"
                     @"Apple Pencil Pro: squeeze and drag to pan.\n"
                     @"Long press outside paint tools: right click.\nOptions → Display: change interface scale");
         }
