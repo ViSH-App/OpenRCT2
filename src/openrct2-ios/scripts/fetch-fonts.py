@@ -12,6 +12,8 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import time
+import urllib.error
 import urllib.request
 import venv
 import zipfile
@@ -65,7 +67,16 @@ def fetch(url, name, expected, cache):
     path = cache / name
     if not path.exists():
         temporary = path.with_suffix('.download')
-        urllib.request.urlretrieve(url, temporary)
+        # GitHub release downloads on Xcode Cloud are sometimes cut off partway; try again.
+        for attempt in range(1, 4):
+            try:
+                urllib.request.urlretrieve(url, temporary)
+                break
+            except (urllib.error.URLError, OSError) as error:
+                if attempt == 3:
+                    raise
+                print(f'Download of {url} failed ({error}), retrying', file=sys.stderr)
+                time.sleep(5 * attempt)
         if hashlib.sha256(temporary.read_bytes()).hexdigest() != expected:
             raise RuntimeError(f'Font checksum mismatch: {url}')
         temporary.replace(path)
