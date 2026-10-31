@@ -3889,3 +3889,6 @@ STR_7094    :{WINDOW_COLOUR_1}Remove all guests from the park?
 STR_7095    :{WINDOW_COLOUR_1}Win the scenario now?
 STR_7096    :{WINDOW_COLOUR_1}Own all land in the park?
 STR_7097    :{WINDOW_COLOUR_1}Reset the date to the start of the scenario?
+STR_7098    :Hosting on iPad
+STR_7099    :After you switch to another app, the server keeps running for about 30 seconds, then saves the park and closes.
+STR_7100    :The app was in the background too long, so the server saved the park and closed.

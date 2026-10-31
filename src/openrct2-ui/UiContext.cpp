@@ -1405,6 +1405,10 @@ public:
         _cursorState.right &= ~CURSOR_CHANGED;
         _cursorState.old = 0;
 
+#ifdef OPENRCT2_IOS
+        IOS::UpdateBackground();
+#endif
+
         SDL_Event e;
         while (SDL_PollEvent(&e))
         {

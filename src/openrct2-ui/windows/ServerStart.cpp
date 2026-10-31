@@ -258,7 +258,7 @@ namespace OpenRCT2::Ui::Windows
             GameNotifyMapChange();
             if (GetContext()->LoadParkFromFile(path, false, true))
             {
-                Network::BeginServer(Config::Get().network.defaultPort, Config::Get().network.listenAddress);
+                BeginServer();
             }
         }
 
@@ -268,7 +268,18 @@ namespace OpenRCT2::Ui::Windows
             {
                 GameNotifyMapChange();
                 GetContext()->LoadParkFromFile(path);
-                Network::BeginServer(Config::Get().network.defaultPort, Config::Get().network.listenAddress);
+                BeginServer();
+            }
+        }
+
+        static void BeginServer()
+        {
+            if (Network::BeginServer(Config::Get().network.defaultPort, Config::Get().network.listenAddress))
+            {
+    #ifdef OPENRCT2_IOS
+                // iOS suspends the app in the background, which stops the server.
+                ContextShowError(STR_IOS_HOSTING_TITLE, STR_IOS_HOSTING_BACKGROUND_NOTICE, {});
+    #endif
             }
         }
     };

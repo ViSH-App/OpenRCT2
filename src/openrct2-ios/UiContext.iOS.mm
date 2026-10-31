@@ -6,6 +6,7 @@
     #include <openrct2-ui/UiContext.h>
 
     #include "UiContext.iOS.h"
+    #include <openrct2-ui/UiStringIds.h>
     #include <openrct2-ui/windows/Windows.h>
 
     #import <AVFAudio/AVFAudio.h>
@@ -20,6 +21,9 @@
     #include <openrct2/PlatformEnvironment.h>
     #include <openrct2/audio/Audio.h>
     #include <openrct2/config/Config.h>
+    #include <openrct2/localisation/Formatter.h>
+    #include <openrct2/network/Network.h>
+    #include <openrct2/network/NetworkBase.h>
     #include <openrct2/platform/Platform.h>
     #include <openrct2/scenes/SceneManager.h>
     #include <openrct2/ui/UiContext.h>
@@ -42,6 +46,38 @@ namespace
     bool backgrounded = false;
     bool audioInterrupted = false;
     uint8_t savedPause = 0;
+    bool pausedForBackground = false;
+    // Multiplayer keeps running in the background for as long as iOS allows (about 30 seconds). A
+    // server then saves the park and closes, so that its players are told instead of timing out.
+    UIBackgroundTaskIdentifier networkTask = UIBackgroundTaskInvalid;
+    constexpr NSTimeInterval kServerCloseMargin = 5.0;
+    bool serverClosedInBackground = false;
+    void EndNetworkBackgroundTask()
+    {
+        if (networkTask != UIBackgroundTaskInvalid)
+        {
+            [UIApplication.sharedApplication endBackgroundTask:networkTask];
+            networkTask = UIBackgroundTaskInvalid;
+        }
+    }
+    void CloseServerInBackground()
+    {
+        if (Network::GetMode() == Network::Mode::server)
+        {
+            try
+            {
+                GameAutosave();
+            }
+            catch (const std::exception& error)
+            {
+                fprintf(stderr, "Background autosave failed: %s\n", error.what());
+            }
+            GetContext()->GetNetwork().Close();
+            serverClosedInBackground = true;
+            NSLog(@"OpenRCT2: server closed before the background time ran out");
+        }
+        EndNetworkBackgroundTask();
+    }
     SDL_Window* gameWindow = nullptr;
     std::string pendingPark;
     bool pendingMenu = false;
@@ -219,8 +255,19 @@ namespace
         if (event->type == SDL_APP_WILLENTERBACKGROUND && !backgrounded)
         {
             backgrounded = true;
+            // A multiplayer game keeps running for the other players.
+            const bool online = Network::GetMode() != Network::Mode::none;
             savedPause = gGamePaused;
-            gGamePaused = 1;
+            pausedForBackground = !online;
+            if (pausedForBackground)
+                gGamePaused = 1;
+            if (online && networkTask == UIBackgroundTaskInvalid)
+            {
+                networkTask = [UIApplication.sharedApplication beginBackgroundTaskWithName:@"Multiplayer"
+                                                                         expirationHandler:^{
+                                                                           CloseServerInBackground();
+                                                                         }];
+            }
             Audio::Pause();
             Config::Save();
             if (IsPlayingPark())
@@ -239,7 +286,14 @@ namespace
         else if (event->type == SDL_APP_DIDENTERFOREGROUND && backgrounded)
         {
             backgrounded = false;
-            gGamePaused = savedPause;
+            if (pausedForBackground)
+                gGamePaused = savedPause;
+            EndNetworkBackgroundTask();
+            if (serverClosedInBackground)
+            {
+                serverClosedInBackground = false;
+                ContextShowError(STR_IOS_HOSTING_TITLE, STR_IOS_HOSTING_CLOSED_IN_BACKGROUND, {});
+            }
             if (!audioInterrupted)
                 Audio::Resume();
             NSLog(@"OpenRCT2: foreground resumed");
@@ -312,6 +366,14 @@ namespace OpenRCT2::Ui::IOS
     bool IsBackgrounded()
     {
         return backgrounded;
+    }
+    void UpdateBackground()
+    {
+        if (networkTask != UIBackgroundTaskInvalid
+            && UIApplication.sharedApplication.backgroundTimeRemaining < kServerCloseMargin)
+        {
+            CloseServerInBackground();
+        }
     }
     SDL_Point PointerPosition()
     {

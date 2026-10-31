@@ -24,6 +24,8 @@ namespace OpenRCT2::Ui::IOS
     SDL_Rect PresentationRect(SDL_Window* window, int32_t logicalWidth, int32_t logicalHeight);
     bool ProcessEvent(SDL_Event& event, SDL_Window* window);
     bool IsBackgrounded();
+    // Called every frame: closes a server before the background time runs out.
+    void UpdateBackground();
     SDL_Point PointerPosition();
     // Apple Pencil Pro squeeze held: pencil touches pan the map.
     bool IsPencilSqueezeHeld();

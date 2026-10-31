@@ -194,6 +194,18 @@ namespace OpenRCT2::Network
                 return;
             }
 
+            if (mode == Mode::server)
+            {
+                // Tell clients why they are disconnected, rather than only dropping the connection.
+                char shutdownMessage[256];
+                FormatStringLegacy(shutdownMessage, sizeof(shutdownMessage), STR_LOG_SERVER_STOPPED, nullptr);
+                for (auto& clientConnection : client_connection_list)
+                {
+                    ServerSendSetDisconnectMsg(*clientConnection, shutdownMessage);
+                    clientConnection->sendQueuedData();
+                }
+            }
+
             CloseChatLog();
             CloseServerLog();
             CloseConnection();
@@ -1693,7 +1705,6 @@ namespace OpenRCT2::Network
     void NetworkBase::ServerSendGameInfo(Connection& connection)
     {
         Packet packet(Command::gameInfo);
-    #ifndef DISABLE_HTTP
         json_t jsonObj = GetServerInfoAsJson();
 
         // Provider details
@@ -1709,7 +1720,6 @@ namespace OpenRCT2::Network
         packet << _serverState.gamestateSnapshotsEnabled;
         packet << IsServerPlayerInvisible;
 
-    #endif
         connection.queuePacket(std::move(packet));
     }
 
